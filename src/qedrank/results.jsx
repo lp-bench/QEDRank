@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { Fragment, useMemo, useState } from 'react'
 import { MODEL_ORDER, TARGET_KINDS, TARGET_LABELS, seriesColor, fmtRate, fmtCI, fmtMs, fmtNum, fmtInt, download, toCsv, rateOf, useDarkMode } from './helpers.js'
 
 /* ------------------------------------------------------------------ */
@@ -330,8 +330,8 @@ export function ItemsView({ items, runId }) {
             {shown.map((r, i) => {
               const key = `${r.item_key}-${r.setting}-${r.attempt}-${r.repair_round}`
               return (
-                <>
-                  <tr key={key} className={r.infrastructure_failure ? 'qr-row-infra' : r.verified === 1 ? 'qr-row-ok' : ''}>
+                <Fragment key={key}>
+                  <tr className={r.infrastructure_failure ? 'qr-row-infra' : r.verified === 1 ? 'qr-row-ok' : ''}>
                     <td><code>{r.paper_id}</code></td><td>{TARGET_LABELS[r.target_kind] || r.target_kind}</td><td>{r.model}</td><td>{r.setting} a{r.attempt}{r.repair_round ? ` r${r.repair_round}` : ''}</td>
                     <td><Status v={r.compile_status} /></td><td><Status v={r.audit_status} /></td><td><Status v={r.statement_match} />{r.statement_match_source === 'expert_review' && <span className="qr-badge">expert</span>}</td>
                     <td>{r.infrastructure_failure ? <span className="qr-muted">infra</span> : r.verified === 1 ? <b className="qr-good">yes</b> : r.verified === 0 ? 'no' : <span className="qr-muted">n/e</span>}</td>
@@ -339,7 +339,7 @@ export function ItemsView({ items, runId }) {
                     <td><button className="qr-link" onClick={() => setOpen(open === key ? null : key)}>{open === key ? 'hide' : 'details'}</button></td>
                   </tr>
                   {open === key && (
-                    <tr key={`${key}-d`} className="qr-details"><td colSpan="12">
+                    <tr className="qr-details"><td colSpan="12">
                       <div className="qr-kv">
                         <div><span>Model id</span><code>{r.model_id}</code>{r.response_model ? <code> ({r.response_model})</code> : null} · prompt {r.prompt_hash?.slice(0, 12)} · T={r.temperature} · max tokens {r.max_tokens}</div>
                         <div><span>Eligibility</span>statement {String(r.eligible_statement_track)} · proof {String(r.eligible_proof_track)} {r.eligibility_reasons && <code>{r.eligibility_reasons}</code>}</div>
@@ -357,7 +357,7 @@ export function ItemsView({ items, runId }) {
                       </div>
                     </td></tr>
                   )}
-                </>
+                </Fragment>
               )
             })}
           </tbody>
