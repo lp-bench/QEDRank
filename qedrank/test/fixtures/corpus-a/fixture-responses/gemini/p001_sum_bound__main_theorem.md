@@ -1,13 +1,13 @@
 === PART A ===
 ```lean
-import Mathlib
+import Mathlib.Algebra.BigOperators.Intervals
 import QEDRank.Papers.p001_sum_bound
 
 theorem main_theorem (n : ℕ) : 2 * sumBelow n = n * (n - 1)
 ```
 === PART B ===
 ```lean
-import Mathlib
+import Mathlib.Algebra.BigOperators.Intervals
 import QEDRank.Papers.p001_sum_bound
 
 theorem main_theorem (n : ℕ) : 2 * sumBelow n = n * (n - 1) := by

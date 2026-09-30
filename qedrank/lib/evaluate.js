@@ -83,12 +83,16 @@ export async function preparePrelude({ runner, toolchain, paper, sharedFiles, re
     for (const f of sharedFiles) byModule.set(f.module, f);
     const order = topoSort(byModule, (m) => parseImports(byModule.get(m).text).filter((x) => byModule.has(x)));
     const parts = [];
+    const stdImports = new Set();
     for (const m of order) {
       const f = byModule.get(m);
+      for (const im of parseImports(f.text)) if (STD_PREFIX.test(im)) stdImports.add(im);
       const stripped = definitionsOnly(rewriteImports(f.text, () => null));
       parts.push(`-- ==== from ${f.path} (theorems removed automatically) ====\n${stripped.trim()}\n`);
     }
-    src = `import Mathlib\nimport QEDRank.Prelude\n\n${parts.join('\n')}`;
+    // Carry over the definition files' own library imports (falling back to all of Mathlib).
+    const header = [...(stdImports.size ? stdImports : new Set(['Mathlib'])), 'QEDRank.Prelude'].map((m) => `import ${m}`).join('\n');
+    src = `${header}\n\n${parts.join('\n')}`;
     source = 'auto_stripped';
     flags.push('prelude_auto_stripped_needs_review');
   }

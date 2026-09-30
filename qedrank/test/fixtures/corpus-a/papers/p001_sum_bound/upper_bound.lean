@@ -1,4 +1,6 @@
-import Mathlib
+import Mathlib.Algebra.BigOperators.Intervals
+import Mathlib.Algebra.Order.BigOperators.Group.Finset
+import Mathlib.Tactic.Ring
 import Defs
 
 /-- Upper bound: the sum is at most n^2. -/

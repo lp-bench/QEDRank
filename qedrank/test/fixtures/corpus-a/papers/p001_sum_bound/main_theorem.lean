@@ -1,4 +1,4 @@
-import Mathlib
+import Mathlib.Algebra.BigOperators.Intervals
 import Defs
 
 /-- Main theorem: the Gauss closed form. -/

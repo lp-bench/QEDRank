@@ -1,4 +1,4 @@
-import Mathlib
+import Mathlib.Algebra.BigOperators.Intervals
 import Defs
 
 /-- Lower bound (reference proof intentionally incomplete in this fixture). -/

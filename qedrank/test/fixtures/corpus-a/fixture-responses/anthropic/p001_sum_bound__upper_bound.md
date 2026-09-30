@@ -1,13 +1,17 @@
 === PART A ===
 ```lean
-import Mathlib
+import Mathlib.Algebra.BigOperators.Intervals
+import Mathlib.Algebra.Order.BigOperators.Group.Finset
+import Mathlib.Tactic.Linarith
 import QEDRank.Papers.p001_sum_bound
 
 theorem upper_bound (n : ℕ) : sumBelow n ≤ n ^ 2 + 1
 ```
 === PART B ===
 ```lean
-import Mathlib
+import Mathlib.Algebra.BigOperators.Intervals
+import Mathlib.Algebra.Order.BigOperators.Group.Finset
+import Mathlib.Tactic.Linarith
 import QEDRank.Papers.p001_sum_bound
 
 theorem upper_bound (n : ℕ) : sumBelow n ≤ n ^ 2 + 1 := by
