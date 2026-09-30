@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import axios from 'axios'
+import QEDRankPage from './qedrank/QEDRankPage.jsx'
 import './App.css'
 
 const LLM_MODELS = [
@@ -17,6 +18,7 @@ function App() {
   const [feedback, setFeedback] = useState({})
   const [submitted, setSubmitted] = useState(false)
   const [error, setError] = useState('')
+  const [mode, setMode] = useState('single')
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -72,7 +74,14 @@ function App() {
         </p>
       </header>
 
+      <nav className="mode-tabs" aria-label="Mode">
+        <button type="button" className={`mode-tab ${mode === 'single' ? 'active' : ''}`} onClick={() => setMode('single')}>Single problem</button>
+        <button type="button" className={`mode-tab ${mode === 'qedrank' ? 'active' : ''}`} onClick={() => setMode('qedrank')}>QEDRank benchmark</button>
+      </nav>
+
       <main className="main">
+        {mode === 'qedrank' && <QEDRankPage />}
+        {mode === 'single' && (<>
         <form onSubmit={handleSubmit} className="input-form">
           <div className="input-group">
             <label htmlFor="mathProblem">Mathematical Problem</label>
@@ -116,6 +125,7 @@ function App() {
             </div>
           </div>
         )}
+        </>)}
       </main>
 
       <footer className="footer">

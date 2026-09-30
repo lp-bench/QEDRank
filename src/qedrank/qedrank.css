@@ -1,0 +1,104 @@
+/* QEDRank page. Follows the app's dark card style; chart roles are tokens so
+   light/dark swap in one place. */
+
+.qr-page {
+  --qr-surface: #1a1a1a;
+  --qr-surface-2: #0d0d0d;
+  --qr-border: #333;
+  --qr-text: #e5e7eb;
+  --qr-text-2: #b3b3b3;
+  --qr-muted: #888;
+  --qr-accent: #646cff;
+  --qr-good: #0ca30c;
+  --qr-warn: #fab219;
+  --qr-bad: #d03b3b;
+  --qr-grid: #2e2e2e;
+  --qr-axis: #9a9a9a;
+  text-align: left;
+  color: var(--qr-text);
+}
+@media (prefers-color-scheme: light) {
+  .qr-page {
+    --qr-surface: #fcfcfb;
+    --qr-surface-2: #f3f3f1;
+    --qr-border: #d9d9d4;
+    --qr-text: #0b0b0b;
+    --qr-text-2: #3c3c3a;
+    --qr-muted: #6a6a66;
+    --qr-grid: #e6e6e2;
+    --qr-axis: #52514e;
+  }
+}
+
+.qr-intro { max-width: 900px; margin: 0 auto 1.5rem; line-height: 1.6; color: var(--qr-text-2); }
+.qr-card { background: var(--qr-surface); border: 1px solid var(--qr-border); border-radius: 12px; padding: 1.5rem; margin-bottom: 1.5rem; }
+.qr-card h2 { margin: 0 0 0.5rem; font-size: 1.3rem; }
+.qr-card h3 { margin: 1.25rem 0 0.5rem; font-size: 1.05rem; }
+.qr-muted { color: var(--qr-muted); }
+.qr-small { font-size: 0.8rem; color: var(--qr-text-2); }
+.qr-center { text-align: center; }
+.qr-good { color: var(--qr-good); }
+.qr-warn { color: var(--qr-warn); }
+.qr-bad { color: var(--qr-bad); }
+.qr-badge { display: inline-block; font-size: 0.7rem; padding: 0.1rem 0.4rem; border-radius: 999px; border: 1px solid var(--qr-border); margin-left: 0.4rem; color: var(--qr-text-2); }
+
+.qr-form { display: grid; gap: 0.75rem; margin: 1rem 0; }
+.qr-form label { display: flex; flex-direction: column; gap: 0.25rem; font-weight: 600; font-size: 0.9rem; }
+.qr-form input, .qr-form select { padding: 0.55rem 0.7rem; border-radius: 8px; border: 1px solid var(--qr-border); background: var(--qr-surface-2); color: var(--qr-text); font-family: inherit; font-size: 0.95rem; }
+.qr-form-row { grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); align-items: end; }
+.qr-check { flex-direction: row !important; align-items: center; gap: 0.5rem !important; }
+.qr-btn { background: linear-gradient(135deg, #646cff, #61dafb); color: #fff; border: none; padding: 0.7rem 1.2rem; font-weight: 600; border-radius: 8px; cursor: pointer; }
+.qr-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+.qr-btn-secondary { background: var(--qr-surface-2); color: var(--qr-text); border: 1px solid var(--qr-border); }
+.qr-link { background: none; border: none; color: var(--qr-accent); cursor: pointer; padding: 0; font-size: 0.85rem; }
+.qr-actions { display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap; margin: 0.75rem 0; }
+.qr-note { background: var(--qr-surface-2); border: 1px solid var(--qr-border); border-radius: 8px; padding: 0.75rem; margin: 0.75rem 0; font-size: 0.9rem; }
+.qr-note pre, .qr-details pre { white-space: pre-wrap; word-break: break-word; font-size: 0.8rem; margin: 0.4rem 0 0; }
+
+.qr-kv > div { display: grid; grid-template-columns: 180px 1fr; gap: 0.5rem; padding: 0.3rem 0; border-bottom: 1px dashed var(--qr-border); font-size: 0.9rem; }
+.qr-kv > div > span:first-child { color: var(--qr-muted); }
+.qr-kv code { font-size: 0.8rem; word-break: break-all; }
+
+.qr-table-wrap { overflow-x: auto; margin: 0.75rem 0; }
+.qr-table { border-collapse: collapse; width: 100%; font-size: 0.85rem; }
+.qr-table th, .qr-table td { border-bottom: 1px solid var(--qr-border); padding: 0.45rem 0.5rem; text-align: left; vertical-align: top; }
+.qr-table th { color: var(--qr-text-2); font-weight: 600; white-space: nowrap; }
+.qr-row-flagged td:first-child { border-left: 3px solid var(--qr-warn); }
+.qr-row-infra { opacity: 0.7; }
+.qr-row-ok td:first-child { border-left: 3px solid var(--qr-good); }
+.qr-details td { background: var(--qr-surface-2); }
+.qr-swatch { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 0.4rem; vertical-align: middle; }
+
+.qr-tabs { display: flex; gap: 0.4rem; flex-wrap: wrap; margin: 0.75rem 0; }
+.qr-tab { background: var(--qr-surface-2); border: 1px solid var(--qr-border); color: var(--qr-text); padding: 0.4rem 0.8rem; border-radius: 999px; cursor: pointer; font-size: 0.85rem; }
+.qr-tab.active { border-color: var(--qr-accent); color: var(--qr-accent); }
+
+.qr-progress { margin-top: 1rem; }
+.qr-stages { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.5rem; }
+.qr-stage { border: 1px solid var(--qr-border); border-radius: 8px; padding: 0.35rem 0.6rem; font-size: 0.8rem; display: flex; gap: 0.4rem; align-items: center; }
+.qr-stage em { color: var(--qr-muted); font-style: normal; }
+.qr-stage-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--qr-muted); }
+.qr-stage-running .qr-stage-dot { background: var(--qr-warn); }
+.qr-stage-done .qr-stage-dot { background: var(--qr-good); }
+.qr-stage-failed .qr-stage-dot { background: var(--qr-bad); }
+.qr-bar { height: 8px; background: var(--qr-surface-2); border-radius: 999px; overflow: hidden; margin: 0.5rem 0; }
+.qr-bar > div { height: 100%; background: var(--qr-accent); }
+
+.qr-legend { display: flex; gap: 1rem; flex-wrap: wrap; font-size: 0.85rem; margin: 0.5rem 0; }
+.qr-legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 0.4rem; }
+.qr-facets { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1rem; }
+.qr-figure { margin: 0; position: relative; background: var(--qr-surface-2); border: 1px solid var(--qr-border); border-radius: 8px; padding: 0.5rem; }
+.qr-figure figcaption { font-size: 0.85rem; font-weight: 600; margin-bottom: 0.25rem; }
+.qr-figure svg { width: 100%; height: auto; display: block; }
+.qr-grid { stroke: var(--qr-grid); stroke-width: 1; }
+.qr-baseline { stroke: var(--qr-axis); stroke-width: 1; }
+.qr-axis { fill: var(--qr-axis); font-size: 9px; }
+.qr-label { fill: var(--qr-text); font-size: 9px; }
+.qr-ci { stroke: var(--qr-text); stroke-width: 1.5; }
+.qr-bar-mark { stroke: var(--qr-surface-2); stroke-width: 2; }
+.qr-tooltip { position: absolute; top: 2rem; right: 0.75rem; background: var(--qr-surface); border: 1px solid var(--qr-border); border-radius: 6px; padding: 0.4rem 0.6rem; font-size: 0.8rem; pointer-events: none; }
+
+@media (max-width: 768px) {
+  .qr-kv > div { grid-template-columns: 1fr; }
+  .qr-card { padding: 1rem; }
+}

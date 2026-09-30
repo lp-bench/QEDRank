@@ -88,3 +88,8 @@ public
 # Temporary folders
 tmp/
 temp/
+# QEDRank
+runs/
+lean/.lake/
+lean/QEDRank/Papers/
+qedrank.config.json

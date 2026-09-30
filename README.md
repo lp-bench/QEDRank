@@ -10,6 +10,7 @@ An AI-powered web application that converts mathematical problems to Lean4 code 
 - **Secure Backend**: Hidden API keys using Vercel serverless functions
 - **Responsive Design**: Works on desktop and mobile devices
 - **Preference Dataset Collection**: Human-in-the-Loop feedback for model training
+- **QEDRank batch benchmark mode**: evaluate the same five models on every paper of a GitHub corpus (main theorem, upper bound, lower bound, optional disproof) against audited ground-truth Lean statements, with Lean compilation, dependency audits, statement comparison and paper-cluster statistics — see [qedrank/README.md](qedrank/README.md)
 
 ## Architecture
 
@@ -17,15 +18,37 @@ An AI-powered web application that converts mathematical problems to Lean4 code 
 /proof-checker
 ├── /api
 │   ├── verify.js      # Backend bridge for LLMs (serverless)
-│   └── feedback.js    # Feedback collection and storage
+│   ├── feedback.js    # Feedback collection and storage
+│   └── qedrank/
+│       └── discover.js  # QEDRank corpus preview (GitHub URL + ref -> manifest)
+├── /lib
+│   └── providers.js   # The five provider integrations shared by both modes
+├── /qedrank           # QEDRank batch benchmark runner (Node CLI) + tests
+│   ├── cli.js         # discover | run | resume | stats | serve | toolchain
+│   └── lib/           # source, corpus, pdf, prompt, models, lean, evaluate, compare, metrics, stats, export
+├── /lean              # Pinned Lean 4 + Mathlib sandbox (QEDRank.Prelude, QEDRank.Audit)
 ├── /src
-│   ├── App.jsx        # Main React frontend
+│   ├── App.jsx        # Main React frontend (single-problem mode + QEDRank tab)
+│   ├── qedrank/       # QEDRank page: corpus preview, run loader, matrix, charts, item table
 │   ├── main.jsx       # Application entry point
 │   ├── index.css      # Global styles
 │   └── App.css        # Component styles
 ├── .env.example       # Environment variables template
 └── package.json       # Dependencies and scripts
 ```
+
+## QEDRank batch benchmark mode
+
+The web app keeps the single-problem workflow unchanged and adds a **QEDRank benchmark** tab:
+
+1. Paste a GitHub repository URL (and optionally a branch, tag or commit). The app resolves it to an immutable commit and shows a preview manifest of the discovered papers, PDFs and ground-truth Lean targets, flagging anything ambiguous for review. The expected count (108) is compared against, never assumed.
+2. Run the benchmark locally — model calls, Lean compilation in the pinned sandbox, dependency audits and statement comparison all happen on your machine:
+   ```bash
+   node qedrank/cli.js run --repo https://github.com/<owner>/<corpus> --ref <commit>
+   ```
+3. Serve the run (`npm run qedrank:serve`) and load it in the tab to get the performance matrix with numerators/denominators and 95% paper-cluster CIs, charts, the five-model comparison, subject/difficulty views, item-level filters and CSV/JSON downloads. Partial runs can be polled while they are in progress and resumed with `node qedrank/cli.js resume --run-id <id>`.
+
+Full details (measurements, eligibility rules, corpus layout, annotations, expert-review inputs, isolation policy, statistics) are in [qedrank/README.md](qedrank/README.md).
 
 ## Local Development
 
