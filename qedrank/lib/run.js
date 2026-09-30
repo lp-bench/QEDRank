@@ -333,7 +333,7 @@ export async function stageGeneration(ctx, { selection = null, retryFailed = fal
             try {
               const existing = await readJson(path.join(itemDir, `attempt-a${attempt}r0.json`), null);
               const infraFailed = existing?.outcomes?.infrastructure_failure;
-              if (existing?.evaluation_complete && !reevaluate && !(retryFailed && infraFailed)) { counters.skipped += 1; counters.done += 1; return; }
+              if (existing?.evaluation_complete && !reevaluate && !(retryFailed && infraFailed)) { counters.skipped += 1; return; }
               await ensureDir(itemDir);
               let gen;
               const genFile = path.join(itemDir, `generation-a${attempt}.json`);

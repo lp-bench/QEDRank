@@ -204,16 +204,22 @@ export class LocalSource {
   async resolve() {
     if (this.commit) return this.descriptor();
     try {
-      const { stdout } = await execFileP('git', ['-C', this.dir, 'rev-parse', 'HEAD'], { timeout: 10000 });
-      const sha = stdout.trim();
-      if (/^[0-9a-f]{40}$/.test(sha)) {
-        this.commit = sha;
-        this.refType = 'local_git_head';
-        const { stdout: st } = await execFileP('git', ['-C', this.dir, 'status', '--porcelain'], { timeout: 10000 });
+      // Inside a git repository: identify the corpus by the tree hash of this directory at HEAD,
+      // which changes only when the corpus content changes (not on unrelated commits).
+      const { stdout: prefixOut } = await execFileP('git', ['-C', this.dir, 'rev-parse', '--show-prefix'], { timeout: 10000 });
+      const prefix = prefixOut.trim().replace(/\/$/, '');
+      const { stdout } = await execFileP('git', ['-C', this.dir, 'rev-parse', `HEAD:${prefix}`], { timeout: 10000 });
+      const tree = stdout.trim();
+      if (/^[0-9a-f]{40}$/.test(tree)) {
+        this.commit = tree;
+        this.refType = 'local_git_tree';
+        const { stdout: head } = await execFileP('git', ['-C', this.dir, 'rev-parse', 'HEAD'], { timeout: 10000 });
+        this.headCommit = head.trim();
+        const { stdout: st } = await execFileP('git', ['-C', this.dir, 'status', '--porcelain', '--', '.'], { timeout: 10000 });
         this.dirty = st.trim().length > 0;
       }
     } catch {
-      /* not a git repo */
+      /* not a git repo, or directory not tracked */
     }
     if (!this.commit) {
       const { files } = await this.listTree();
@@ -225,7 +231,7 @@ export class LocalSource {
   }
 
   descriptor() {
-    return { kind: 'local', url: this.url, requested_ref: null, resolved_ref: null, ref_type: this.refType, commit: this.commit, dirty: this.dirty ?? null };
+    return { kind: 'local', url: this.url, requested_ref: null, resolved_ref: null, ref_type: this.refType, commit: this.commit, head_commit: this.headCommit ?? null, dirty: this.dirty ?? null };
   }
 
   async listTree() {
