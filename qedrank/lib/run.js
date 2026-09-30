@@ -234,8 +234,9 @@ export async function stagePreparation(ctx, { selection = null, force = false } 
       const prelude = await preparePrelude({ runner: ctx.runner, toolchain: ctx.toolchain, paper, sharedFiles, reviewedPreludeSrc: reviewedPrelude, leanDir: ctx.config.leanDir, outDir: pdir, log: ctx.log });
       prep.prelude = { module: prelude.moduleName, source: prelude.source, compile_status: prelude.compile?.status ?? null, flags: prelude.flags, decls: prelude.decls.length };
       prep.prelude_text = prelude.src;
-      // --- references and contexts ---
-      for (const kind of TARGET_KINDS) {
+      // --- references and contexts (only the selected target kinds, all by default) ---
+      const kindsToPrepare = selection?.targets?.length ? TARGET_KINDS.filter((k) => selection.targets.includes(k)) : TARGET_KINDS;
+      for (const kind of kindsToPrepare) {
         const target = paper.targets[kind];
         if (!target) continue;
         const ref = await prepareReference({ runner: ctx.runner, toolchain: ctx.toolchain, paper, target, paperFiles, preludeModule: prelude.moduleName, outDir: pdir, maxHeartbeats: ctx.config.lean.maxHeartbeats, log: ctx.log });
