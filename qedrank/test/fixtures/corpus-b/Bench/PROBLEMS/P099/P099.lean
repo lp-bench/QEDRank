@@ -1,3 +1,3 @@
 import Mathlib
 
-theorem P050_main : True := trivial
+theorem P099 : True := trivial

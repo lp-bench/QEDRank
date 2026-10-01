@@ -101,6 +101,16 @@ plus `DATABASE/Database.json` and `DATABASE/content/pdf/Pnnn.pdf`):
 supplies titles, MSC codes and difficulty (its formal statements and proofs are never copied);
 `Pnnn.pdf` files elsewhere in the repository are attached to the matching paper and flagged.
 
+Index entries are joined to folders by the theorem names declared in the folder's main Lean
+file, then by an id embedded in those names, then by the folder number, and are **accepted only
+when the entry's title agrees with the folder's own evidence** (a `Paper: …` header in the main
+Lean file, or informative PDF file names). Agreement needs two distinctive shared words, after
+ignoring words that occur in many index titles. A contradicted entry is recorded under
+`index_entry_rejected`, flagged `index_entry_conflicts_with_folder_content`, and its title,
+subject and status are not used; the entry whose title the folder does describe is used
+instead when one matches clearly (`join_rule: title_match`). This protects against folders
+that were renumbered after the index was written.
+
 | Situation | Web preview (Vercel) | Local runner (`node qedrank/cli.js …`) |
 |---|---|---|
 | Public repository | works as is | works as is |

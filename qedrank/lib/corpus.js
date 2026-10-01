@@ -120,17 +120,64 @@ export function normalizeId(id) {
   return s.toLowerCase().replace(/[^a-z0-9]/g, '');
 }
 
-function wordSet(s) {
-  return new Set(String(s || '').toLowerCase().split(/[^a-z0-9]+/).filter((w) => w.length > 2));
+const STOPWORDS = new Set([
+  'with', 'from', 'that', 'this', 'into', 'their', 'there', 'which', 'about', 'under', 'over', 'upon', 'between', 'some', 'when', 'where', 'paper', 'version',
+  // generic mathematical words carry no information about which paper a title names
+  'theorem', 'theorems', 'conjecture', 'conjectures', 'lemma', 'problem', 'problems', 'proof', 'result', 'results', 'type', 'note', 'notes', 'remark', 'main', 'part',
+]);
+
+function stemWord(w) {
+  if (w.endsWith('ies') && w.length > 5) return `${w.slice(0, -3)}y`;
+  if (w.endsWith('s') && !w.endsWith('ss') && w.length > 4) return w.slice(0, -1);
+  return w;
 }
 
-function overlap(a, b) {
-  const A = wordSet(a);
-  const B = wordSet(b);
-  if (!A.size || !B.size) return 0;
-  let n = 0;
-  for (const w of A) if (B.has(w)) n += 1;
-  return n / Math.min(A.size, B.size);
+function normalizeSpelling(w) {
+  return w.replace(/colour/g, 'color').replace(/neighbour/g, 'neighbor').replace(/isation/g, 'ization').replace(/ise$/, 'ize');
+}
+
+function wordSet(s) {
+  return new Set(String(s || '').toLowerCase().normalize('NFKD').replace(/[̀-ͯ]/g, '')
+    .split(/[^a-z0-9]+/).filter((w) => w.length > 3 && !STOPWORDS.has(w)).map((w) => stemWord(normalizeSpelling(w))));
+}
+
+/** Title written in the main Lean file's header comment ("Paper: …" or "Title: …"), if any. */
+export function leanHeaderTitle(text) {
+  const head = String(text || '').split(/\r?\n/).slice(0, 60).join('\n');
+  const m = /(?:^|\n)[ \t]*(?:\/-+!?|--+)?[ \t]*(?:Paper|Title)[ \t]*:[ \t]*(.+?)[ \t]*(?:-+\/)?[ \t]*(?=\n|$)/i.exec(head);
+  if (!m) return null;
+  const t = m[1].trim();
+  return t.length >= 6 ? t : null;
+}
+
+const TITLE_MATCH_FOR_LOOKUP = 0.5;
+
+/**
+ * Title matcher for one discovery run. Words that occur in many index titles (e.g. "graph" in a
+ * graph-theory corpus) are treated as generic, so agreement rests on distinctive words.
+ */
+export function makeTitleMatcher(indexTitles = []) {
+  const df = new Map();
+  for (const t of indexTitles) for (const w of wordSet(t)) df.set(w, (df.get(w) || 0) + 1);
+  const cutoff = Math.max(3, Math.ceil(0.08 * indexTitles.length));
+  const generic = new Set([...df.entries()].filter(([, n]) => n > cutoff).map(([w]) => w));
+  const informative = (s) => new Set([...wordSet(s)].filter((w) => !generic.has(w)));
+  const compare = (a, b) => {
+    const A = informative(a);
+    const B = informative(b);
+    if (!A.size || !B.size) return { shared: 0, score: 0 };
+    let shared = 0;
+    for (const w of A) if (B.has(w)) shared += 1;
+    return { shared, score: shared / Math.min(A.size, B.size) };
+  };
+  return {
+    generic,
+    score: (a, b) => compare(a, b).score,
+    /** Folder evidence agrees with a title: two distinctive shared words, or half of a very short title. */
+    agrees: (a, b) => { const c = compare(a, b); return c.shared >= 2 || (c.shared >= 1 && c.score >= 0.5); },
+    /** Strong enough to pick an index entry by title alone. */
+    strong: (a, b) => { const c = compare(a, b); return c.shared >= 2 && c.score >= TITLE_MATCH_FOR_LOOKUP; },
+  };
 }
 
 /** Mathematical status of the main claim from an index entry; null when the entry does not say. */
@@ -154,10 +201,29 @@ function subjectTagsFromIndex(entry) {
   }).filter(Boolean);
 }
 
+const FORMAL_TEXT_FIELDS = ['formal_statement', 'formal_proof', 'formal_upper_bound', 'formal_upper_bound_proof', 'formal_lower_bound', 'formal_lower_bound_proof', 'formal_disproof', 'lean', 'lean_statement'];
+
+/** Theorem/lemma names declared in an index entry's formal text (used only to match entries to folders). */
+function declaredNames(entry) {
+  const names = new Set();
+  for (const k of FORMAL_TEXT_FIELDS) {
+    const v = entry[k];
+    const texts = Array.isArray(v) ? v : typeof v === 'string' ? [v] : [];
+    for (const t of texts) {
+      if (typeof t !== 'string') continue;
+      const re = /(?:^|\s)(?:theorem|lemma)\s+([^\s(:{[]+)/g;
+      let m;
+      while ((m = re.exec(t))) names.add(m[1].split('.').pop());
+    }
+  }
+  return names;
+}
+
 /** Load repository index files (array of {id, name|title, ...}). Only whitelisted fields are kept. */
 async function loadIndexes(allFiles, read, globalFlags) {
   const candidates = allFiles.filter((f) => INDEX_FILE_NAMES.includes(basename(f.path).toLowerCase()) && (f.size ?? 0) <= 16 * 1024 * 1024);
   const entries = new Map(); // normalized id -> {entry, file}
+  const byDeclName = new Map(); // declaration name -> normalized id (null when several entries declare it)
   const used = [];
   for (const f of candidates) {
     let json;
@@ -186,11 +252,42 @@ async function loadIndexes(allFiles, read, globalFlags) {
           status: statusFromIndex(e),
         },
       });
+      for (const name of declaredNames(e)) byDeclName.set(name, byDeclName.has(name) && byDeclName.get(name) !== key ? null : key);
       n += 1;
     }
     if (n) used.push({ path: f.path, entries: n });
   }
-  return { entries, files: used };
+  return { entries, byDeclName, files: used };
+}
+
+/**
+ * Join a paper to its index entry. The strongest evidence is the theorem names declared in the
+ * paper's main Lean file appearing in an entry's formal text; next an id embedded in the main
+ * declaration name (P037 in folder P035); last the folder id. The rule used is recorded.
+ */
+function joinIndex(index, paperId, stem, mainDeclNames) {
+  const byFolder = index.entries.get(normalizeId(paperId)) || index.entries.get(normalizeId(stem)) || null;
+  const keys = new Set();
+  for (const n of mainDeclNames) {
+    const k = index.byDeclName.get(n.split('.').pop());
+    if (k) keys.add(k);
+  }
+  if (keys.size === 1) {
+    const hit = index.entries.get([...keys][0]);
+    return { hit, rule: 'declaration_name_in_index', folderEntryId: byFolder && byFolder !== hit ? byFolder.entry.id : null };
+  }
+  if (keys.size > 1) return { hit: null, rule: 'ambiguous_declaration_names', candidates: [...keys].map((k) => index.entries.get(k).entry.id), folderEntryId: byFolder?.entry.id ?? null };
+  const ids = new Set();
+  for (const n of mainDeclNames) {
+    const m = /^([A-Za-z]+\d+)(?![a-z])/.exec(n.split('.').pop());
+    if (m) ids.add(normalizeId(m[1]));
+  }
+  if (ids.size === 1 && ![...ids].includes(normalizeId(paperId))) {
+    const hit = index.entries.get([...ids][0]);
+    if (hit) return { hit, rule: 'declaration_id', folderEntryId: byFolder && byFolder !== hit ? byFolder.entry.id : null };
+  }
+  if (byFolder) return { hit: byFolder, rule: 'folder_id', folderEntryId: null };
+  return { hit: null, rule: 'none', folderEntryId: null };
 }
 
 /**
@@ -252,7 +349,8 @@ export async function discoverCorpus(source, {
   }
   const ann = annotations || repoAnnotations || {};
   const annPapers = ann.papers || {};
-  const index = readLeanFiles ? await loadIndexes(allFiles, read, globalFlags) : { entries: new Map(), files: [] };
+  const index = readLeanFiles ? await loadIndexes(allFiles, read, globalFlags) : { entries: new Map(), byDeclName: new Map(), files: [] };
+  const titles = makeTitleMatcher([...index.entries.values()].map((e) => e.entry.title).filter(Boolean));
 
   // 1. Paper directories from Lean target files (and <Id>/<Id>.lean main files).
   const papers = new Map(); // key: paper dir (or "flat:<pdf path>")
@@ -332,16 +430,76 @@ export async function discoverCorpus(source, {
   });
 
   // Synchronous check-and-reserve, so concurrent papers cannot overrun the budget.
+  const reserved = new Set();
   const reserveLeanRead = (target, file) => {
-    if ((file.size ?? 0) > maxLeanBytes) { target.mapping_flags.push('lean_file_too_large_to_inspect'); return false; }
-    if (leanReads >= maxLeanReads || nowMono() - t0 > timeBudgetMs) { budgetExhausted = true; target.mapping_flags.push('not_inspected_preview_budget'); return false; }
+    if (reserved.has(file.path)) return true;
+    if ((file.size ?? 0) > maxLeanBytes) { target?.mapping_flags.push('lean_file_too_large_to_inspect'); return false; }
+    if (leanReads >= maxLeanReads || nowMono() - t0 > timeBudgetMs) { budgetExhausted = true; target?.mapping_flags.push('not_inspected_preview_budget'); return false; }
     leanReads += 1;
+    reserved.add(file.path);
     return true;
   };
+  const joinRules = {};
+  const joinedIds = new Set();
 
   const processPaper = async ({ p, paperId }) => {
     const pAnn = annPapers[paperId] || annPapers[p.stem] || {};
-    const idx = index.entries.get(normalizeId(paperId)) || index.entries.get(normalizeId(p.stem)) || null;
+    const rec_flags_pending = [];
+    // Peek at the main theorem file (cached; counted once): its declaration names key the index,
+    // and its "Paper:" header is the folder's own statement of which paper it formalizes.
+    let mainDeclNames = [];
+    let headerTitle = null;
+    if (readLeanFiles) {
+      const mains = p.leanFiles.filter((f) => { const s = stemOf(f.path).toLowerCase(); return s === p.stem.toLowerCase() || s === paperId.toLowerCase(); });
+      const main = mains.length === 1 ? mains[0] : p.leanFiles.filter((f) => classifyLeanFile(basename(f.path)).kind === 'main_theorem')[0];
+      if (main && reserveLeanRead(null, main)) {
+        try {
+          const text = (await read(main.path, maxLeanBytes)).toString('utf8');
+          mainDeclNames = candidateDeclarations(text, 'main_theorem').map((c) => c.name);
+          headerTitle = leanHeaderTitle(text);
+        } catch { mainDeclNames = []; }
+      }
+    }
+    // Index join, validated against the folder's own title evidence (Lean header, informative PDF names).
+    const evidence = [headerTitle, ...p.pdfCandidates.filter((c) => c.origin !== 'matched_by_file_name').map((c) => stemOf(c.path)).filter((s) => !/^[A-Za-z_-]*\d+$/.test(s))].filter(Boolean);
+    const agrees = (title) => !evidence.length || evidence.some((e) => titles.agrees(title, e));
+    let idx = null;
+    let joinRule = 'none';
+    let rejected = null;
+    if (pAnn.index_id) {
+      idx = index.entries.get(normalizeId(pAnn.index_id)) || null;
+      joinRule = 'annotations';
+    } else if (index.entries.size) {
+      const join = joinIndex(index, paperId, p.stem, mainDeclNames);
+      if (join.hit && agrees(join.hit.entry.title)) {
+        idx = join.hit;
+        joinRule = join.rule;
+        if ((join.rule === 'declaration_name_in_index' || join.rule === 'declaration_id') && join.folderEntryId) {
+          rec_flags_pending.push({ code: 'index_entry_differs_from_folder_id', message: `Index entry ${idx.entry.id} matched by ${join.rule}; the folder id would have selected entry ${join.folderEntryId}`, paths: [] });
+        }
+      } else {
+        if (join.hit) rejected = { id: join.hit.entry.id, join_rule: join.rule, title: join.hit.entry.title };
+        if (join.rule === 'ambiguous_declaration_names') rec_flags_pending.push({ code: 'index_match_ambiguous', message: `Main file declarations appear in index entries ${join.candidates.join(', ')}`, paths: [] });
+        // Look for the entry whose title the folder's evidence actually describes.
+        if (evidence.length) {
+          const scored = [...index.entries.values()]
+            .filter((e) => evidence.some((x) => titles.strong(e.entry.title, x)))
+            .map((e) => ({ e, s: Math.max(...evidence.map((x) => titles.score(e.entry.title, x))) }))
+            .sort((a, b) => b.s - a.s);
+          if (scored[0] && (!scored[1] || scored[1].s < scored[0].s)) {
+            idx = scored[0].e;
+            joinRule = 'title_match';
+            rec_flags_pending.push({ code: 'index_matched_by_title', message: `Index entry ${idx.entry.id} matched by title against the folder's own Lean header/PDF names`, paths: [] });
+          }
+        }
+        if (rejected) {
+          rec_flags_pending.push({ code: 'index_entry_conflicts_with_folder_content', message: `Index entry ${rejected.id} ("${rejected.title}", by ${rejected.join_rule}) does not match this folder's Lean header/PDF ("${evidence[0]}"); its title, subject and status were not used`, paths: [] });
+        }
+      }
+    }
+    joinRules[joinRule] = (joinRules[joinRule] || 0) + 1;
+    if (rejected) joinRules.rejected_conflicting = (joinRules.rejected_conflicting || 0) + 1;
+    if (idx) joinedIds.add(normalizeId(idx.entry.id));
     const rec = {
       paper_id: paperId,
       dir: p.dir,
@@ -351,7 +509,9 @@ export async function discoverCorpus(source, {
       title_source: pAnn.title ? 'annotations' : null,
       pdf: null,
       pdf_candidates: [],
-      index_entry: idx ? { file: idx.file, id: idx.entry.id, difficulty: idx.entry.difficulty, msc: idx.entry.msc_raw, references: idx.entry.references } : null,
+      index_entry: idx ? { file: idx.file, id: idx.entry.id, join_rule: joinRule, title: idx.entry.title, difficulty: idx.entry.difficulty, msc: idx.entry.msc_raw, references: idx.entry.references } : null,
+      index_entry_rejected: rejected,
+      lean_header_title: headerTitle,
       metadata_files: [],
       shared_definition_files: [],
       targets: Object.fromEntries(TARGET_KINDS.map((k) => [k, null])),
@@ -364,6 +524,8 @@ export async function discoverCorpus(source, {
       annotations_applied: Boolean(annPapers[paperId] || annPapers[p.stem]),
       flags: [...p.flags],
     };
+    rec.flags.push(...rec_flags_pending);
+    if (!rec.title && headerTitle) { rec.title = headerTitle; rec.title_source = 'lean_header'; }
     if (!rec.title && idx?.entry.title) { rec.title = idx.entry.title; rec.title_source = `index:${idx.file}`; }
     if (!rec.citation && idx?.entry.citation) rec.citation = idx.entry.citation;
 
@@ -412,7 +574,7 @@ export async function discoverCorpus(source, {
     else if (cands.length > 1) {
       const local = cands.filter((c) => c.origin !== 'matched_by_file_name');
       const pool = local.length ? local : cands;
-      const scored = pool.map((c) => ({ c, s: rec.title ? overlap(rec.title, stemOf(c.path)) : 0 })).sort((a, b) => b.s - a.s || a.c.path.localeCompare(b.c.path));
+      const scored = pool.map((c) => ({ c, s: rec.title ? titles.score(rec.title, stemOf(c.path)) : 0 })).sort((a, b) => b.s - a.s || a.c.path.localeCompare(b.c.path));
       chosenPdf = scored[0].c;
       const reason = scored[0].s > (scored[1]?.s ?? 0) ? 'best title match' : 'first in folder order (no title match)';
       rec.flags.push({ code: 'multiple_pdfs', message: `${cands.length} PDFs; chose ${basename(chosenPdf.path)} (${reason}); set pdf_path in annotations to override`, paths: cands.map((c) => c.path) });
@@ -548,6 +710,17 @@ export async function discoverCorpus(source, {
   const papersByParent = {};
   for (const r of records) { const k = r.layout === 'flat_pdfs' ? `${r.dir || '.'} (flat)` : (dirname(r.dir) || '.'); papersByParent[k] = (papersByParent[k] || 0) + 1; }
   const indexMatched = records.filter((r) => r.index_entry).length;
+  const renumbered = records.filter((r) => r.targets.main_theorem?.mapping_flags?.some((f) => f.startsWith('declaration_names_other_paper'))).length;
+  if (renumbered >= 3) {
+    globalFlags.push({ code: 'folder_ids_differ_from_declaration_ids', message: `${renumbered} folders hold a main theorem named after a different id (e.g. folder P035 declares P037). Folders may have been renumbered. Index entries are joined by declaration names, then folder number, and accepted only when their title agrees with the folder's own Lean header or PDF names (see papers[].index_entry and index_entry_rejected).` });
+  }
+  const duplicateJoins = {};
+  for (const r of records) if (r.index_entry) duplicateJoins[r.index_entry.id] = (duplicateJoins[r.index_entry.id] || 0) + 1;
+  const multiplyJoined = Object.entries(duplicateJoins).filter(([, n]) => n > 1).map(([id]) => id);
+  if (multiplyJoined.length) {
+    globalFlags.push({ code: 'index_entry_joined_to_several_papers', message: `Index entries joined to more than one folder: ${multiplyJoined.join(', ')}` });
+    for (const r of records) if (r.index_entry && multiplyJoined.includes(r.index_entry.id)) r.flags.push({ code: 'index_entry_shared_with_other_folder', message: `Index entry ${r.index_entry.id} is also joined to another folder`, paths: [] });
+  }
   const counts = {
     subdir: root || null,
     files_listed: files.length,
@@ -560,7 +733,8 @@ export async function discoverCorpus(source, {
     papers_with_pdf: records.filter((r) => r.pdf).length,
     papers_with_index_entry: indexMatched,
     index_files: index.files,
-    index_entries_without_paper: index.files.length ? [...index.entries.entries()].filter(([k]) => !records.some((r) => normalizeId(r.paper_id) === k)).map(([, v]) => v.entry.id) : [],
+    index_join_rules: joinRules,
+    index_entries_without_paper: index.files.length ? [...index.entries.entries()].filter(([k]) => !joinedIds.has(k)).map(([, v]) => v.entry.id) : [],
     targets: Object.fromEntries(TARGET_KINDS.map((k) => [k, records.filter((r) => r.targets[k] && r.targets[k].lean_path).length])),
     papers_with_all_three_bounds: records.filter((r) => ['main_theorem', 'upper_bound', 'lower_bound'].every((k) => r.targets[k] && r.targets[k].lean_path)).length,
     papers_flagged: records.filter((r) => r.flags.length > 0).length,

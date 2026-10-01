@@ -57,8 +57,8 @@ const FIXB = path.join(here, 'fixtures', 'corpus-b');
 test('ProofBench-style layout: <Id>/<Id>.lean, _UB/_LB/_DISPROVE, two PDFs, central PDF, index file', async () => {
   const m = await discoverCorpus(new LocalSource(FIXB), { subdir: 'Bench/PROBLEMS' });
   assert.equal(m.counts.subdir, 'Bench/PROBLEMS');
-  assert.equal(m.counts.papers, 3);
-  assert.deepEqual(m.papers.map((p) => p.paper_id), ['P001', 'P014', 'P099']);
+  assert.equal(m.counts.papers, 5);
+  assert.deepEqual(m.papers.map((p) => p.paper_id), ['P001', 'P014', 'P020', 'P030', 'P099']);
   const by = Object.fromEntries(m.papers.map((p) => [p.paper_id, p]));
 
   const p14 = by.P014;
@@ -98,17 +98,38 @@ test('ProofBench-style layout: <Id>/<Id>.lean, _UB/_LB/_DISPROVE, two PDFs, cent
   assert.equal(p99.index_entry, null);
   assert.equal(p99.title, 'On the pre- and post-positional semi-random graph');
   assert.equal(p99.title_source, 'pdf_file_name');
-  assert.ok(p99.targets.main_theorem.mapping_flags.includes('declaration_names_other_paper:P050'));
   assert.ok(!p14.targets.main_theorem.mapping_flags.some((x) => x.startsWith('declaration_names_other_paper')));
 
-  assert.deepEqual(m.counts.index_entries_without_paper, ['050']);
+  // renumbered folder: P020 declares P021, so the index entry is joined by declaration name, not folder number
+  const p20 = by.P020;
+  assert.equal(p20.index_entry.id, '021');
+  assert.equal(p20.index_entry.join_rule, 'declaration_name_in_index');
+  assert.equal(p20.title, 'Renumbered problem (fixture)');
+  assert.equal(p20.targets.main_theorem.mathematical_status, 'established');
+  assert.ok(p20.flags.some((f) => f.code === 'index_entry_differs_from_folder_id' && /folder id would have selected entry 020/.test(f.message)));
+  assert.ok(p20.targets.main_theorem.mapping_flags.includes('declaration_names_other_paper:P021'));
+  assert.equal(by.P001.index_entry.join_rule, 'declaration_name_in_index');
+  assert.equal(p14.index_entry.join_rule, 'folder_id');
+  // stale index: entry 030 shares the folder's theorem name but describes another problem; it is rejected,
+  // and the entry whose title matches the folder's Lean header is used instead
+  const p30 = by.P030;
+  assert.equal(p30.lean_header_title, 'Polychromatic Colorings of Geometric Hypergraphs via Shallow Hitting Sets');
+  assert.equal(p30.title, p30.lean_header_title);
+  assert.equal(p30.title_source, 'lean_header');
+  assert.equal(p30.index_entry_rejected.id, '030');
+  assert.equal(p30.index_entry.id, '031');
+  assert.equal(p30.index_entry.join_rule, 'title_match');
+  assert.deepEqual(p30.subject_tags, ['05C15']);
+  assert.equal(p30.targets.main_theorem.mathematical_status, 'uncertain'); // the stale entry's 'Open' was not used
+  assert.ok(p30.flags.some((f) => f.code === 'index_entry_conflicts_with_folder_content'));
+  assert.deepEqual(m.counts.index_entries_without_paper.sort(), ['020', '030', '050']);
   // formal statements/proofs from the index never reach the manifest
   assert.doesNotMatch(JSON.stringify(m), /SECRET_GROUND_TRUTH/);
 });
 
 test('without a sub-folder, library files and central PDF folders create no phantom papers', async () => {
   const m = await discoverCorpus(new LocalSource(FIXB));
-  assert.deepEqual(m.papers.map((p) => p.paper_id), ['P001', 'P014', 'P099']);
+  assert.deepEqual(m.papers.map((p) => p.paper_id), ['P001', 'P014', 'P020', 'P030', 'P099']);
   assert.equal(m.counts.orphan_lean_files, 1); // Library/Graphs/Hypercube.lean
 });
 
