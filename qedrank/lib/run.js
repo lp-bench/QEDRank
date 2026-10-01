@@ -125,7 +125,8 @@ export async function stageDiscovery(ctx, { force = false, annotations = null } 
 RunContext.prototype.getSource = async function getSource() {
   if (this.source) return this.source;
   const req = this.run.source_request;
-  this.source = await openSource({ url: req.url, path: req.path, ref: req.ref, limits: this.config.download });
+  // A token is never persisted in run.json; it comes from the CLI flag or GITHUB_TOKEN each time.
+  this.source = await openSource({ url: req.url, path: req.path, ref: req.ref, token: this.sourceToken || null, limits: this.config.download });
   const desc = this.source.descriptor();
   if (this.run.source && this.run.source.commit && this.run.source.commit !== desc.commit) {
     throw new Error(`Source commit changed since the run was created (${this.run.source.commit} -> ${desc.commit}); start a new run.`);

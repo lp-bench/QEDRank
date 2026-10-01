@@ -269,13 +269,112 @@ export class LocalSource {
   }
 }
 
+/** Parse an SSH GitHub URL: git@github.com:owner/repo(.git) or ssh://git@github.com/owner/repo(.git). */
+export function parseGitSshUrl(input) {
+  if (typeof input !== 'string') return null;
+  const m = /^(?:ssh:\/\/)?git@github\.com[:/]([^/\s]+)\/([^/\s]+?)(?:\.git)?\/?$/.exec(input.trim());
+  if (!m) return null;
+  const [, owner, repo] = m;
+  if (!OWNER_RE.test(owner)) throw new SourceError(`Invalid GitHub owner: ${owner}`, 'invalid_url');
+  if (!REPO_RE.test(repo) || repo === '.' || repo === '..') throw new SourceError(`Invalid GitHub repository name: ${repo}`, 'invalid_url');
+  return { owner, repo };
+}
+
 /**
- * Open a corpus source from either a GitHub URL or a local directory path.
- * @param {{url?:string, path?:string, ref?:string, token?:string, limits?:object}} opts
+ * Private repositories over SSH (local runner only). The repository is shallow-cloned with the
+ * user's own SSH keys/agent into a temporary directory and then read like a local directory.
+ * Nothing in the clone is executed: git hooks of a cloned repository never run, and the runner
+ * never invokes lake/scripts from the corpus. Not available in the serverless preview.
  */
-export async function openSource({ url, path: localPath, ref, token, limits } = {}) {
+export class GitSshSource {
+  constructor({ owner, repo, ref = null, limits = {}, cloneDir = null }) {
+    this.kind = 'github-ssh';
+    this.owner = owner;
+    this.repo = repo;
+    this.ref = ref;
+    this.limits = { ...DEFAULT_LIMITS, ...limits };
+    this.cloneDir = cloneDir;
+    this.local = null;
+    this.commit = null;
+    this.refType = null;
+    this.bytesDownloaded = 0;
+    this.filesDownloaded = 0;
+    this.treeTruncated = false;
+  }
+
+  get url() {
+    return `git@github.com:${this.owner}/${this.repo}.git`;
+  }
+
+  async git(args, cwd) {
+    const env = { ...process.env, GIT_TERMINAL_PROMPT: '0', GIT_SSH_COMMAND: process.env.GIT_SSH_COMMAND || 'ssh -o BatchMode=yes' };
+    const { stdout } = await execFileP('git', args, { cwd, env, timeout: 900000, windowsHide: true, maxBuffer: 16 * 1024 * 1024 });
+    return stdout;
+  }
+
+  async resolve() {
+    if (this.local) return this.descriptor();
+    const os = await import('node:os');
+    const dir = this.cloneDir || (await fs.mkdtemp(path.join(os.tmpdir(), 'qedrank-src-')));
+    await fs.mkdir(dir, { recursive: true });
+    const ref = validateRef(this.ref);
+    try {
+      if (ref && /^[0-9a-f]{7,40}$/i.test(ref)) {
+        await this.git(['init', '-q'], dir);
+        await this.git(['remote', 'add', 'origin', '--', this.url], dir);
+        await this.git(['fetch', '--depth', '1', '--no-tags', 'origin', '--', ref], dir);
+        await this.git(['checkout', '-q', '--detach', 'FETCH_HEAD'], dir);
+        this.refType = 'commit';
+      } else {
+        const args = ['clone', '-q', '--depth', '1', '--no-tags'];
+        if (ref) args.push('--branch', ref);
+        args.push('--', this.url, dir);
+        await this.git(args, path.dirname(dir));
+        this.refType = ref ? 'branch_or_tag' : 'default_branch';
+      }
+    } catch (err) {
+      throw new SourceError(`SSH clone of ${this.url} failed (check your SSH key / deploy key): ${(err.stderr || err.message || '').toString().slice(0, 300)}`, 'ssh_clone_failed');
+    }
+    this.commit = (await this.git(['rev-parse', 'HEAD'], dir)).trim();
+    this.resolvedRef = ref || (await this.git(['rev-parse', '--abbrev-ref', 'HEAD'], dir)).trim();
+    this.local = new LocalSource(dir, { limits: this.limits });
+    this.dir = dir;
+    return this.descriptor();
+  }
+
+  descriptor() {
+    return { kind: 'github-ssh', url: this.url, owner: this.owner, repo: this.repo, requested_ref: this.ref, resolved_ref: this.resolvedRef || this.ref, ref_type: this.refType, commit: this.commit, clone_dir: this.dir || null };
+  }
+
+  async listTree() {
+    await this.resolve();
+    return this.local.listTree();
+  }
+
+  async readFile(p, opts) {
+    await this.resolve();
+    const buf = await this.local.readFile(p, opts);
+    this.bytesDownloaded += buf.length;
+    this.filesDownloaded += 1;
+    return buf;
+  }
+}
+
+/**
+ * Open a corpus source from a GitHub HTTPS URL (optionally with a token for private
+ * repositories), a GitHub SSH URL (local runner only), or a local directory path.
+ * @param {{url?:string, path?:string, ref?:string, token?:string, limits?:object, allowSsh?:boolean}} opts
+ */
+export async function openSource({ url, path: localPath, ref, token, limits, allowSsh = true } = {}) {
   if (localPath) {
     const src = new LocalSource(localPath, { limits });
+    await src.resolve();
+    return src;
+  }
+  const ssh = parseGitSshUrl(url);
+  if (ssh) {
+    if (!allowSsh) throw new SourceError('SSH URLs are only supported by the local runner; use an https://github.com URL with a token here', 'ssh_not_allowed');
+    const src = new GitSshSource({ owner: ssh.owner, repo: ssh.repo, ref: validateRef(ref), limits });
     await src.resolve();
     return src;
   }

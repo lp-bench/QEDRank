@@ -11,21 +11,34 @@ const STAGES = ['discovery', 'preparation', 'generation', 'compilation', 'audit'
 export function CorpusPanel({ onManifest }) {
   const [repoUrl, setRepoUrl] = useState('')
   const [ref, setRef] = useState('')
+  const [token, setToken] = useState('')
   const [expected, setExpected] = useState(108)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [manifest, setManifest] = useState(null)
 
+  const isSsh = /^(ssh:\/\/)?git@github\.com[:/]/.test(repoUrl.trim())
+  const branchFromUrl = /github\.com\/[^/]+\/[^/]+\/tree\/([^?#]+)/.exec(repoUrl.trim())?.[1]
+
   const submit = async (e) => {
     e.preventDefault()
     setError('')
+    if (isSsh) {
+      setError('SSH URLs work only with the local runner (it uses your own SSH keys): node qedrank/cli.js discover --repo ' + repoUrl.trim() + '. For the web preview use https://github.com/<owner>/<repo> and, for a private repository, a GitHub token.')
+      return
+    }
     if (!/^(https?:\/\/)?(www\.)?github\.com\/[^/]+\/[^/?#]+/.test(repoUrl.trim())) {
-      setError('Enter a GitHub repository URL of the form https://github.com/<owner>/<repo>')
+      setError('Enter a GitHub repository or branch link: https://github.com/<owner>/<repo> or https://github.com/<owner>/<repo>/tree/<branch>')
       return
     }
     setBusy(true)
     try {
-      const res = await axios.post('/api/qedrank/discover', { repoUrl: repoUrl.trim(), ref: ref.trim() || undefined, expectedCount: Number(expected) || 108 })
+      const res = await axios.post('/api/qedrank/discover', {
+        repoUrl: repoUrl.trim(),
+        ref: ref.trim() || undefined,
+        token: token.trim() || undefined,
+        expectedCount: Number(expected) || 108,
+      })
       setManifest(res.data)
       onManifest && onManifest(res.data)
     } catch (err) {
@@ -38,10 +51,15 @@ export function CorpusPanel({ onManifest }) {
   return (
     <section className="qr-card">
       <h2>1. Freeze and audit the corpus</h2>
-      <p className="qr-muted">Provide a GitHub repository of paper folders. The ref is resolved to an immutable commit; only the file listing and small Lean/metadata files are read for this preview. Nothing from the repository is executed and no model is called.</p>
+      <p className="qr-muted">Paste a GitHub repository or branch link (…/tree/&lt;branch&gt;). The branch, tag or commit is resolved to an immutable commit; only the file listing and small Lean/metadata files are read for this preview. Nothing from the repository is executed and no model is called.</p>
       <form onSubmit={submit} className="qr-form">
-        <label>Repository URL<input value={repoUrl} onChange={(e) => setRepoUrl(e.target.value)} placeholder="https://github.com/owner/paper-corpus" /></label>
-        <label>Branch, tag or commit (optional)<input value={ref} onChange={(e) => setRef(e.target.value)} placeholder="main" /></label>
+        <label>Repository or branch link<input value={repoUrl} onChange={(e) => setRepoUrl(e.target.value)} placeholder="https://github.com/owner/paper-corpus/tree/main" /></label>
+        {branchFromUrl && !ref && <div className="qr-small">Branch from link: <code>{branchFromUrl}</code></div>}
+        <label>Branch, tag or commit (optional, overrides the link)<input value={ref} onChange={(e) => setRef(e.target.value)} placeholder="main" /></label>
+        <label>GitHub token for a private repository (optional)
+          <input type="password" autoComplete="off" value={token} onChange={(e) => setToken(e.target.value)} placeholder="github_pat_… or ghp_… with read access to Contents" />
+        </label>
+        <div className="qr-small">The token is sent only with this request and is never stored. Private repositories reachable only by SSH key or deploy key must be previewed and run with the local CLI (<code>--repo git@github.com:owner/repo.git</code>), which uses your own SSH agent.</div>
         <label>Expected paper count<input type="number" min="1" value={expected} onChange={(e) => setExpected(e.target.value)} /></label>
         <button type="submit" className="qr-btn" disabled={busy}>{busy ? 'Discovering…' : 'Preview manifest'}</button>
       </form>

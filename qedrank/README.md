@@ -86,6 +86,26 @@ all attempts), tokens and cost (only when the provider reports usage and
 Apparent proofs of `open` claims are listed under `coverage.open_claim_escalations`
 for independent review and never counted as successes.
 
+## Repository links, private repositories and deployment
+
+The corpus input is a GitHub repository or branch link:
+`https://github.com/<owner>/<repo>`, `https://github.com/<owner>/<repo>/tree/<branch-or-tag>`,
+or the same with an explicit `--ref` / "Branch, tag or commit" field (which overrides the
+link). Every run records the resolved commit SHA.
+
+| Situation | Web preview (Vercel) | Local runner (`node qedrank/cli.js …`) |
+|---|---|---|
+| Public repository | works as is | works as is |
+| Private repository, HTTPS | paste a fine-grained GitHub token with read access to *Contents* in the "GitHub token" field (sent with that request only, never stored), or set `GITHUB_TOKEN` in the Vercel project environment to use one server-side token for all previews | `--token <PAT>` or `GITHUB_TOKEN` in the environment (the token is never written to `run.json`) |
+| Private repository, SSH key / deploy key | not possible from a browser or a serverless function | `--repo git@github.com:<owner>/<repo>.git`: the runner shallow-clones with your own SSH agent or deploy key, resolves the commit, and reads the clone like a local directory; hooks and lakefiles of the clone are never executed |
+
+Deploying the web app to Vercel (`vercel.json` is included; the preview function gets a 60 s
+budget): import the GitHub repository in Vercel or run `vercel deploy --prod` from the
+checkout. Add the five provider keys (and optionally `GITHUB_TOKEN`) as environment variables
+in the Vercel project. Only the preview endpoint runs on Vercel; generation, Lean checking and
+evaluation always run locally and are loaded into the page from `node qedrank/cli.js serve`
+or from downloaded `summary.json` / `run.json` / `exports/items.json` files.
+
 ## Corpus layout and annotations
 
 Discovery (`qedrank/lib/corpus.js`) accepts either a directory per paper or a

@@ -1,6 +1,14 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { parseGitHubUrl, validateRef, GitHubSource, SourceError } from '../lib/source.js';
+import { parseGitHubUrl, parseGitSshUrl, validateRef, GitHubSource, SourceError, openSource } from '../lib/source.js';
+
+test('parseGitSshUrl recognises SSH forms and rejects others', async () => {
+  assert.deepEqual(parseGitSshUrl('git@github.com:owner/repo.git'), { owner: 'owner', repo: 'repo' });
+  assert.deepEqual(parseGitSshUrl('ssh://git@github.com/owner/repo'), { owner: 'owner', repo: 'repo' });
+  assert.equal(parseGitSshUrl('https://github.com/owner/repo'), null);
+  assert.throws(() => parseGitSshUrl('git@github.com:../x.git'), SourceError);
+  await assert.rejects(() => openSource({ url: 'git@github.com:owner/repo.git', allowSsh: false }), /SSH URLs are only supported by the local runner/);
+});
 
 test('parseGitHubUrl accepts canonical forms and extracts tree refs', () => {
   assert.deepEqual(parseGitHubUrl('https://github.com/owner/repo'), { owner: 'owner', repo: 'repo', refFromUrl: null });

@@ -3,6 +3,8 @@
 //
 //   node qedrank/cli.js toolchain
 //   node qedrank/cli.js discover --repo <github url> [--ref <branch|tag|sha>] [--out manifest.json] [--annotations file.json]
+//       --repo accepts https://github.com/<owner>/<repo>[/tree/<branch>] (private: --token <PAT> or GITHUB_TOKEN)
+//       or git@github.com:<owner>/<repo>.git (private over SSH, uses your SSH agent / deploy key)
 //   node qedrank/cli.js run --repo <url> [--ref R] [--run-id ID] [--models a,b] [--papers p1,p2] [--targets main_theorem,...] [--limit N]
 //                          [--fixtures DIR] [--attempts K] [--repair-rounds R] [--config file] [--dry-run]
 //   node qedrank/cli.js resume --run-id ID [--retry-failed] [--reevaluate]
@@ -68,7 +70,7 @@ async function main() {
       return;
     }
     case 'discover': {
-      const source = await openSource({ url: args.repo, path: args.path, ref: args.ref, limits: config.download });
+      const source = await openSource({ url: args.repo, path: args.path, ref: args.ref, token: args.token || null, limits: config.download });
       const annotations = args.annotations ? await readJson(args.annotations) : null;
       const manifest = await discoverCorpus(source, { annotations, expectedCount: config.expectedPaperCount, log });
       if (args.out) { await writeJson(args.out, manifest); log(`wrote ${args.out}`); }
@@ -86,6 +88,7 @@ async function main() {
         if (missing.length) log(`WARNING: no API key for ${missing.join(', ')}; their items will be recorded as infrastructure failures`);
       }
       const ctx = await createRun({ config, runId: args['run-id'] || undefined, sourceOpts: { url: args.repo, path: args.path, ref: args.ref }, models, mode, log });
+      ctx.sourceToken = args.token || null;
       if (mode === 'fixture') { ctx.run.fixture_dir = path.resolve(args.fixtures); await ctx.saveRun(); }
       log(`run ${ctx.run.run_id} at ${ctx.runDir}`);
       const selection = { papers: list(args.papers), models, targets: list(args.targets).filter((t) => TARGET_KINDS.includes(t)), limit: args.limit ? Number(args.limit) : null };
@@ -103,6 +106,7 @@ async function main() {
     case 'resume': {
       if (!args['run-id']) throw new Error('resume requires --run-id');
       const ctx = await openRun({ config, runId: args['run-id'], log });
+      ctx.sourceToken = args.token || null;
       const sel = ctx.run.selection || {};
       const selection = { papers: list(args.papers).length ? list(args.papers) : sel.papers || [], models: sel.models || ctx.run.models, targets: sel.targets || [], limit: null };
       await stageDiscovery(ctx);
