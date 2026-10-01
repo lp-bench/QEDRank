@@ -88,15 +88,27 @@ try {
       $response = Invoke-WebRequest -Method Post -Uri $Endpoint -ContentType 'application/json; charset=utf-8' `
         -Body ([System.Text.Encoding]::UTF8.GetBytes($body)) -UseBasicParsing -TimeoutSec 120
     } catch {
+      # Windows PowerShell 5.1 puts the response body in ErrorDetails; PowerShell 7 does too.
       $detail = $null
-      if ($_.Exception.Response) {
-        $reader = New-Object System.IO.StreamReader($_.Exception.Response.GetResponseStream())
-        $detail = $reader.ReadToEnd()
+      if ($_.ErrorDetails -and $_.ErrorDetails.Message) { $detail = $_.ErrorDetails.Message }
+      elseif ($_.Exception.Response) {
+        try {
+          $reader = New-Object System.IO.StreamReader($_.Exception.Response.GetResponseStream())
+          $detail = $reader.ReadToEnd()
+        } catch { $detail = $null }
       }
+      $status = if ($_.Exception.Response) { [int]$_.Exception.Response.StatusCode } else { 0 }
       if ($detail) {
-        $err = $detail | ConvertFrom-Json -ErrorAction SilentlyContinue
-        if ($err) { throw "Preview failed [$($err.code)]: $($err.error)" }
-        throw "Preview failed: $detail"
+        $err = $null
+        try { $err = $detail | ConvertFrom-Json } catch { $err = $null }
+        if ($err -and $err.error) {
+          Write-Host ''
+          Write-Host "Preview failed (HTTP $status, $($err.code)):" -ForegroundColor Red
+          Write-Host "  $($err.error)" -ForegroundColor Red
+          exit 1
+        }
+        Write-Host "Preview failed (HTTP $status): $detail" -ForegroundColor Red
+        exit 1
       }
       throw
     } finally {
