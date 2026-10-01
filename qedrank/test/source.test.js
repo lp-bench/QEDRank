@@ -53,6 +53,42 @@ test('GitHubSource enforces download policy with a fake fetch', async () => {
   assert.ok(!calls.some((u) => /Authorization/.test(u)));
 });
 
+test('a /tree/ folder link with a slash in the branch resolves to the longest real ref plus a sub-folder', async () => {
+  const tried = [];
+  const fetchImpl = async (url) => {
+    if (url.endsWith('/repos/o/r')) return json({ default_branch: 'main', private: true });
+    const m = /\/commits\/([^?]+)$/.exec(url);
+    if (m) {
+      const ref = decodeURIComponent(m[1]);
+      tried.push(ref);
+      return ref === 'vb/Folders' ? json({ sha: 'b'.repeat(40), commit: { committer: { date: null } } }) : { ok: false, status: 422, text: async () => 'No commit found', headers: new Map() };
+    }
+    if (url.includes('/git/ref/tags/')) return { ok: false, status: 404, text: async () => 'nf', headers: new Map() };
+    return { ok: false, status: 500, text: async () => 'boom', headers: new Map() };
+  };
+  const { refFromUrl } = parseGitHubUrl('https://github.com/o/r/tree/vb/Folders/Proof%20Bench/PROBLEMS');
+  const src = new GitHubSource({ owner: 'o', repo: 'r', treePath: refFromUrl, fetchImpl });
+  const d = await src.resolve();
+  assert.equal(d.resolved_ref, 'vb/Folders');
+  assert.equal(d.subdir, 'Proof Bench/PROBLEMS');
+  assert.equal(d.private, true);
+  // candidates containing a space are not valid git refs and are never sent to GitHub
+  assert.deepEqual(tried, ['vb/Folders']);
+  tried.length = 0;
+  const src2 = new GitHubSource({ owner: 'o', repo: 'r', treePath: parseGitHubUrl('https://github.com/o/r/tree/vb/Folders/ProofBench/PROBLEMS').refFromUrl, fetchImpl });
+  const d2 = await src2.resolve();
+  assert.equal(d2.subdir, 'ProofBench/PROBLEMS');
+  assert.deepEqual(tried.slice(0, 3), ['vb/Folders/ProofBench/PROBLEMS', 'vb/Folders/ProofBench', 'vb/Folders']);
+});
+
+test('a private repository without a token gets an explicit message', async () => {
+  const fetchImpl = async () => ({ ok: false, status: 404, text: async () => '{"message":"Not Found"}', headers: new Map() });
+  const src = new GitHubSource({ owner: 'o', repo: 'r', ref: 'vb/Folders', fetchImpl });
+  await assert.rejects(() => src.resolve(), (err) => err.code === 'not_found' && /If it is private, provide a GitHub token/.test(err.message));
+  const withToken = new GitHubSource({ owner: 'o', repo: 'r', token: 'ghp_x', fetchImpl });
+  await assert.rejects(() => withToken.resolve(), /token has no read access/);
+});
+
 function json(body) {
   return { ok: true, status: 200, json: async () => body, text: async () => JSON.stringify(body), headers: new Map() };
 }

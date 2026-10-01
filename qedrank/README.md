@@ -88,15 +88,23 @@ for independent review and never counted as successes.
 
 ## Repository links, private repositories and deployment
 
-The corpus input is a GitHub repository or branch link:
+The corpus input is a GitHub repository, branch or folder link:
 `https://github.com/<owner>/<repo>`, `https://github.com/<owner>/<repo>/tree/<branch-or-tag>`,
-or the same with an explicit `--ref` / "Branch, tag or commit" field (which overrides the
-link). Every run records the resolved commit SHA.
+or `…/tree/<branch>/<folder>` (branch names may contain `/`; the longest prefix that is a real
+ref is the branch and the rest is the folder that holds the paper folders). An explicit
+`--ref` / "Branch, tag or commit" field overrides the link and `--subdir` / "Sub-folder" sets the
+folder directly. Every run records the resolved commit SHA and the folder.
+
+Example for a ProofBench-style repository (`PROBLEMS/Pnnn/{Pnnn.lean, Pnnn_UB.lean, Pnnn_LB.lean, Pnnn_DISPROVE.lean, *.pdf}`
+plus `DATABASE/Database.json` and `DATABASE/content/pdf/Pnnn.pdf`):
+`https://github.com/<owner>/ProofBench/tree/<branch>/ProofBench/PROBLEMS`. The index JSON
+supplies titles, MSC codes and difficulty (its formal statements and proofs are never copied);
+`Pnnn.pdf` files elsewhere in the repository are attached to the matching paper and flagged.
 
 | Situation | Web preview (Vercel) | Local runner (`node qedrank/cli.js …`) |
 |---|---|---|
 | Public repository | works as is | works as is |
-| Private repository, HTTPS | paste a fine-grained GitHub token with read access to *Contents* in the "GitHub token" field (sent with that request only, never stored), or set `GITHUB_TOKEN` in the Vercel project environment to use one server-side token for all previews | `--token <PAT>` or `GITHUB_TOKEN` in the environment (the token is never written to `run.json`) |
+| Private repository, HTTPS | paste a fine-grained GitHub token with read access to *Contents* in the "GitHub token" field (sent with that request only, never stored). A server-side `GITHUB_TOKEN` in the Vercel project also works, but then **anyone who can open the deployment can preview that private repository**: only do this behind Vercel Deployment Protection | `--token <PAT>` or `GITHUB_TOKEN` in the environment (the token is never written to `run.json`) |
 | Private repository, SSH key / deploy key | not possible from a browser or a serverless function | `--repo git@github.com:<owner>/<repo>.git`: the runner shallow-clones with your own SSH agent or deploy key, resolves the commit, and reads the clone like a local directory; hooks and lakefiles of the clone are never executed |
 
 Deploying the web app to Vercel (`vercel.json` is included; the preview function gets a 60 s

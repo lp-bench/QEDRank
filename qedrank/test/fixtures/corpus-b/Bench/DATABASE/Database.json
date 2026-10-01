@@ -1,0 +1,7 @@
+[
+  { "id": "001", "name": "Hadwiger-type Conjecture (fixture)", "msc": "05C15 Coloring of graphs and hypergraphs", "difficulty": "Open",
+    "references": ["key1"], "formal_statement": ["theorem P001 : SECRET_GROUND_TRUTH_STATEMENT"], "formal_proof": ["SECRET_GROUND_TRUTH_PROOF"] },
+  { "id": "014", "name": "Essentially tight bounds for rainbow cycles in proper edge-colourings", "msc": "05C38 Paths and cycles", "difficulty": "Research",
+    "references": [], "formal_statement": ["SECRET_GROUND_TRUTH_STATEMENT_2"] },
+  { "id": "050", "name": "An index entry without a folder", "msc": "05C", "difficulty": "Calibration (elementary; full Lean reference proof)" }
+]

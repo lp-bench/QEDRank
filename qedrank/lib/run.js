@@ -59,7 +59,7 @@ export async function createRun({ config, runId = newRunId(), sourceOpts, models
     run_id: runId,
     created_at: isoNow(),
     updated_at: isoNow(),
-    source_request: { url: sourceOpts.url ?? null, path: sourceOpts.path ?? null, ref: sourceOpts.ref ?? null },
+    source_request: { url: sourceOpts.url ?? null, path: sourceOpts.path ?? null, ref: sourceOpts.ref ?? null, subdir: sourceOpts.subdir ?? null },
     source: null,
     mode,
     models,
@@ -126,7 +126,7 @@ RunContext.prototype.getSource = async function getSource() {
   if (this.source) return this.source;
   const req = this.run.source_request;
   // A token is never persisted in run.json; it comes from the CLI flag or GITHUB_TOKEN each time.
-  this.source = await openSource({ url: req.url, path: req.path, ref: req.ref, token: this.sourceToken || null, limits: this.config.download });
+  this.source = await openSource({ url: req.url, path: req.path, ref: req.ref, subdir: req.subdir ?? null, token: this.sourceToken || null, limits: this.config.download });
   const desc = this.source.descriptor();
   if (this.run.source && this.run.source.commit && this.run.source.commit !== desc.commit) {
     throw new Error(`Source commit changed since the run was created (${this.run.source.commit} -> ${desc.commit}); start a new run.`);

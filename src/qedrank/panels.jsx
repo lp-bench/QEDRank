@@ -11,6 +11,7 @@ const STAGES = ['discovery', 'preparation', 'generation', 'compilation', 'audit'
 export function CorpusPanel({ onManifest }) {
   const [repoUrl, setRepoUrl] = useState('')
   const [ref, setRef] = useState('')
+  const [subdir, setSubdir] = useState('')
   const [token, setToken] = useState('')
   const [expected, setExpected] = useState(108)
   const [busy, setBusy] = useState(false)
@@ -36,6 +37,7 @@ export function CorpusPanel({ onManifest }) {
       const res = await axios.post('/api/qedrank/discover', {
         repoUrl: repoUrl.trim(),
         ref: ref.trim() || undefined,
+        subdir: subdir.trim() || undefined,
         token: token.trim() || undefined,
         expectedCount: Number(expected) || 108,
       })
@@ -53,9 +55,10 @@ export function CorpusPanel({ onManifest }) {
       <h2>1. Freeze and audit the corpus</h2>
       <p className="qr-muted">Paste a GitHub repository or branch link (…/tree/&lt;branch&gt;). The branch, tag or commit is resolved to an immutable commit; only the file listing and small Lean/metadata files are read for this preview. Nothing from the repository is executed and no model is called.</p>
       <form onSubmit={submit} className="qr-form">
-        <label>Repository or branch link<input value={repoUrl} onChange={(e) => setRepoUrl(e.target.value)} placeholder="https://github.com/owner/paper-corpus/tree/main" /></label>
-        {branchFromUrl && !ref && <div className="qr-small">Branch from link: <code>{branchFromUrl}</code></div>}
+        <label>Repository, branch or folder link<input value={repoUrl} onChange={(e) => setRepoUrl(e.target.value)} placeholder="https://github.com/owner/repo/tree/branch/path/to/PROBLEMS" /></label>
+        {branchFromUrl && !ref && <div className="qr-small">From the link: <code>{branchFromUrl}</code> (GitHub decides which part is the branch and which part is a folder)</div>}
         <label>Branch, tag or commit (optional, overrides the link)<input value={ref} onChange={(e) => setRef(e.target.value)} placeholder="main" /></label>
+        <label>Sub-folder holding the paper folders (optional)<input value={subdir} onChange={(e) => setSubdir(e.target.value)} placeholder="ProofBench/PROBLEMS" /></label>
         <label>GitHub token for a private repository (optional)
           <input type="password" autoComplete="off" value={token} onChange={(e) => setToken(e.target.value)} placeholder="github_pat_… or ghp_… with read access to Contents" />
         </label>
@@ -80,9 +83,12 @@ export function ManifestView({ manifest }) {
       <div className="qr-kv">
         <div><span>Source</span><code>{src.url}</code></div>
         <div><span>Ref</span><code>{src.resolved_ref || src.requested_ref || '(default branch)'} · {src.ref_type}</code></div>
-        <div><span>Resolved commit</span><code>{src.commit}</code></div>
+        <div><span>Resolved commit</span><code>{src.commit}</code>{src.private ? ' · private repository' : ''}</div>
+        <div><span>Discovery folder</span><code>{src.subdir || '(whole repository)'}</code>{c.papers_by_parent_dir && <> · papers per parent folder: {Object.entries(c.papers_by_parent_dir).map(([k, v]) => <code key={k}>{k}: {v} </code>)}</>}</div>
         <div><span>Papers discovered</span><b>{c.papers}</b> of expected {c.expected_count} — {c.expected_count_matches ? 'matches the expectation' : 'does NOT match the expectation'}</div>
         <div><span>With PDF</span><b>{c.papers_with_pdf}</b></div>
+        {c.index_files?.length > 0 && <div><span>Index metadata</span>{c.index_files.map((f) => <code key={f.path}>{f.path} ({f.entries} entries) </code>)} · matched {c.papers_with_index_entry} papers{c.index_entries_without_paper?.length ? ` · index ids without a folder: ${c.index_entries_without_paper.join(', ')}` : ''}</div>}
+        <div><span>Lean files inspected</span>{c.lean_files_inspected} of {c.lean_files} in {(c.discovery_ms / 1000).toFixed(1)} s</div>
         <div><span>Targets</span>{TARGET_KINDS.map((k) => <b key={k}>{TARGET_LABELS[k]}: {c.targets?.[k] ?? 0}&nbsp;&nbsp;</b>)}</div>
         <div><span>All three bounds</span><b>{c.papers_with_all_three_bounds}</b></div>
         <div><span>Papers flagged for review</span><b>{c.papers_flagged}</b> {c.flags_by_code && Object.entries(c.flags_by_code).map(([k, v]) => <code key={k}>{k}×{v} </code>)}</div>

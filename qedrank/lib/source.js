@@ -30,17 +30,48 @@ export class SourceError extends Error {
 const OWNER_RE = /^[A-Za-z0-9](?:[A-Za-z0-9-]{0,38})$/;
 const REPO_RE = /^[A-Za-z0-9_.-]{1,100}$/;
 
-/** Parse and validate a GitHub repository URL. Returns {owner, repo, refFromUrl}. */
+/**
+ * Parse and validate a GitHub repository URL. Returns {owner, repo, refFromUrl}.
+ * `refFromUrl` is everything after /tree/ (or /commit/, /blob/): it may be a branch with slashes
+ * followed by a folder path (e.g. "vb/Folders/ProofBench/PROBLEMS"); GitHubSource.resolve() splits
+ * it into ref and subfolder by asking GitHub which prefix is a real ref.
+ */
 export function parseGitHubUrl(input) {
   if (typeof input !== 'string') throw new SourceError('Repository URL is required', 'invalid_url');
   const s = input.trim();
-  if (s.length > 500) throw new SourceError('Repository URL is too long', 'invalid_url');
+  if (s.length > 1000) throw new SourceError('Repository URL is too long', 'invalid_url');
   const m = /^(?:https?:\/\/)?(?:www\.)?github\.com\/([^/]+)\/([^/?#]+?)(?:\.git)?(?:\/(?:tree|commit|blob|releases\/tag)\/([^?#]+?))?\/?(?:[?#].*)?$/.exec(s);
   if (!m) throw new SourceError('Only https://github.com/<owner>/<repo> URLs are accepted', 'invalid_url');
-  const [, owner, repo, refFromUrl] = m;
+  const [, owner, repo, rawTree] = m;
   if (!OWNER_RE.test(owner)) throw new SourceError(`Invalid GitHub owner: ${owner}`, 'invalid_url');
   if (!REPO_RE.test(repo) || repo === '.' || repo === '..') throw new SourceError(`Invalid GitHub repository name: ${repo}`, 'invalid_url');
-  return { owner, repo, refFromUrl: refFromUrl ? validateRef(refFromUrl) : null };
+  return { owner, repo, refFromUrl: rawTree ? validateTreePath(rawTree) : null };
+}
+
+/** Validate the "<ref>[/<folder path>]" part of a /tree/ link (percent-decoded). */
+export function validateTreePath(raw) {
+  let s;
+  try { s = decodeURIComponent(String(raw)); } catch { throw new SourceError('Invalid characters in the branch/folder part of the link', 'invalid_ref'); }
+  s = s.replace(/\/+$/, '');
+  if (!s || s.length > 900) throw new SourceError('Invalid branch/folder part of the link', 'invalid_ref');
+  // eslint-disable-next-line no-control-regex
+  if (/[\u0000-\u001f\\]/.test(s) || s.split('/').some((seg) => seg === '' || seg === '.' || seg === '..')) {
+    throw new SourceError(`Invalid branch/folder part of the link: ${s}`, 'invalid_ref');
+  }
+  return s;
+}
+
+/** Validate a repository sub-folder ("" or "a/b/c"); returns null for the whole repository. */
+export function validateSubdir(subdir) {
+  if (subdir === undefined || subdir === null) return null;
+  const s = String(subdir).trim().replace(/^\/+|\/+$/g, '');
+  if (!s) return null;
+  if (s.length > 500) throw new SourceError('Sub-folder path is too long', 'invalid_subdir');
+  // eslint-disable-next-line no-control-regex
+  if (/[\u0000-\u001f\\]/.test(s) || s.split('/').some((seg) => seg === '' || seg === '.' || seg === '..')) {
+    throw new SourceError(`Invalid sub-folder: ${s}`, 'invalid_subdir');
+  }
+  return s;
 }
 
 /** Validate a branch/tag/commit reference. Returns the normalized ref or null for "default branch". */
@@ -67,11 +98,14 @@ function allowedPath(p, limits) {
 }
 
 export class GitHubSource {
-  constructor({ owner, repo, ref = null, token = null, limits = {}, apiBase = 'https://api.github.com', rawBase = 'https://raw.githubusercontent.com', fetchImpl = globalThis.fetch }) {
+  constructor({ owner, repo, ref = null, treePath = null, subdir = null, token = null, limits = {}, apiBase = 'https://api.github.com', rawBase = 'https://raw.githubusercontent.com', fetchImpl = globalThis.fetch }) {
     this.kind = 'github';
     this.owner = owner;
     this.repo = repo;
     this.ref = ref;
+    this.treePath = treePath;
+    this.subdir = validateSubdir(subdir);
+    this.notes = [];
     this.token = token || null;
     this.limits = { ...DEFAULT_LIMITS, ...limits };
     this.apiBase = apiBase;
@@ -100,23 +134,70 @@ export class GitHubSource {
     if (!res.ok) {
       const remaining = res.headers.get('x-ratelimit-remaining');
       const body = await res.text().catch(() => '');
-      const code = res.status === 404 ? 'not_found' : res.status === 403 && remaining === '0' ? 'rate_limited' : 'api_error';
+      const code = res.status === 404 ? 'not_found' : res.status === 422 ? 'ref_not_found' : res.status === 401 ? 'bad_credentials' : res.status === 403 && remaining === '0' ? 'rate_limited' : 'api_error';
       throw new SourceError(`GitHub API ${res.status} for ${pathname}: ${body.slice(0, 200)}`, code, { httpStatus: res.status });
     }
     return res.json();
   }
 
-  /** Resolve the requested ref to an immutable commit SHA. */
+  async tryCommit(ref) {
+    try {
+      return await this.api(`/repos/${this.owner}/${this.repo}/commits/${encodeURIComponent(ref)}`);
+    } catch (err) {
+      if (err.code === 'not_found' || err.code === 'ref_not_found') return null;
+      throw err;
+    }
+  }
+
+  /** Resolve the requested ref (and any folder path in the link) to an immutable commit SHA. */
   async resolve() {
     if (this.commit) return this.descriptor();
+    // 1. Repository access. A private repository is indistinguishable from a missing one without a token.
+    let repoInfo;
+    try {
+      repoInfo = await this.api(`/repos/${this.owner}/${this.repo}`);
+    } catch (err) {
+      if (err.code === 'not_found') {
+        throw new SourceError(
+          this.token
+            ? `Repository ${this.owner}/${this.repo} was not found, or the token has no read access to it.`
+            : `Repository ${this.owner}/${this.repo} was not found. If it is private, provide a GitHub token with read access to its contents.`,
+          'not_found', { httpStatus: 404 });
+      }
+      if (err.code === 'bad_credentials') throw new SourceError('GitHub rejected the token (bad credentials or expired).', 'bad_credentials', { httpStatus: 401 });
+      throw err;
+    }
+    this.defaultBranch = repoInfo.default_branch;
+    this.private = Boolean(repoInfo.private);
+
+    // 2. Ref and sub-folder.
     let ref = this.ref;
-    if (!ref) {
-      const repoInfo = await this.api(`/repos/${this.owner}/${this.repo}`);
-      this.defaultBranch = repoInfo.default_branch;
+    let commit = null;
+    if (ref) {
+      commit = await this.tryCommit(ref);
+      if (!commit) throw new SourceError(`Branch, tag or commit "${ref}" does not exist in ${this.owner}/${this.repo}.`, 'ref_not_found', { httpStatus: 404 });
+      if (this.treePath && !this.subdir) {
+        if (this.treePath.startsWith(`${ref}/`)) this.subdir = validateSubdir(this.treePath.slice(ref.length + 1));
+        else if (this.treePath !== ref) this.notes.push(`The explicit ref "${ref}" overrides the link's "${this.treePath}".`);
+      }
+    } else if (this.treePath) {
+      // A /tree/ link: the longest prefix that is a real ref wins (branch names may contain "/").
+      const segs = this.treePath.split('/');
+      for (let k = segs.length; k >= 1 && !commit; k -= 1) {
+        const cand = segs.slice(0, k).join('/');
+        try { validateRef(cand); } catch { continue; }
+        commit = await this.tryCommit(cand);
+        if (commit) {
+          ref = cand;
+          if (!this.subdir && k < segs.length) this.subdir = validateSubdir(segs.slice(k).join('/'));
+        }
+      }
+      if (!commit) throw new SourceError(`No branch, tag or commit in ${this.owner}/${this.repo} matches "${this.treePath}".`, 'ref_not_found', { httpStatus: 404 });
+    } else {
       ref = this.defaultBranch;
       this.refType = 'default_branch';
+      commit = await this.tryCommit(ref);
     }
-    const commit = await this.api(`/repos/${this.owner}/${this.repo}/commits/${encodeURIComponent(ref)}`);
     if (!commit || !/^[0-9a-f]{40}$/.test(commit.sha || '')) throw new SourceError('Could not resolve ref to a commit', 'resolve_failed');
     this.commit = commit.sha;
     this.resolvedRef = ref;
@@ -147,6 +228,9 @@ export class GitHubSource {
       commit: this.commit,
       commit_date: this.commitDate || null,
       default_branch: this.defaultBranch,
+      private: this.private ?? null,
+      subdir: this.subdir || null,
+      notes: this.notes.length ? this.notes : undefined,
     };
   }
 
@@ -231,7 +315,7 @@ export class LocalSource {
   }
 
   descriptor() {
-    return { kind: 'local', url: this.url, requested_ref: null, resolved_ref: null, ref_type: this.refType, commit: this.commit, head_commit: this.headCommit ?? null, dirty: this.dirty ?? null };
+    return { kind: 'local', url: this.url, requested_ref: null, resolved_ref: null, ref_type: this.refType, commit: this.commit, head_commit: this.headCommit ?? null, dirty: this.dirty ?? null, subdir: this.subdir || null };
   }
 
   async listTree() {
@@ -343,7 +427,7 @@ export class GitSshSource {
   }
 
   descriptor() {
-    return { kind: 'github-ssh', url: this.url, owner: this.owner, repo: this.repo, requested_ref: this.ref, resolved_ref: this.resolvedRef || this.ref, ref_type: this.refType, commit: this.commit, clone_dir: this.dir || null };
+    return { kind: 'github-ssh', url: this.url, owner: this.owner, repo: this.repo, requested_ref: this.ref, resolved_ref: this.resolvedRef || this.ref, ref_type: this.refType, commit: this.commit, clone_dir: this.dir || null, subdir: this.subdir || null };
   }
 
   async listTree() {
@@ -363,11 +447,15 @@ export class GitSshSource {
 /**
  * Open a corpus source from a GitHub HTTPS URL (optionally with a token for private
  * repositories), a GitHub SSH URL (local runner only), or a local directory path.
- * @param {{url?:string, path?:string, ref?:string, token?:string, limits?:object, allowSsh?:boolean}} opts
+ * `subdir` restricts paper discovery to one folder of the repository; a GitHub folder link
+ * (…/tree/<branch>/<folder>) sets it automatically.
+ * @param {{url?:string, path?:string, ref?:string, subdir?:string, token?:string, limits?:object, allowSsh?:boolean}} opts
  */
-export async function openSource({ url, path: localPath, ref, token, limits, allowSsh = true } = {}) {
+export async function openSource({ url, path: localPath, ref, subdir, token, limits, allowSsh = true } = {}) {
+  const sub = validateSubdir(subdir);
   if (localPath) {
     const src = new LocalSource(localPath, { limits });
+    src.subdir = sub;
     await src.resolve();
     return src;
   }
@@ -375,12 +463,20 @@ export async function openSource({ url, path: localPath, ref, token, limits, all
   if (ssh) {
     if (!allowSsh) throw new SourceError('SSH URLs are only supported by the local runner; use an https://github.com URL with a token here', 'ssh_not_allowed');
     const src = new GitSshSource({ owner: ssh.owner, repo: ssh.repo, ref: validateRef(ref), limits });
+    src.subdir = sub;
     await src.resolve();
     return src;
   }
   const parsed = parseGitHubUrl(url);
-  const chosenRef = validateRef(ref) || parsed.refFromUrl || null;
-  const src = new GitHubSource({ owner: parsed.owner, repo: parsed.repo, ref: chosenRef, token: token ?? process.env.GITHUB_TOKEN ?? null, limits });
+  const src = new GitHubSource({
+    owner: parsed.owner,
+    repo: parsed.repo,
+    ref: validateRef(ref),
+    treePath: parsed.refFromUrl,
+    subdir: sub,
+    token: token ?? process.env.GITHUB_TOKEN ?? null,
+    limits,
+  });
   await src.resolve();
   return src;
 }

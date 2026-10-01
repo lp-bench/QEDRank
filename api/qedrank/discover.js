@@ -1,10 +1,12 @@
 // Vercel Serverless Function - QEDRank corpus preview.
 //
-// POST { repoUrl, ref?, token?, expectedCount? }  ->  preview manifest of the papers and
+// POST { repoUrl, ref?, subdir?, token?, expectedCount? }  ->  preview manifest of the papers and
 // ground-truth Lean targets discovered at an immutable commit.
 //
-// repoUrl: https://github.com/<owner>/<repo>[/tree/<branch-or-tag>]   (branch links are accepted)
+// repoUrl: https://github.com/<owner>/<repo>[/tree/<branch-or-tag>[/<folder>]]
+//          branch and folder links are accepted; branch names may contain "/"
 // ref:     optional branch, tag or commit; overrides the /tree/ part of the URL
+// subdir:  optional folder to restrict discovery to (a folder link sets it automatically)
 // token:   optional GitHub token for PRIVATE repositories. It is used for this request only,
 //          never stored or logged. Alternatively set GITHUB_TOKEN in the Vercel project
 //          environment to apply one server-side token to every preview. SSH URLs cannot be
@@ -21,7 +23,9 @@ const PREVIEW_LIMITS = {
   maxTotalBytes: 25 * 1024 * 1024,
   maxFileBytes: 2 * 1024 * 1024,
 };
-const MAX_LEAN_READS = 150;
+const MAX_LEAN_READS = 500;
+const TIME_BUDGET_MS = 35000; // stop inspecting Lean files after this; the function limit is 60 s
+const READ_CONCURRENCY = 12;
 const TOKEN_RE = /^(gh[pousr]_[A-Za-z0-9_]{20,255}|github_pat_[A-Za-z0-9_]{20,255})$/;
 
 export default async function handler(req, res) {
@@ -33,7 +37,7 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') { res.status(405).json({ error: 'Method not allowed' }); return; }
 
   const body = typeof req.body === 'string' ? safeParse(req.body) : req.body || {};
-  const { repoUrl, ref, expectedCount } = body;
+  const { repoUrl, ref, subdir, expectedCount } = body;
   if (!repoUrl || typeof repoUrl !== 'string') { res.status(400).json({ error: 'repoUrl is required' }); return; }
   let sshParsed = null;
   try { sshParsed = parseGitSshUrl(repoUrl); } catch { /* reported below as invalid url */ }
@@ -56,6 +60,7 @@ export default async function handler(req, res) {
     const source = await openSource({
       url: repoUrl,
       ref: typeof ref === 'string' ? ref : null,
+      subdir: typeof subdir === 'string' ? subdir : null,
       token: token || process.env.GITHUB_TOKEN || null,
       limits: PREVIEW_LIMITS,
       allowSsh: false,
@@ -63,18 +68,18 @@ export default async function handler(req, res) {
     const manifest = await discoverCorpus(source, {
       expectedCount: Number.isInteger(expectedCount) ? expectedCount : 108,
       maxLeanReads: MAX_LEAN_READS,
+      timeBudgetMs: TIME_BUDGET_MS,
+      concurrency: READ_CONCURRENCY,
     });
     manifest.preview = true;
-    manifest.preview_limits = { ...PREVIEW_LIMITS, max_lean_reads: MAX_LEAN_READS };
+    manifest.preview_limits = { ...PREVIEW_LIMITS, max_lean_reads: MAX_LEAN_READS, time_budget_ms: TIME_BUDGET_MS };
     manifest.auth = { token_used: Boolean(token), server_token_used: !token && Boolean(process.env.GITHUB_TOKEN) };
-    manifest.next_step = `node qedrank/cli.js run --repo ${source.url} --ref ${manifest.source.commit}${token ? ' --token <your token>' : ''}`;
+    const sub = manifest.source.subdir ? ` --subdir "${manifest.source.subdir}"` : '';
+    manifest.next_step = `node qedrank/cli.js run --repo ${source.url} --ref ${manifest.source.commit}${sub}${manifest.source.private ? ' --token <your token>' : ''}`;
     res.status(200).json(manifest);
   } catch (err) {
-    const status = err.code === 'invalid_url' || err.code === 'invalid_ref' ? 400 : err.code === 'not_found' ? 404 : err.code === 'rate_limited' ? 429 : 502;
-    const hint = err.code === 'not_found' && !token && !process.env.GITHUB_TOKEN
-      ? ' If the repository is private, provide a GitHub token with read access to its contents.'
-      : '';
-    res.status(status).json({ error: `${err.message}${hint}`, code: err.code || 'discovery_failed' });
+    const status = { invalid_url: 400, invalid_ref: 400, invalid_subdir: 400, not_found: 404, ref_not_found: 404, bad_credentials: 401, rate_limited: 429 }[err.code] || 502;
+    res.status(status).json({ error: err.message, code: err.code || 'discovery_failed' });
   }
 }
 
