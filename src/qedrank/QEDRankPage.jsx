@@ -10,7 +10,7 @@ export default function QEDRankPage() {
   return (
     <div className="qr-page">
       <p className="qr-intro">
-        <b>QEDRank</b> evaluates the five models on every paper of a corpus: main theorem, upper bound, lower bound and an optional disproof, each against its audited ground-truth Lean statement. Statement fidelity, compilation, dependency audit and strict verified success are measured separately, at pass@1, with paper-cluster confidence intervals. Preview the corpus here; run generation, Lean checking and evaluation locally with <code>npm run qedrank -- run</code>; then load the run to explore results.
+        <b>QEDRank</b> evaluates every model in the roster (ten provider slots by default) on every paper of a corpus: main theorem, upper bound, lower bound and an optional disproof, each against its audited ground-truth Lean statement. Statement fidelity, compilation, dependency audit and strict verified success are measured separately, at pass@1, with paper-cluster confidence intervals. Preview the corpus here; run generation, Lean checking and evaluation locally with <code>npm run qedrank -- run</code>; then load the run to explore results.
       </p>
       <CorpusPanel />
       <RunPanel onLoaded={(b) => setLoaded((prev) => ({ run: b.run ?? prev.run, summary: b.summary ?? prev.summary, items: b.items ?? prev.items }))} />

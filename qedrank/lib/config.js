@@ -3,17 +3,21 @@
 
 import path from 'node:path';
 import { readJson } from './util.js';
-import { PROVIDER_IDS } from '../../lib/providers.js';
+import { PROVIDER_IDS, getRoster } from '../../lib/providers.js';
 
 export const DEFAULT_CONFIG = Object.freeze({
   runsDir: 'runs',
   leanDir: 'lean',
   expectedPaperCount: 108,
-  models: PROVIDER_IDS,
+  models: getRoster(), // the ten default slots, or QEDRANK_MODELS
   generation: {
     temperature: 0,
-    maxTokens: 4096,
-    timeoutMs: 180000,
+    maxTokens: 16384,     // reasoning models spend part of the budget thinking before answering
+    timeoutMs: 300000,   // per attempt; reasoning models can think for minutes
+    retries: 4,          // on 429 / 5xx / network errors, honouring Retry-After
+    retryBaseDelayMs: 2000,
+    retryMaxDelayMs: 60000,
+    providerConcurrency: 1, // in-flight requests per provider (free tiers are rate-limited)
     attempts: 1,          // k for pass@k; pass@1 is always reported from attempt 1
     repairRounds: 0,      // >0 enables the separately-labelled repair setting with this fixed budget for every model
   },
@@ -23,7 +27,7 @@ export const DEFAULT_CONFIG = Object.freeze({
     maxHeartbeats: 400000,
     concurrency: 2,
   },
-  concurrency: { items: 2, generation: 5 },
+  concurrency: { items: 10 },
   context: { maxChars: 24000 },
   download: {},
   bootstrap: { B: 2000, seed: 20260930 },

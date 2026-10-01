@@ -2,7 +2,8 @@
 
 QEDRank extends the single-problem ProofBench workflow (one natural-language
 problem → five LLMs) into a batch benchmark over a corpus of research papers.
-For every paper it evaluates each of the project's five models on the
+For every paper it evaluates each model in the project's roster (ten provider slots by
+default, see [Model roster](#model-roster)) on the
 **main theorem**, **upper bound**, **lower bound** and an optional **disproof**
 target, always against that paper's audited ground-truth Lean statement.
 
@@ -14,6 +15,7 @@ in-progress runs.
 ## Contents
 
 - [Quick start](#quick-start)
+- [Model roster](#model-roster)
 - [What is measured](#what-is-measured)
 - [Corpus layout and annotations](#corpus-layout-and-annotations)
 - [Run directory and resume](#run-directory-and-resume)
@@ -32,9 +34,8 @@ npm install                      # adds pdfjs-dist for PDF text extraction
 cd lean && lake update && lake exe cache get && lake build && cd ..
 node qedrank/cli.js toolchain    # must report available=true, mathlib_built=true, audit_built=true
 
-# 2. Provider keys: the same five variables the single-problem mode uses
-#    GEMINI_API_KEY, OPENAI_API_KEY, ANTHROPIC_API_KEY, COHERE_API_KEY, MISTRAL_API_KEY
-#    (optional: QEDRANK_MODEL_<PROVIDER> pins a model id; GITHUB_TOKEN raises API limits)
+# 2. Provider keys for the ten-slot roster (see "Model roster"): enter them with hidden input
+#    .scriptsset-llm-keys.ps1 -Target User      then check with: node qedrank/cli.js ping
 
 # 3. Preview the corpus (no model calls)
 node qedrank/cli.js discover --repo https://github.com/<owner>/<corpus> --ref main --out manifest.json
@@ -60,6 +61,47 @@ Try it without credentials or a corpus:
 node qedrank/cli.js run --path qedrank/test/fixtures/corpus-a \
   --fixtures qedrank/test/fixtures/corpus-a/fixture-responses --run-id fixture-demo
 ```
+
+## Model roster
+
+Ten slots, all called through one OpenAI-compatible client (`lib/providers.js`) that both the
+single-problem page and the benchmark use. Every model receives the same system message
+(*"You are an expert Lean 4 formal verification agent. Provide valid Lean 4 code."*).
+Endpoints and model ids were checked against the providers' live catalogs and documentation
+on 2026-10-01; where the originally requested model is gone, the replacement is noted.
+
+| # | Provider | Base URL | Default model | Key | Access |
+|---|---|---|---|---|---|
+| 1 | Mistral AI | `https://api.mistral.ai/v1` | `labs-leanstral-2603` | `MISTRAL_API_KEY` | free Experiment plan; Labs model. `labs-leanstral-1-5` retired 2026-09-30 |
+| 2 | DeepSeek | `https://api.deepseek.com` | `deepseek-v4-pro` | `DEEPSEEK_API_KEY` | paid. The API serves `deepseek-v4-pro` and `deepseek-flash`; `deepseek-prover-v2` is not served |
+| 3 | OpenRouter | `https://openrouter.ai/api/v1` | `nvidia/nemotron-3-ultra-550b-a55b:free` | `OPENROUTER_API_KEY` | free `:free` models with daily caps. `deepseek/deepseek-r1:free` is no longer listed |
+| 4 | Groq Cloud | `https://api.groq.com/openai/v1` | `openai/gpt-oss-120b` | `GROQ_API_KEY` | free, rate-limited. `deepseek-r1-distill-llama-70b` shut down 2025-10-02 |
+| 5 | SiliconFlow | `https://api.siliconflow.cn/v1` | `deepseek-ai/DeepSeek-R1` | `SILICONFLOW_API_KEY` | paid model, trial credits. Not verifiable without a key |
+| 6 | Custom slot | `QEDRANK_CUSTOM_BASE_URL` | `QEDRANK_CUSTOM_MODEL` | `QEDRANK_CUSTOM_API_KEY` | replaces GitHub Models, fully retired 2026-07-30. `QEDRANK_CUSTOM_AUTH_HEADER=api-key` for Azure AI Foundry |
+| 7 | Together AI | `https://api.together.xyz/v1` | `Qwen/Qwen3.8-Flash` | `TOGETHER_API_KEY` | paid. DeepSeek-R1 is no longer served serverless |
+| 8 | Google AI Studio | `https://generativelanguage.googleapis.com/v1beta/openai` | `gemini-3.8-flash` | `GEMINI_API_KEY` | free tier, rate-limited. `gemini-2.5-pro` is no longer in the model list |
+| 9 | Hugging Face | `https://router.huggingface.co/v1` | `Qwen/Qwen2.5-Coder-32B-Instruct` | `HF_TOKEN` | free monthly credits. `api-inference.huggingface.co` no longer answers |
+| 10 | NVIDIA NIM | `https://integrate.api.nvidia.com/v1` | `deepseek-ai/deepseek-v4.1-flash` | `NVIDIA_API_KEY` | free developer access. DeepSeek-R1 is no longer in the catalog |
+
+Change anything without code edits: `QEDRANK_MODELS=groq,gemini,…` picks and orders the
+roster, `QEDRANK_MODEL_<ID>` and `QEDRANK_BASEURL_<ID>` override one provider's model and
+endpoint. OpenAI, Anthropic and Cohere remain available as optional ids outside the default ten.
+
+Enter keys with hidden input and store them in Vercel, your user environment, or the session:
+
+```powershell
+.scriptsset-llm-keys.ps1 -Target Vercel -Redeploy     # deployed app
+.scriptsset-llm-keys.ps1 -Target User                 # local CLI / runner
+node qedrank/cli.js models                              # which slots have a key
+node qedrank/cli.js ping --compile --show               # one Lean task per model, compiled
+```
+
+Free tiers are rate-limited, so the runner sends one request at a time per provider
+(`generation.providerConcurrency`), retries 429/5xx responses up to four times honouring
+`Retry-After`, and records attempts and waits per item. Reasoning text (`<think>…</think>` or
+`reasoning_content`) is separated from the answer before parsing and its size is recorded.
+A full corpus is roughly 100 papers × 3–4 targets per model, which exceeds some free daily
+quotas; run it in several sessions with `resume`, or restrict `QEDRANK_MODELS`.
 
 ## What is measured
 
@@ -208,7 +250,7 @@ Put reviewer decisions under `runs/<run_id>/review/` and re-run `stats` (or
 - `decisions.json` — `{ "<paper>__<kind>__<provider>": { "statement_match": "weaker", "reviewer": "…", "note": "…", "date": "…" } }`
   overrides the automated classification (allowed: `expert_confirmed_equivalent`, `stronger`, `weaker`, `different`, `unresolved`).
 - `reference-defects.json` — `{ "reviewed_references": ["p__main_theorem"], "reference_defects": [ { "reference": "p__main_theorem", "type": "missing_hypothesis", "reason": "…", "correction": true, "original_sha256": "…", "corrected_sha256": "…" } ] }`.
-- `context/<paper>/<kind>.md` — reviewed paper passages that replace the automatic excerpt (all five models receive the same text).
+- `context/<paper>/<kind>.md` — reviewed paper passages that replace the automatic excerpt (every model receives the same text).
 - `prelude/<paper>.lean` — reviewed definitions-only prelude replacing the automatically stripped one.
 
 The original and corrected reference versions both stay in the run directory
@@ -239,9 +281,9 @@ The original and corrected reference versions both stay in the run directory
 ## Statistics
 
 95% intervals are percentile cluster bootstraps by paper (all targets and all
-five models of a paper stay together in a resample). The five-model comparison
+models of a paper stay together in a resample). The k-model comparison
 uses Cochran's Q on the common eligible papers and exact McNemar tests for the
-ten pairs with Holm correction, reporting paired percentage-point differences
+k(k-1)/2 model pairs (45 for ten models) with Holm correction, reporting paired percentage-point differences
 with bootstrap CIs. Rankings are descriptive; only pairs listed in
 `statistically_supported_pairs` differ after correction. Subgroups with fewer
 than `exploratoryThreshold` papers are labelled exploratory. No confidence

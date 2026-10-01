@@ -4,13 +4,13 @@ An AI-powered web application that converts mathematical problems to Lean4 code 
 
 ## Features
 
-- **Multi-Model AI Integration**: Gemini, GPT-4, Claude 3, Command R+, and Mistral Large
+- **Ten-Model AI Integration**: Mistral Leanstral, DeepSeek, OpenRouter, Groq, SiliconFlow, a custom OpenAI-compatible slot, Together AI, Google Gemini, Hugging Face and NVIDIA NIM, all through one OpenAI-compatible client (see [qedrank/README.md#model-roster](qedrank/README.md#model-roster))
 - **Lean4 Code Generation**: Converts mathematical problems to formal proof code
 - **User Feedback System**: 1-5 star rating system for each model's output
 - **Secure Backend**: Hidden API keys using Vercel serverless functions
 - **Responsive Design**: Works on desktop and mobile devices
 - **Preference Dataset Collection**: Human-in-the-Loop feedback for model training
-- **QEDRank batch benchmark mode**: evaluate the same five models on every paper of a GitHub corpus (main theorem, upper bound, lower bound, optional disproof) against audited ground-truth Lean statements, with Lean compilation, dependency audits, statement comparison and paper-cluster statistics — see [qedrank/README.md](qedrank/README.md)
+- **QEDRank batch benchmark mode**: evaluate the same models (ten provider slots by default) on every paper of a GitHub corpus (main theorem, upper bound, lower bound, optional disproof) against audited ground-truth Lean statements, with Lean compilation, dependency audits, statement comparison and paper-cluster statistics — see [qedrank/README.md](qedrank/README.md)
 
 ## Architecture
 
@@ -46,7 +46,7 @@ The web app keeps the single-problem workflow unchanged and adds a **QEDRank ben
    ```bash
    node qedrank/cli.js run --repo https://github.com/<owner>/<corpus> --ref <commit>
    ```
-3. Serve the run (`npm run qedrank:serve`) and load it in the tab to get the performance matrix with numerators/denominators and 95% paper-cluster CIs, charts, the five-model comparison, subject/difficulty views, item-level filters and CSV/JSON downloads. Partial runs can be polled while they are in progress and resumed with `node qedrank/cli.js resume --run-id <id>`.
+3. Serve the run (`npm run qedrank:serve`) and load it in the tab to get the performance matrix with numerators/denominators and 95% paper-cluster CIs, charts, the multi-model comparison, subject/difficulty views, item-level filters and CSV/JSON downloads. Partial runs can be polled while they are in progress and resumed with `node qedrank/cli.js resume --run-id <id>`.
 
 Full details (measurements, eligibility rules, corpus layout, annotations, expert-review inputs, isolation policy, statistics) are in [qedrank/README.md](qedrank/README.md).
 
@@ -72,11 +72,8 @@ Full details (measurements, eligibility rules, corpus layout, annotations, exper
    ```
    
    Edit `.env.local` and add your API keys:
-   - `GEMINI_API_KEY` - Google Gemini API key
-   - `OPENAI_API_KEY` - OpenAI API key
-   - `ANTHROPIC_API_KEY` - Anthropic Claude API key
-   - `COHERE_API_KEY` - Cohere API key
-   - `MISTRAL_API_KEY` - Mistral AI API key
+   - one key per model slot: `MISTRAL_API_KEY`, `DEEPSEEK_API_KEY`, `OPENROUTER_API_KEY`, `GROQ_API_KEY`, `SILICONFLOW_API_KEY`, `QEDRANK_CUSTOM_*`, `TOGETHER_API_KEY`, `GEMINI_API_KEY`, `HF_TOKEN`, `NVIDIA_API_KEY` (see `.env.example`; any slot without a key is simply skipped)
+   - or enter them with hidden input: `.scriptsset-llm-keys.ps1 -Target Vercel -Redeploy`
 
 3. **Optional: Feedback Storage Setup**
    - **Supabase**: Add `SUPABASE_URL` and `SUPABASE_ANON_KEY`

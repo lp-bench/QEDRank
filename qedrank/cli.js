@@ -2,6 +2,8 @@
 // QEDRank command line.
 //
 //   node qedrank/cli.js toolchain
+//   node qedrank/cli.js models [--all] [--json]          the ten-slot roster and which keys are set
+//   node qedrank/cli.js ping [--models a,b] [--compile] [--show]   one small Lean task per configured model
 //   node qedrank/cli.js discover --repo <github url> [--ref <branch|tag|sha>] [--out manifest.json] [--annotations file.json]
 //       --repo accepts https://github.com/<owner>/<repo>[/tree/<branch>] (private: --token <PAT> or GITHUB_TOKEN)
 //       or git@github.com:<owner>/<repo>.git (private over SSH, uses your SSH agent / deploy key)
@@ -22,6 +24,8 @@ import { openSource } from './lib/source.js';
 import { discoverCorpus } from './lib/corpus.js';
 import { detectToolchain } from './lib/lean.js';
 import { listModels } from './lib/models.js';
+import { pingModels } from './lib/ping.js';
+import { getRoster, PROVIDER_IDS } from '../lib/providers.js';
 import { createRun, openRun, runAll, stageDiscovery, stagePreparation, stageGeneration, stageStatistics } from './lib/run.js';
 import { createServer } from './lib/serve.js';
 import { readJson, writeJson } from './lib/util.js';
@@ -67,7 +71,25 @@ async function main() {
       return;
     }
     case 'models': {
-      console.log(JSON.stringify(listModels(), null, 2));
+      const ids = args.all ? PROVIDER_IDS : list(args.models).length ? list(args.models) : getRoster();
+      const rows = listModels(process.env, ids);
+      if (args.json) { console.log(JSON.stringify(rows, null, 2)); return; }
+      console.log('slot | id | provider | model | key | status');
+      rows.forEach((m, i) => console.log(`${String(i + 1).padStart(2)} | ${m.id} | ${m.label} | ${m.model_id || '(set QEDRANK_CUSTOM_MODEL)'} | ${m.env_key} | ${m.retired ? 'retired' : m.configured ? 'configured' : 'no key'}`));
+      return;
+    }
+    case 'ping': {
+      const ids = list(args.models).length ? list(args.models) : getRoster();
+      const rows = await pingModels(ids, { compile: Boolean(args.compile), leanDir: config.leanDir, timeoutMs: Number(args.timeout || 120000), maxTokens: Number(args['max-tokens'] || 4096), log });
+      if (args.out) { await writeJson(args.out, rows); log(`wrote ${args.out}`); }
+      console.log('\nmodel | status | latency | output tokens | attempts' + (args.compile ? ' | compile' : ''));
+      for (const r of rows) {
+        console.log(`${r.label} · ${r.model_id || '-'} | ${r.status} | ${r.latency_ms != null ? `${(r.latency_ms / 1000).toFixed(1)} s` : '-'} | ${r.output_tokens ?? '-'} | ${r.attempts ?? '-'}${args.compile ? ` | ${r.compile ? r.compile.status + (r.compile.placeholder ? ' (uses sorry)' : '') : '-'}` : ''}`);
+        if (r.error) console.log(`    ${r.error.slice(0, 300)}`);
+        if (args.show && r.answer) console.log(r.answer.split('\n').map((l) => `    | ${l}`).join('\n'));
+      }
+      const ok = rows.filter((r) => r.status === 'ok').length;
+      console.log(`\n${ok} of ${rows.length} models answered; ${rows.filter((r) => r.status === 'not_configured').length} have no key.`);
       return;
     }
     case 'discover': {
@@ -142,7 +164,7 @@ async function main() {
       return;
     }
     default:
-      console.error('usage: node qedrank/cli.js <toolchain|models|discover|run|resume|stats|export|prompt|serve> [options]');
+      console.error('usage: node qedrank/cli.js <toolchain|models|ping|discover|run|resume|stats|export|prompt|serve> [options]');
       process.exitCode = 1;
   }
 }

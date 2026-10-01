@@ -1,10 +1,47 @@
 // Vercel Serverless Function - Backend Bridge for LLMs
 // This runs on the server, keeping your API keys hidden from the user.
 //
-// The five provider integrations live in ../lib/providers.js so that the
-// QEDRank batch benchmark reuses exactly the same endpoints and model ids.
+// POST { mathProblem, provider? }
+//   provider given  -> one model (the page sends one request per model, so each model gets its
+//                      own function invocation and time budget)
+//   provider absent -> every configured model in the roster, in parallel (original behaviour)
+//
+// Provider integrations live in ../lib/providers.js and are shared with the QEDRank benchmark.
 
-import { PROVIDERS, callProvider, singleProblemPrompt } from '../lib/providers.js';
+import { callProvider, getRoster, getProvider, describeProvider, singleProblemPrompt, SYSTEM_PROMPT, PROVIDER_IDS } from '../lib/providers.js';
+
+const PER_MODEL_TIMEOUT_MS = 55000; // stays inside the 60 s function limit set in vercel.json
+const MAX_TOKENS = 4096;            // reasoning models spend part of the budget thinking
+
+function errorResult(id, err) {
+  const p = getProvider(id);
+  return {
+    provider: id,
+    model: p.label,
+    modelId: describeProvider(id).model_id,
+    leanCode: `Error: ${err.message || 'Failed to generate code'}`,
+    success: false,
+    errorKind: err.kind || 'error',
+  };
+}
+
+async function runOne(id, prompt) {
+  try {
+    const r = await callProvider(id, { prompt, system: SYSTEM_PROMPT, temperature: 0.3, maxTokens: MAX_TOKENS, timeoutMs: PER_MODEL_TIMEOUT_MS, retries: 0 });
+    return {
+      provider: id,
+      model: r.displayName,
+      modelId: r.modelId,
+      leanCode: r.text || 'Error generating code',
+      success: Boolean(r.text),
+      latencyMs: r.latencyMs,
+      usage: r.usage,
+      finishReason: r.finishReason,
+    };
+  } catch (err) {
+    return errorResult(id, err);
+  }
+}
 
 export default async function handler(req, res) {
   // Handle CORS
@@ -23,44 +60,34 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { mathProblem } = req.body;
+    const { mathProblem, provider } = req.body || {};
 
     if (!mathProblem || typeof mathProblem !== 'string') {
       res.status(400).json({ error: 'Invalid input: mathProblem is required' });
       return;
     }
+    if (mathProblem.length > 20000) {
+      res.status(400).json({ error: 'Invalid input: mathProblem is too long (max 20000 characters)' });
+      return;
+    }
 
     const prompt = singleProblemPrompt(mathProblem);
 
-    // Call multiple LLMs in parallel (same order, temperature and token limit as before)
-    const results = await Promise.allSettled(
-      PROVIDERS.map((p) => callProvider(p.id, { prompt, temperature: 0.3, maxTokens: 2048 }))
-    );
-
-    // Process results
-    const processedResults = results.map((result, index) => {
-      if (result.status === 'fulfilled') {
-        return {
-          leanCode: result.value.text || 'Error generating code',
-          model: result.value.displayName,
-          success: true
-        };
-      } else {
-        return {
-          leanCode: `Error: ${result.reason.message || 'Failed to generate code'}`,
-          model: ['Gemini', 'OpenAI', 'Anthropic', 'Cohere', 'Mistral'][index],
-          success: false
-        };
+    if (provider !== undefined) {
+      if (typeof provider !== 'string' || !PROVIDER_IDS.includes(provider)) {
+        res.status(400).json({ error: `Unknown provider: ${String(provider).slice(0, 40)}` });
+        return;
       }
-    });
+      const result = await runOne(provider, prompt);
+      res.status(200).json({ results: [result], timestamp: new Date().toISOString() });
+      return;
+    }
 
-    res.status(200).json({
-      results: processedResults,
-      timestamp: new Date().toISOString()
-    });
-
+    const roster = getRoster();
+    const results = await Promise.all(roster.map((id) => runOne(id, prompt)));
+    res.status(200).json({ results, timestamp: new Date().toISOString() });
   } catch (error) {
-    console.error('API Error:', error);
+    console.error('API Error:', error.message);
     res.status(500).json({
       error: 'Internal server error',
       message: error.message

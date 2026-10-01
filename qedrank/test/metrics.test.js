@@ -55,8 +55,8 @@ test('buildSummary produces numerator/denominator rates with paper-cluster CIs a
   assert.ok(a.cost.available && a.cost.per_verified_success_usd > 0);
   assert.equal(b.cost.available, false);
   assert.ok(s.coverage.open_claim_escalations.includes('p3__main_theorem__a'));
-  assert.equal(s.five_model_comparison.n_common_papers, 2);
-  assert.equal(s.five_model_comparison.pairwise.length, 1);
+  assert.equal(s.model_comparison.n_common_papers, 2);
+  assert.equal(s.model_comparison.pairwise.length, 1);
   assert.equal(s.subgroups.by_subject['05A'].a.exploratory, true);
   assert.equal(s.subsets.a.common_input_set.n_items, 2);
   assert.equal(s.paper_level.a.sandwich_coverage.den, 0); // no upper/lower references -> unavailable, not a failure

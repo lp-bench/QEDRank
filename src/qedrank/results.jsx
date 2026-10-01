@@ -1,5 +1,5 @@
 import { Fragment, useMemo, useState } from 'react'
-import { MODEL_ORDER, TARGET_KINDS, TARGET_LABELS, seriesColor, fmtRate, fmtCI, fmtMs, fmtNum, fmtInt, download, toCsv, rateOf, useDarkMode } from './helpers.js'
+import { TARGET_KINDS, TARGET_LABELS, fmtRate, fmtCI, fmtMs, fmtNum, fmtInt, download, toCsv, rateOf } from './helpers.js'
 
 /* ------------------------------------------------------------------ */
 /* Performance matrix                                                   */
@@ -54,7 +54,7 @@ export function MatrixView({ summary }) {
               const pl = summary.paper_level?.[m.id]
               return (
                 <tr key={m.id}>
-                  {MATRIX_COLUMNS.map(([h, fn], i) => <td key={h}>{i === 0 ? <span><span className="qr-swatch" style={{ background: seriesColor(m.id, useDarkMode()) }} />{fn(m, mm)}<div className="qr-small">{m.model_id}</div></span> : fn(m, mm)}</td>)}
+                  {MATRIX_COLUMNS.map(([h, fn], i) => <td key={h}>{i === 0 ? <span>{fn(m, mm)}<div className="qr-small">{m.model_id}{m.host ? ` @ ${m.host}` : ''}</div></span> : fn(m, mm)}</td>)}
                   {scope === 'all' && <td>{pl ? <Rate r={pl.sandwich_coverage} /> : <Unavail />}</td>}
                   {scope === 'all' && <td>{pl ? <Rate r={pl.paper_verified_all_eligible_bounds} /> : <Unavail />}</td>}
                 </tr>
@@ -72,38 +72,37 @@ export function MatrixView({ summary }) {
 /* Charts (inline SVG)                                                  */
 /* ------------------------------------------------------------------ */
 
-function BarFacet({ title, series, dark, maxLabel = true }) {
+function BarFacet({ title, series }) {
+  // Horizontal bars, one row per model, one hue: every row carries the model's name, so colour is
+  // not needed for identity (and ten models exceed the validated categorical palette).
   const [hover, setHover] = useState(null)
-  const W = 320
-  const H = 190
-  const padL = 36
-  const padB = 44
-  const padT = 18
-  const innerH = H - padB - padT
-  const n = series.length
-  const slot = (W - padL - 8) / n
-  const barW = Math.min(28, slot * 0.6)
-  const y = (v) => padT + innerH * (1 - v)
+  const W = 360
+  const rowH = 22
+  const padL = 112
+  const padR = 64
+  const padT = 8
+  const padB = 22
+  const H = padT + padB + rowH * series.length
+  const innerW = W - padL - padR
+  const x = (v) => padL + innerW * v
   return (
     <figure className="qr-figure" onMouseLeave={() => setHover(null)}>
       <figcaption>{title}</figcaption>
-      <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={`${title}: verified pass@1 by model with 95% confidence intervals`}>
-        {[0, 0.25, 0.5, 0.75, 1].map((g) => <g key={g}><line x1={padL} x2={W - 8} y1={y(g)} y2={y(g)} className="qr-grid" /><text x={padL - 4} y={y(g) + 3} textAnchor="end" className="qr-axis">{Math.round(g * 100)}%</text></g>)}
-        <line x1={padL} x2={W - 8} y1={y(0)} y2={y(0)} className="qr-baseline" />
+      <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={`${title}: rate by model with 95% confidence intervals`}>
+        {[0, 0.25, 0.5, 0.75, 1].map((g) => <g key={g}><line x1={x(g)} x2={x(g)} y1={padT} y2={H - padB} className="qr-grid" /><text x={x(g)} y={H - 6} textAnchor="middle" className="qr-axis">{Math.round(g * 100)}%</text></g>)}
+        <line x1={x(0)} x2={x(0)} y1={padT} y2={H - padB} className="qr-baseline" />
         {series.map((s, i) => {
-          const cx = padL + slot * i + slot / 2
+          const cy = padT + rowH * i + rowH / 2
           const v = s.rate?.value
-          const has = v !== null && v !== undefined
-          const top = has ? y(v) : y(0)
-          const color = seriesColor(s.id, dark)
+          const has = v !== null && v !== undefined && s.rate.den > 0
+          const hasCI = has && s.rate.ci_lo !== null && s.rate.ci_lo !== undefined
           return (
-            <g key={s.id} onMouseEnter={() => setHover(i)} tabIndex={0} onFocus={() => setHover(i)}>
-              <rect x={cx - slot / 2} y={padT} width={slot} height={innerH} fill="transparent" />
-              {has && <rect x={cx - barW / 2} y={top} width={barW} height={Math.max(0, y(0) - top)} rx="4" ry="4" fill={color} className="qr-bar-mark" />}
-              {has && s.rate.ci_lo !== null && s.rate.ci_lo !== undefined && <line x1={cx} x2={cx} y1={y(s.rate.ci_lo)} y2={y(s.rate.ci_hi)} className="qr-ci" />}
-              {has && s.rate.ci_lo !== null && s.rate.ci_lo !== undefined && <><line x1={cx - 5} x2={cx + 5} y1={y(s.rate.ci_lo)} y2={y(s.rate.ci_lo)} className="qr-ci" /><line x1={cx - 5} x2={cx + 5} y1={y(s.rate.ci_hi)} y2={y(s.rate.ci_hi)} className="qr-ci" /></>}
-              <text x={cx} y={has ? top - 5 : y(0) - 5} textAnchor="middle" className="qr-label">{has ? `${s.rate.num}/${s.rate.den}` : 'n/a'}</text>
-              <text x={cx} y={H - padB + 14} textAnchor="middle" className="qr-axis">{s.label}</text>
+            <g key={s.id} onMouseEnter={() => setHover(i)} onFocus={() => setHover(i)} tabIndex={0}>
+              <rect x={0} y={cy - rowH / 2} width={W} height={rowH} fill="transparent" />
+              <text x={padL - 6} y={cy + 3} textAnchor="end" className="qr-axis">{s.label.length > 18 ? `${s.label.slice(0, 17)}…` : s.label}</text>
+              {has && <rect x={x(0)} y={cy - 6} width={Math.max(0, x(v) - x(0))} height={12} rx="4" ry="4" className="qr-bar-mark" />}
+              {hasCI && <><line x1={x(s.rate.ci_lo)} x2={x(s.rate.ci_hi)} y1={cy} y2={cy} className="qr-ci" /><line x1={x(s.rate.ci_lo)} x2={x(s.rate.ci_lo)} y1={cy - 4} y2={cy + 4} className="qr-ci" /><line x1={x(s.rate.ci_hi)} x2={x(s.rate.ci_hi)} y1={cy - 4} y2={cy + 4} className="qr-ci" /></>}
+              <text x={W - padR + 6} y={cy + 3} className="qr-label">{has ? `${s.rate.num}/${s.rate.den}` : 'n/a'}</text>
             </g>
           )
         })}
@@ -119,26 +118,25 @@ function BarFacet({ title, series, dark, maxLabel = true }) {
 }
 
 export function ChartsView({ summary }) {
-  const dark = useDarkMode()
   const models = summary.models
-  const short = (m) => m.display_name.replace('Gemini 1.5 Pro', 'Gemini').replace('Claude 3 Sonnet', 'Claude').replace('Command R+', 'Cmd R+').replace('Mistral Large', 'Mistral')
+  const label = (m) => m.label || (m.display_name || m.id).split(' · ')[0]
   const facets = ['all', ...TARGET_KINDS].map((k) => ({
     key: k,
     title: `Verified pass@1 — ${TARGET_LABELS[k]}`,
-    series: models.map((m) => ({ id: m.id, name: m.display_name, label: short(m), rate: summary.by_target[k]?.[m.id]?.verified_pass1 })),
+    series: models.map((m) => ({ id: m.id, name: m.display_name, label: label(m), rate: summary.by_target[k]?.[m.id]?.verified_pass1 })),
   }))
-  const stmt = models.map((m) => ({ id: m.id, name: m.display_name, label: short(m), rate: summary.by_target.all?.[m.id]?.statement_faithful }))
+  const stmt = models.map((m) => ({ id: m.id, name: m.display_name, label: label(m), rate: summary.by_target.all?.[m.id]?.statement_faithful }))
   return (
     <section className="qr-card">
       <h2>Charts</h2>
-      <div className="qr-legend">{models.map((m) => <span key={m.id}><i style={{ background: seriesColor(m.id, dark) }} />{m.display_name}</span>)}</div>
+      <p className="qr-small">Bars show the rate; whiskers show the 95% paper-cluster interval; the label at the end of each row is numerator/denominator. Hover a row for the full model name.</p>
       <div className="qr-facets">
-        <BarFacet title="GT-faithful statement — all targets" series={stmt} dark={dark} />
-        {facets.map((f) => <BarFacet key={f.key} title={f.title} series={f.series} dark={dark} />)}
+        <BarFacet title="GT-faithful statement — all targets" series={stmt} />
+        {facets.map((f) => <BarFacet key={f.key} title={f.title} series={f.series} />)}
       </div>
       <h3>Reliability (confidence vs outcome)</h3>
       <div className="qr-facets">
-        {models.map((m) => <Reliability key={m.id} model={m} cal={summary.by_target.all?.[m.id]?.calibration} dark={dark} />)}
+        {models.map((m) => <Reliability key={m.id} model={m} cal={summary.by_target.all?.[m.id]?.calibration} />)}
       </div>
       <h3>Time per item (median, IQR, p90; all attempts)</h3>
       <TimeTable summary={summary} />
@@ -146,13 +144,13 @@ export function ChartsView({ summary }) {
   )
 }
 
-function Reliability({ model, cal, dark }) {
+function Reliability({ model, cal }) {
   const W = 220
   const H = 200
   const pad = 30
   const sx = (v) => pad + (W - pad - 8) * v
   const sy = (v) => H - pad - (H - pad - 12) * v
-  const color = seriesColor(model.id, dark)
+  const color = 'var(--qr-series)'
   const pts = (cal?.statement?.reliability || []).filter((b) => b.n > 0)
   const pts2 = (cal?.proof_audit?.reliability || []).filter((b) => b.n > 0)
   return (
@@ -195,15 +193,15 @@ function TimeTable({ summary }) {
 }
 
 /* ------------------------------------------------------------------ */
-/* Five-model comparison, subgroups, coverage, defects                  */
+/* Multi-model comparison, subgroups, coverage, defects                 */
 /* ------------------------------------------------------------------ */
 
 export function ComparisonView({ summary }) {
-  const c = summary.five_model_comparison
+  const c = summary.model_comparison
   if (!c) return null
   return (
     <section className="qr-card">
-      <h2>Five-model comparison (common eligible papers, primary endpoint)</h2>
+      <h2>{c.k_models || summary.models.length}-model comparison (common eligible papers, primary endpoint)</h2>
       <p className="qr-muted">n = {c.n_common_papers} common papers. Cochran&apos;s Q = {fmtNum(c.cochran_q?.Q, 2)} (df {c.cochran_q?.df ?? 'n/a'}), p = {fmtNum(c.cochran_q?.p, 4)}{c.cochran_q?.note ? ` — ${c.cochran_q.note}` : ''}. {c.note}</p>
       <p><b>Descriptive ranking</b> (by point estimate): {c.descriptive_ranking.map((r) => `${r.model} ${r.successes}/${r.n}`).join(' › ')}</p>
       <p><b>Statistically supported differences</b> (Holm-adjusted p &lt; 0.05): {c.statistically_supported_pairs.length ? c.statistically_supported_pairs.join('; ') : 'none'}</p>
@@ -275,7 +273,7 @@ export function CoverageView({ summary }) {
       <h3>Subsets</h3>
       <div className="qr-table-wrap">
         <table className="qr-table">
-          <thead><tr><th>Model</th><th>Common input set (all five determinate): verified pass@1</th><th>Common input set: GT-faithful</th><th>Text-only subset: verified pass@1</th></tr></thead>
+          <thead><tr><th>Model</th><th>Common input set (every model determinate): verified pass@1</th><th>Common input set: GT-faithful</th><th>Text-only subset: verified pass@1</th></tr></thead>
           <tbody>{summary.models.map((m) => { const s = summary.subsets?.[m.id]; return s ? <tr key={m.id}><td>{m.display_name}</td><td><Rate r={s.common_input_set.verified_pass1} /></td><td><Rate r={s.common_input_set.statement_faithful} /></td><td>{s.text_only_subset.note ? <Unavail note={s.text_only_subset.note} /> : <Rate r={s.text_only_subset.verified_pass1} />}</td></tr> : null })}</tbody>
         </table>
       </div>

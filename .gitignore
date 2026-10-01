@@ -97,3 +97,4 @@ qedrank.config.json
 
 .vercel
 .env*
+!.env.example

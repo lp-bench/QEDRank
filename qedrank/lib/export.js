@@ -5,7 +5,7 @@ import { toCsv, writeJson, writeText, round } from './util.js';
 import { matrixRows } from './metrics.js';
 
 export const ITEM_COLUMNS = [
-  'run_id', 'source_commit', 'item_key', 'paper_id', 'target_kind', 'model', 'model_id', 'response_model', 'setting', 'attempt', 'repair_round',
+  'run_id', 'source_commit', 'item_key', 'paper_id', 'target_kind', 'provider', 'model', 'model_id', 'api_host', 'response_model', 'setting', 'attempt', 'repair_round',
   'mathematical_status', 'reference_proof_status', 'reference_statement_available', 'eligible_statement_track', 'eligible_proof_track', 'eligibility_reasons',
   'infrastructure_failure', 'generation_error', 'abstained', 'statement_confidence', 'proof_confidence',
   'compile_status', 'compile_error_count', 'compile_first_error', 'lean_diagnostics', 'static_screen_rejections',
@@ -13,7 +13,7 @@ export const ITEM_COLUMNS = [
   'statement_match', 'statement_match_source', 'statement_match_method', 'comparison_notes',
   'compiled', 'audit_clean', 'statement_faithful', 'verified',
   'observed_latency_ms', 'lean_compile_ms', 'lean_total_ms', 'evaluation_total_ms', 'total_item_ms',
-  'input_tokens', 'output_tokens', 'cost_usd',
+  'input_tokens', 'output_tokens', 'reasoning_tokens', 'reasoning_chars', 'provider_attempts', 'retry_wait_ms', 'output_truncated', 'cost_usd',
   'model_total_lines', 'model_code_lines', 'model_proof_lines', 'reference_code_lines', 'reference_proof_lines',
   'prompt_hash', 'prompt_template_version', 'temperature', 'max_tokens', 'notes',
 ];
@@ -30,8 +30,10 @@ export function flattenItem(r, { runId = null, sourceCommit = null, pricing = {}
     item_key: r.item_key,
     paper_id: r.paper_id,
     target_kind: r.target_kind,
+    provider: r.provider,
     model: r.model_display_name,
     model_id: r.model_id,
+    api_host: r.api_host ?? null,
     response_model: r.response_model ?? null,
     setting: r.setting,
     attempt: r.attempt,
@@ -71,6 +73,11 @@ export function flattenItem(r, { runId = null, sourceCommit = null, pricing = {}
     total_item_ms: round((r.generation?.observed_latency_ms ?? 0) + (r.timing?.evaluation_total_ms ?? 0), 0),
     input_tokens: u?.inputTokens ?? null,
     output_tokens: u?.outputTokens ?? null,
+    reasoning_tokens: u?.reasoningTokens ?? null,
+    reasoning_chars: r.generation?.reasoning_chars ?? null,
+    provider_attempts: r.generation?.provider_attempts ?? null,
+    retry_wait_ms: r.generation?.retry_wait_ms ?? null,
+    output_truncated: r.generation?.truncated ?? null,
     cost_usd: cost === null ? null : round(cost, 6),
     model_total_lines: r.loc?.model?.total ?? null,
     model_code_lines: r.loc?.model?.code ?? null,

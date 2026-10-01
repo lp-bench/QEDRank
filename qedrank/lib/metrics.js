@@ -1,6 +1,6 @@
 // Aggregation of item-level records into the QEDRank summary: per-model and
 // per-target matrices with numerator/denominator, paper-level sandwich
-// coverage, paper-cluster bootstrap CIs, five-model tests, calibration,
+// coverage, paper-cluster bootstrap CIs, k-model tests, calibration,
 // subject/difficulty matrices and reference-defect accounting.
 //
 // Pure functions shared by the runner and the browser UI.
@@ -212,7 +212,7 @@ function paperLevel(records, models, manifestPapers, references, bootOpts) {
   return out;
 }
 
-function fiveModelComparison(records, models, endpointFn, bootOpts) {
+function modelComparison(records, models, endpointFn, bootOpts) {
   const byPaperModel = {};
   for (const r of records) {
     if (r.target_kind !== 'main_theorem') continue;
@@ -230,7 +230,8 @@ function fiveModelComparison(records, models, endpointFn, bootOpts) {
   const ranking = models.map((m) => ({ model: m, successes: common.reduce((s, p) => s + outcomes[m][p], 0), n: common.length }))
     .sort((a, b) => b.successes - a.successes);
   return {
-    endpoint: 'primary endpoint on common eligible papers (all five models determinate)',
+    endpoint: `primary endpoint on common eligible papers (all ${models.length} models determinate)`,
+    k_models: models.length,
     n_common_papers: common.length,
     cochran_q: q,
     pairwise: pairs,
@@ -302,7 +303,7 @@ export function buildSummary({ items, manifest, references, config, models, revi
   }
   const paperLevelByModel = paperLevel(primary, models, papers, references, bootOpts);
   const endpointFn = (r) => (r.outcomes.infrastructure_failure || !r.eligibility.proof_track ? null : r.outcomes.verified);
-  const comparison = fiveModelComparison(primary, models, endpointFn, bootOpts);
+  const comparison = modelComparison(primary, models, endpointFn, bootOpts);
   const subgroups = subgroupMatrices(primary, models, papers, bootOpts, config.exploratoryThreshold ?? 10);
 
   // Common input set (every model has a determinate record) and text-only subset.
@@ -360,12 +361,12 @@ export function buildSummary({ items, manifest, references, config, models, revi
     run: { run_id: run.run_id ?? null, source: run.source ?? manifest.source ?? null, toolchain: run.toolchain ?? null, prompt_template_version: run.prompt_template_version ?? null, settings: run.settings ?? null },
     primary_endpoint: config.primaryEndpoint,
     eligibility_rules: ELIGIBILITY,
-    models: models.map((m) => ({ id: m, model_id: primary.find((r) => r.provider === m)?.model_id ?? null, display_name: primary.find((r) => r.provider === m)?.model_display_name ?? m })),
+    models: models.map((m) => { const r = primary.find((x) => x.provider === m); return { id: m, model_id: r?.model_id ?? null, display_name: r?.model_display_name ?? m, label: r?.model_label ?? null, host: r?.api_host ?? null }; }),
     settings: { k, repair_rounds: repairRounds, bootstrap: bootOpts, temperature: config.generation?.temperature, max_tokens: config.generation?.maxTokens },
     coverage,
     by_target: byTarget,
     paper_level: paperLevelByModel,
-    five_model_comparison: comparison,
+    model_comparison: comparison,
     subgroups,
     subsets,
     reference_defects: referenceDefects,

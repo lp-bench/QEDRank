@@ -5,6 +5,10 @@
     "api/qedrank/discover.js": {
       "maxDuration": 60,
       "memory": 1024
+    },
+    "api/verify.js": {
+      "maxDuration": 60,
+      "memory": 1024
     }
   }
 }

@@ -12,7 +12,7 @@ import { discoverCorpus } from './corpus.js';
 import { extractPdfText, guessTitle, buildContext, findPages, figureMentions } from './pdf.js';
 import { detectToolchain, LeanRunner } from './lean.js';
 import { preparePrelude, prepareReference, evaluateAttempt } from './evaluate.js';
-import { renderPrompt, PROMPT_TEMPLATE_VERSION } from './prompt.js';
+import { renderPrompt, PROMPT_TEMPLATE_VERSION, SYSTEM_PROMPT } from './prompt.js';
 import { generateOnce, listModels, loadFixtureProvider } from './models.js';
 import { buildSummary } from './metrics.js';
 import { writeExports } from './export.js';
@@ -65,6 +65,7 @@ export async function createRun({ config, runId = newRunId(), sourceOpts, models
     models,
     model_ids: null,
     prompt_template_version: PROMPT_TEMPLATE_VERSION,
+    system_prompt: SYSTEM_PROMPT,
     settings: {
       temperature: config.generation.temperature,
       max_tokens: config.generation.maxTokens,
@@ -286,7 +287,9 @@ export async function stageGeneration(ctx, { selection = null, retryFailed = fal
   const mode = ctx.run.mode;
   const fixture = mode === 'fixture' ? await loadFixtureProvider(fixtureDir || ctx.run.fixture_dir) : null;
   if (mode === 'fixture') { ctx.run.fixture_dir = fixture.dir; }
-  ctx.run.model_ids = Object.fromEntries(listModels().filter((m) => models.includes(m.id)).map((m) => [m.id, mode === 'fixture' ? `fixture:${m.id}` : m.model_id]));
+  ctx.run.model_ids = Object.fromEntries(listModels(process.env, models).map((m) => [m.id, mode === 'fixture' ? `fixture:${m.id}` : m.model_id]));
+  ctx.run.model_hosts = Object.fromEntries(listModels(process.env, models).map((m) => [m.id, mode === 'fixture' ? null : m.host]));
+  const genOpts = { system: SYSTEM_PROMPT, temperature: ctx.config.generation.temperature, maxTokens: ctx.config.generation.maxTokens, timeoutMs: ctx.config.generation.timeoutMs, retries: ctx.config.generation.retries ?? 4, baseDelayMs: ctx.config.generation.retryBaseDelayMs ?? 2000, maxDelayMs: ctx.config.generation.retryMaxDelayMs ?? 60000, providerConcurrency: ctx.config.generation.providerConcurrency ?? 1 };
   ctx.run.selection = { papers: papers.map((p) => p.paper_id), models, targets: kinds };
   await ctx.setStage('generation', 'running');
   await ctx.setStage('compilation', 'running');
@@ -342,7 +345,7 @@ export async function stageGeneration(ctx, { selection = null, retryFailed = fal
               if (prior && !prior.error && (reevaluate || (!retryFailed))) gen = prior;
               else {
                 await writeText(path.join(itemDir, `prompt-a${attempt}.txt`), prompt.text);
-                gen = await generateOnce({ provider, prompt: prompt.text, temperature: ctx.config.generation.temperature, maxTokens: ctx.config.generation.maxTokens, timeoutMs: ctx.config.generation.timeoutMs, mode, fixture, meta: { paper_id: paper.paper_id, target_kind: kind, attempt } });
+                gen = await generateOnce({ provider, prompt: prompt.text, ...genOpts, mode, fixture, meta: { paper_id: paper.paper_id, target_kind: kind, attempt } });
                 gen.prompt_hash = prompt.hash;
                 gen.prompt_template_version = prompt.templateVersion;
                 gen.temperature = ctx.config.generation.temperature;
@@ -365,8 +368,10 @@ export async function stageGeneration(ctx, { selection = null, retryFailed = fal
                   const diag = (last.compile?.messages || []).filter((m) => m.severity === 'error').slice(0, 20).map((m) => `${m.line}:${m.column}: ${m.text}`).join('\n') || `(status: ${last.compile?.status}; audit: ${last.audit?.status})`;
                   const repairPrompt = `${prompt.text}\n\n=== REPAIR ROUND ${r} of ${repairRounds} ===\nYour previous part B file was:\n\`\`\`lean\n${(await fs.readFile(path.join(itemDir, `proof-a1r${r - 1}.lean`), 'utf8').catch(() => '')).slice(0, 20000)}\n\`\`\`\nThe Lean compiler reported:\n${diag}\nReturn all four parts again with a corrected file. Do not weaken the statement.`;
                   await writeText(path.join(itemDir, `prompt-a1r${r}.txt`), repairPrompt);
-                  const rg = await generateOnce({ provider, prompt: repairPrompt, temperature: ctx.config.generation.temperature, maxTokens: ctx.config.generation.maxTokens, timeoutMs: ctx.config.generation.timeoutMs, mode, fixture, meta: { paper_id: paper.paper_id, target_kind: kind, attempt: 1, repair: r } });
-                  rg.prompt_hash = sha256(repairPrompt);
+                  const rg = await generateOnce({ provider, prompt: repairPrompt, ...genOpts, mode, fixture, meta: { paper_id: paper.paper_id, target_kind: kind, attempt: 1, repair: r } });
+                  rg.prompt_hash = sha256(`${SYSTEM_PROMPT}
+
+${repairPrompt}`);
                   rg.prompt_template_version = `${prompt.templateVersion}+repair`;
                   rg.temperature = ctx.config.generation.temperature; rg.max_tokens = ctx.config.generation.maxTokens; rg.timeout_ms = ctx.config.generation.timeoutMs;
                   await writeJson(path.join(itemDir, `generation-a1r${r}.json`), rg);

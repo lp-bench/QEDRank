@@ -1,6 +1,9 @@
 import { sha256 } from './util.js';
+import { SYSTEM_PROMPT } from '../../lib/providers.js';
 
-export const PROMPT_TEMPLATE_VERSION = 'qedrank-prompt-v1';
+export { SYSTEM_PROMPT };
+
+export const PROMPT_TEMPLATE_VERSION = 'qedrank-prompt-v2';
 
 // The model-facing instruction template. The body is fixed by the benchmark
 // protocol; only the five {placeholders} vary per item. A short formatting
@@ -38,7 +41,10 @@ export function renderPrompt(vars) {
     ...vars,
   };
   const text = PROMPT_TEMPLATE.replace(/\{([a-z_]+)\}/g, (m, k) => (k in all ? String(all[k]) : m));
-  return { text, hash: sha256(text), templateVersion: PROMPT_TEMPLATE_VERSION };
+  // The same system message goes to every model; the hash covers system + user text.
+  return { text, system: SYSTEM_PROMPT, hash: sha256(`${SYSTEM_PROMPT}
+
+${text}`), templateVersion: PROMPT_TEMPLATE_VERSION };
 }
 
 const PART_RE = /^\s*(?:=+\s*)?(?:\*\*)?(?:PART|Part|part)?\s*([ABCD])\s*(?:\*\*)?(?:[.):=\-]|\s*=+)\s*.*$/;

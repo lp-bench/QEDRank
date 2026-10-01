@@ -39,12 +39,22 @@ notepad .env.local
 vim .env.local
 ```
 
-Required API keys:
-- `GEMINI_API_KEY` - Get from Google AI Studio
-- `OPENAI_API_KEY` - Get from OpenAI Platform
-- `ANTHROPIC_API_KEY` - Get from Anthropic Console
-- `COHERE_API_KEY` - Get from Cohere Console
-- `MISTRAL_API_KEY` - Get from Mistral AI Console
+API keys (one per model slot; a slot without a key is skipped). Portals and default models are listed in `.env.example`:
+- `MISTRAL_API_KEY` - console.mistral.ai
+- `DEEPSEEK_API_KEY` - platform.deepseek.com
+- `OPENROUTER_API_KEY` - openrouter.ai/keys
+- `GROQ_API_KEY` - console.groq.com/keys
+- `SILICONFLOW_API_KEY` - cloud.siliconflow.cn
+- `QEDRANK_CUSTOM_BASE_URL`, `QEDRANK_CUSTOM_MODEL`, `QEDRANK_CUSTOM_API_KEY` - any OpenAI-compatible endpoint
+- `TOGETHER_API_KEY` - api.together.ai
+- `GEMINI_API_KEY` - aistudio.google.com/apikey
+- `HF_TOKEN` - huggingface.co/settings/tokens
+- `NVIDIA_API_KEY` - build.nvidia.com
+
+On Windows you can enter them with hidden input instead of editing a file:
+```powershell
+.scriptsset-llm-keys.ps1 -Target User
+```
 
 ### 4. Optional: Setup Feedback Storage
 
@@ -144,30 +154,14 @@ proof-checker/
 
 ## Getting API Keys
 
-### Gemini API Key
-1. Go to https://makersuite.google.com
-2. Create project
-3. Get API key from API keys section
+The ten model slots, their key portals, default models and free-tier status are listed in
+`.env.example` and in the "Model roster" section of `qedrank/README.md`. After adding keys,
+check every slot in one go:
 
-### OpenAI API Key
-1. Go to https://platform.openai.com
-2. Create account
-3. Get API key from API keys section
-
-### Anthropic API Key
-1. Go to https://console.anthropic.com
-2. Create account
-3. Get API key from API keys section
-
-### Cohere API Key
-1. Go to https://dashboard.cohere.com
-2. Create account
-3. Get API key from API keys section
-
-### Mistral API Key
-1. Go to https://console.mistral.ai
-2. Create account
-3. Get API key from API keys section
+```bash
+node qedrank/cli.js models     # which slots have a key
+node qedrank/cli.js ping       # one small Lean task per configured model
+```
 
 ## Support
 

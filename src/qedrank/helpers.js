@@ -1,18 +1,7 @@
 // Browser-side helpers for the QEDRank page. No Node imports here.
 
-export const MODEL_ORDER = ['gemini', 'openai', 'anthropic', 'cohere', 'mistral'];
 export const TARGET_KINDS = ['main_theorem', 'upper_bound', 'lower_bound', 'disproof'];
 export const TARGET_LABELS = { main_theorem: 'Main theorem', upper_bound: 'Upper bound', lower_bound: 'Lower bound', disproof: 'Disproof', all: 'All targets' };
-
-// Categorical slots in fixed order (validated palette; identity follows the model, never rank).
-export const SERIES_LIGHT = ['#2a78d6', '#eb6834', '#1baf7a', '#eda100', '#e87ba4'];
-export const SERIES_DARK = ['#3987e5', '#d95926', '#199e70', '#c98500', '#d55181'];
-
-export function seriesColor(modelId, dark) {
-  const i = MODEL_ORDER.indexOf(modelId);
-  const pal = dark ? SERIES_DARK : SERIES_LIGHT;
-  return pal[i >= 0 ? i : pal.length - 1];
-}
 
 export function fmtRate(r) {
   if (!r || r.den === undefined || r.den === null) return 'unavailable';
