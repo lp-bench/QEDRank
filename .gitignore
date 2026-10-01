@@ -94,3 +94,6 @@ lean/.lake/
 lean/QEDRank/Papers/
 qedrank.config.json
 .vercel
+
+.vercel
+.env*

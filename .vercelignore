@@ -1,0 +1,11 @@
+# Only the web app and the preview API are deployed; the benchmark runner is local.
+.git
+node_modules
+dist
+runs
+lean/.lake
+lean/QEDRank/Papers
+qedrank/test
+.vercel
+.env*
+*.log
