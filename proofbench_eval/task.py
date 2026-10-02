@@ -13,7 +13,8 @@ Task parameters (pass with `-T name=value`):
   network     whether the docker sandbox has internet (default True)
   search      give the agent a web_search tool (default False)
   search_provider  "tavily" or "exa" (one external provider for all models)
-  lean_mcp    give the agent the lean-lsp-mcp tools (default True)
+  lean_mcp    give the agent the lean-lsp-mcp tools (default True); the web-backed
+              search tools are removed when network is False
   project_dir Lean project root inside the sandbox (default /opt/proofbench)
   tool_timeout seconds per bash/python call (default 600)
 """
@@ -25,9 +26,17 @@ from pathlib import Path
 from inspect_ai import Task, task
 from inspect_ai.agent import AgentPrompt, react
 from inspect_ai.dataset import Sample
-from inspect_ai.tool import bash, mcp_server_sandbox, mcp_tools, python, web_search
+from inspect_ai.tool import bash, mcp_server_sandbox, mcp_tools, python, text_editor, web_search
 
 ROOT = Path(__file__).resolve().parent.parent
+
+LEAN_MCP_OFFLINE_TOOLS = [
+    "lean_build", "lean_code_actions", "lean_completions", "lean_declaration_file",
+    "lean_diagnostic_messages", "lean_file_outline", "lean_goal", "lean_hover_info",
+    "lean_local_search", "lean_minimal_hypotheses", "lean_multi_attempt",
+    "lean_profile_proof", "lean_references", "lean_run_code", "lean_term_goal",
+    "lean_verify", "lean_get_widgets", "lean_get_widget_source",
+]  # excluded offline: lean_leansearch, lean_loogle, lean_leanfinder, lean_state_search, lean_hammer_premise
 if str(ROOT) not in sys.path:  # Inspect loads this file by path, not as a package
     sys.path.insert(0, str(ROOT))
 from proofbench_eval.scorer import lean_check  # noqa: E402
@@ -101,7 +110,7 @@ def proofbench(
     project_dir: str = "/opt/proofbench",
     tool_timeout: int = 600,
 ) -> Task:
-    tools = [bash(timeout=tool_timeout), python(timeout=tool_timeout)]
+    tools = [bash(timeout=tool_timeout), python(timeout=tool_timeout), text_editor(timeout=tool_timeout)]
     if lean_mcp:
         server = mcp_server_sandbox(
             name="lean",
@@ -109,7 +118,12 @@ def proofbench(
             cwd=project_dir,
             env={"LEAN_PROJECT_PATH": project_dir},
         )
-        tools.append(mcp_tools(server))
+        # Without network the web-backed search tools only return errors; the
+        # same subset is removed for every model.  Names as of lean-lsp-mcp 0.31.
+        if network:
+            tools.append(mcp_tools(server))
+        else:
+            tools.append(mcp_tools(server, tools=LEAN_MCP_OFFLINE_TOOLS))
     if search:
         tools.append(web_search(search_provider))
 

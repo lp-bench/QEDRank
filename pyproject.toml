@@ -5,6 +5,7 @@ description = "Inspect AI harness for ProofBench: uniform agentic evaluation wit
 requires-python = ">=3.11"
 dependencies = [
     "inspect-ai==0.3.276",
+    "mcp>=1.0",
     "anthropic>=0.60",
     "openai>=1.90",
 ]
