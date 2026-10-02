@@ -12,6 +12,7 @@ gitignored `data/` folder.
     proofbench_eval/scorer.py   scorer: streams image/check_proof.py into the sandbox
     image/check_proof.py        statement unchanged, allowed imports, no sorry/axiom, compiles, standard axioms
     image/Dockerfile            Lean toolchain + Mathlib cache + ProofBench statement layer + lean-lsp-mcp
+                                + Python (sympy, networkx, python-sat), SageMath (GAP, nauty), CaDiCaL
     image/compose*.yaml         docker sandbox, with and without network
     scripts/export_problems.py  stage problems from the ProofBench repo
     scripts/build_image.sh      stage the statement layer and build the image

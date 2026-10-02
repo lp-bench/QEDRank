@@ -55,6 +55,8 @@ Rules, checked automatically after you submit:
 2. No `sorry`, no `axiom`, no `native_decide`.  The proof must depend only on
    the axioms `propext`, `Classical.choice` and `Quot.sound`.
 3. Compile with:  cd {project_dir} && lake env lean {submission}
+   For experiments you also have Python (sympy, networkx, python-sat),
+   SageMath with GAP and nauty (`sage`, `gap`), and the SAT solver `cadical`.
    The Lean language-server tools (goal state, diagnostics, search) are
    available when present; the file path for them is `{submission_rel}`.
 
