@@ -1,0 +1,12 @@
+.venv/
+__pycache__/
+*.pyc
+*.egg-info/
+# exported problems: private, never committed
+data/
+# Inspect .eval logs: keep on project storage
+logs/
+# staged copy of the ProofBench statement layer
+image/context/
+*.sif
+.env
