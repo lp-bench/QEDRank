@@ -1,0 +1,36 @@
+# Apptainer definition mirroring image/Dockerfile, for machines without Docker.
+# Build with scripts/build_image.sh --apptainer /path/to/ProofBench
+Bootstrap: docker
+From: ubuntu:24.04
+
+%files
+    context/lean-toolchain /opt/context/lean-toolchain
+    context /opt/proofbench
+
+%environment
+    export ELAN_HOME=/opt/elan
+    export MAMBA_ROOT_PREFIX=/opt/micromamba
+    export PATH=/opt/elan/bin:/opt/venv/bin:/opt/sage/bin:$PATH
+
+%post
+    set -e
+    export DEBIAN_FRONTEND=noninteractive
+    apt-get update && apt-get install -y --no-install-recommends \
+        curl git ca-certificates python3 python3-venv build-essential bzip2 cadical nauty \
+        && rm -rf /var/lib/apt/lists/*
+    export ELAN_HOME=/opt/elan MAMBA_ROOT_PREFIX=/opt/micromamba
+    export PATH=/opt/elan/bin:/opt/venv/bin:$PATH
+    curl -sSf https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh \
+        | sh -s -- -y --no-modify-path --default-toolchain "$(cat /opt/context/lean-toolchain)"
+    curl -Ls https://micro.mamba.pm/api/micromamba/linux-64/latest | tar -xj -C /usr/local bin/micromamba
+    micromamba create -y -q -p /opt/sage -c conda-forge sage python=3.12 && micromamba clean -y -a
+    ln -s /opt/sage/bin/sage /usr/local/bin/sage; ln -s /opt/sage/bin/gap /usr/local/bin/gap
+    python3 -m venv /opt/venv
+    pip install --no-cache-dir lean-lsp-mcp==0.31.0 inspect-ai==0.3.276 inspect-tool-support mcp \
+        sympy networkx python-sat numpy scipy
+    inspect-tool-support post-install --no-web-browser
+    cd /opt/proofbench && lake exe cache get && lake build ProofBench.Visible && mkdir -p Submission
+    lake env lean ProofBench/Visible.lean
+
+%runscript
+    exec "$@"

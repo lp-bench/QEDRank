@@ -1,7 +1,11 @@
 #!/usr/bin/env bash
 # Stage the ProofBench statement layer and build the sandbox image.
-# usage: scripts/build_image.sh /path/to/ProofBench
+# usage: scripts/build_image.sh [--apptainer] /path/to/ProofBench
+#   default: docker build -> proofbench-sandbox:latest
+#   --apptainer: apptainer build --fakeroot -> proofbench-sandbox.sif (no Docker needed)
 set -euo pipefail
+MODE=docker
+if [ "${1:-}" = "--apptainer" ]; then MODE=apptainer; shift; fi
 PB=${1:?path to the ProofBench repository}
 HERE=$(cd "$(dirname "$0")/.." && pwd)
 CTX="$HERE/image/context"
@@ -27,5 +31,10 @@ fi
 { cd "$CTX"; find ProofBench/Mathlib_Problems -name '*.lean' | sort \
     | sed 's#/#.#g; s#\.lean$##; s#^#import #'; } > "$CTX/ProofBench/Visible.lean"
 echo "staged $(grep -c . "$CTX/ProofBench/Visible.lean") visible modules"
-docker build -t proofbench-sandbox:latest -f "$HERE/image/Dockerfile" "$HERE/image"
-docker image inspect --format 'image id {{.Id}}' proofbench-sandbox:latest
+if [ "$MODE" = docker ]; then
+  docker build -t proofbench-sandbox:latest -f "$HERE/image/Dockerfile" "$HERE/image"
+  docker image inspect --format 'image id {{.Id}}' proofbench-sandbox:latest
+else
+  (cd "$HERE/image" && apptainer build --fakeroot "$HERE/proofbench-sandbox.sif" proofbench.def)
+  echo "built $HERE/proofbench-sandbox.sif ($(sha256sum "$HERE/proofbench-sandbox.sif" | cut -c1-16))"
+fi
