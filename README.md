@@ -21,7 +21,7 @@ gitignored `data/` folder.
     scripts/slurm_eval.sbatch   one run on Slurm with Apptainer and the local sandbox
     scripts/analyze.py          logs -> results.csv (verdict, tokens, time, tool calls, lines, axioms)
 
-## Setup on a Docker machine
+## Setup on a machine with Docker (university server or a PC with Docker)
 
     python3 -m venv .venv && . .venv/bin/activate && pip install -e .
     scripts/export_problems.py --proofbench ../ProofBench --ids P083 P088 P090
@@ -35,17 +35,20 @@ Models are addressed as `provider/name` (`anthropic/claude-opus-5`,
 `openai/gpt-5.6`, `google/gemini-3.1-pro`, `grok/grok-4`).  Model access is
 through the providers' APIs with API keys; chat subscriptions do not work here.
 
-## Setup without Docker (Apptainer: a WSL or Linux PC, or HPC)
+## Setup without Docker (Apptainer)
 
-    scripts/build_image.sh --apptainer ../ProofBench     # builds proofbench-sandbox.sif, no Docker needed
+Where Docker is unavailable (HPC clusters, or a PC without Docker) the same
+image is built as an Apptainer file and Inspect runs inside it with the local
+sandbox, one sample at a time:
+
+    scripts/build_image.sh --apptainer ../ProofBench     # builds proofbench-sandbox.sif
     export SIF=$PWD/proofbench-sandbox.sif
     MODEL=openai-api/qwen/qwen3-max bash scripts/slurm_eval.sbatch   # works without Slurm too
 
-The run script uses Inspect's local sandbox inside the container, so samples
-run one at a time.  Set `QWEN_API_KEY` and
-`QWEN_BASE_URL=https://dashscope-intl.aliyuncs.com/compatible-mode/v1` in
-`$HOME/.proofbench_keys` for Qwen; any OpenAI-compatible endpoint works the
-same way with `openai-api/<name>/<model>` and `<NAME>_API_KEY`, `<NAME>_BASE_URL`.
+Any OpenAI-compatible endpoint works with `openai-api/<name>/<model>` and the
+variables `<NAME>_API_KEY`, `<NAME>_BASE_URL` in `$HOME/.proofbench_keys`, e.g.
+`QWEN_BASE_URL=https://dashscope-intl.aliyuncs.com/compatible-mode/v1` or
+Blablador's `https://api.blablador.fz-juelich.de/v1` for hosted open-weight models.
 
 ## Setup on HPC
 
