@@ -26,7 +26,7 @@ From: ubuntu:24.04
     micromamba create -y -q -p /opt/sage -c conda-forge sage python=3.12 && micromamba clean -y -a
     ln -s /opt/sage/bin/sage /usr/local/bin/sage; ln -s /opt/sage/bin/gap /usr/local/bin/gap
     python3 -m venv /opt/venv
-    pip install --no-cache-dir lean-lsp-mcp==0.31.0 inspect-ai==0.3.276 inspect-tool-support mcp \
+    pip install --no-cache-dir --timeout 120 --retries 10 lean-lsp-mcp==0.31.0 inspect-ai==0.3.276 inspect-tool-support mcp \
         sympy networkx python-sat numpy scipy
     inspect-tool-support post-install --no-web-browser
     cd /opt/proofbench && lake exe cache get && lake build ProofBench.Visible && mkdir -p Submission

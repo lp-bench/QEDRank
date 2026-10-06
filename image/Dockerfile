@@ -19,7 +19,7 @@ COPY context/lean-toolchain /tmp/lean-toolchain
 RUN curl -sSf https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh \
       | sh -s -- -y --no-modify-path --default-toolchain "$(cat /tmp/lean-toolchain)"
 RUN python3 -m venv /opt/venv \
-    && pip install --no-cache-dir lean-lsp-mcp==0.31.0 inspect-ai==0.3.276 inspect-tool-support \
+    && pip install --no-cache-dir --timeout 120 --retries 10 lean-lsp-mcp==0.31.0 inspect-ai==0.3.276 inspect-tool-support \
          sympy networkx python-sat numpy scipy \
     && inspect-tool-support post-install --no-web-browser
 WORKDIR /opt/proofbench
