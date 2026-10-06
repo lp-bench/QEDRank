@@ -18,6 +18,9 @@ import { buildSummary } from './metrics.js';
 import { writeExports } from './export.js';
 import { findDeclarations } from './leansrc.js';
 import { sanitizeConfig } from './config.js';
+import { harnessRevision } from './provenance.js';
+import { modelFacts } from '../../lib/model-facts.js';
+import { applyManualAudit } from './agent.js';
 
 export class RunContext {
   constructor({ runDir, config, log }) {
@@ -64,6 +67,8 @@ export async function createRun({ config, runId = newRunId(), sourceOpts, models
     mode,
     models,
     model_ids: null,
+    protocol: 'single_call',
+    harness: await harnessRevision(),
     prompt_template_version: PROMPT_TEMPLATE_VERSION,
     system_prompt: SYSTEM_PROMPT,
     settings: {
@@ -289,6 +294,7 @@ export async function stageGeneration(ctx, { selection = null, retryFailed = fal
   if (mode === 'fixture') { ctx.run.fixture_dir = fixture.dir; }
   ctx.run.model_ids = Object.fromEntries(listModels(process.env, models).map((m) => [m.id, mode === 'fixture' ? `fixture:${m.id}` : m.model_id]));
   ctx.run.model_hosts = Object.fromEntries(listModels(process.env, models).map((m) => [m.id, mode === 'fixture' ? null : m.host]));
+  ctx.run.model_facts = Object.fromEntries(listModels(process.env, models).map((m) => [m.id, modelFacts(m.model_id, ctx.config.modelFacts || {})]));
   const genOpts = { system: SYSTEM_PROMPT, temperature: ctx.config.generation.temperature, effort: ctx.config.generation.effort ?? null, maxTokens: ctx.config.generation.maxTokens, timeoutMs: ctx.config.generation.timeoutMs, retries: ctx.config.generation.retries ?? 4, baseDelayMs: ctx.config.generation.retryBaseDelayMs ?? 2000, maxDelayMs: ctx.config.generation.retryMaxDelayMs ?? 60000, providerConcurrency: ctx.config.generation.providerConcurrency ?? 1 };
   ctx.run.selection = { papers: papers.map((p) => p.paper_id), models, targets: kinds };
   await ctx.setStage('generation', 'running');
@@ -346,6 +352,7 @@ export async function stageGeneration(ctx, { selection = null, retryFailed = fal
               else {
                 await writeText(path.join(itemDir, `prompt-a${attempt}.txt`), prompt.text);
                 gen = await generateOnce({ provider, prompt: prompt.text, ...genOpts, mode, fixture, meta: { paper_id: paper.paper_id, target_kind: kind, attempt } });
+                gen.facts = ctx.run.model_facts?.[provider] ?? null;
                 gen.prompt_hash = prompt.hash;
                 gen.prompt_template_version = prompt.templateVersion;
                 // Record what was actually sent: reasoning models accept no temperature (null), only an effort.
@@ -441,12 +448,14 @@ export async function stageStatistics(ctx) {
   const items = await collectItems(ctx);
   const references = await loadReferences(ctx);
   const review = ctx.review || (await readReview(ctx));
+  // Hand audit of solved agent problems: a rejected solve no longer counts.
+  applyManualAudit(items, await readJson(path.join(review.dir, 'audit.json'), {}));
   await writeJson(ctx.p('results.json'), { schema: 'qedrank-results-v1', run_id: ctx.run.run_id, source: ctx.run.source, count: items.length, items });
   const summary = buildSummary({ items, manifest, references, config: ctx.config, models: ctx.run.models, review, run: ctx.run });
   summary.run.batch_wall_clock_ms = ctx.run.batch_wall_clock_ms ?? null;
   summary.run.stages = ctx.run.stages;
   await writeJson(ctx.p('summary.json'), summary);
-  const exportsInfo = await writeExports(ctx.runDir, { items, summary, run: ctx.run, config: ctx.config });
+  const exportsInfo = await writeExports(ctx.runDir, { items, summary, run: ctx.run, config: ctx.config, manifest });
   await ctx.setStage('statistics', 'done', { items: items.length });
   await ctx.updateProgress({ statistics: { items: items.length, done: true } });
   return { summary, items, exports: exportsInfo };

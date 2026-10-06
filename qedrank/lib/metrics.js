@@ -8,6 +8,8 @@
 import { TARGET_KINDS, STATEMENT_MATCH_ACCEPTED, SUMMARY_SCHEMA, ELIGIBILITY } from './schema.js';
 import { rate, bootstrapByPaper, cochranQ, pairwiseMcNemar, pairedDifferenceCI, calibration, passAtK, timeSummary } from './stats.js';
 import { quantile, round, groupBy } from './util.js';
+import { effortByDifficulty, difficultyProxies, capabilityByRelease, contaminationSplit, agentSummary, workingMsOf } from './analysis.js';
+import { modelFacts } from '../../lib/model-facts.js';
 
 const BOUNDS = ['main_theorem', 'upper_bound', 'lower_bound'];
 
@@ -15,7 +17,14 @@ function isPrimary(r) {
   return r.setting === 'pass@1' && r.attempt === 1 && r.repair_round === 0;
 }
 
+/** Agent runs have one record per problem and model: the whole session chain of the first epoch. */
+function isPrimaryAgent(r) {
+  return r.setting === 'agent' && r.attempt === 1;
+}
+
 function costOf(rec, pricing) {
+  // Agent runs: the harness's own figure, which prices cached prompt tokens correctly.
+  if (typeof rec.agent?.totals?.cost_usd === 'number') return rec.agent.totals.cost_usd;
   const p = pricing?.[rec.model_id];
   const u = rec.generation?.usage;
   if (!p || !u || u.inputTokens === null || u.outputTokens === null) return null;
@@ -23,6 +32,7 @@ function costOf(rec, pricing) {
 }
 
 function totalTimeOf(r) {
+  if (typeof r.timing?.total_ms === 'number') return r.timing.total_ms;
   const g = r.generation?.observed_latency_ms ?? 0;
   const e = r.timing?.evaluation_total_ms ?? 0;
   return g + e;
@@ -114,6 +124,7 @@ export function modelMetrics(records, allAttempts, { pricing = {}, bootOpts, k =
   const leanTimes = nonInfra.map((r) => r.timing?.lean_total_ms).filter((x) => typeof x === 'number');
   const compileTimes = attempted.map((r) => r.timing?.lean_compile_ms).filter((x) => typeof x === 'number');
   const totalTimes = nonInfra.map(totalTimeOf);
+  const workingTimes = nonInfra.map(workingMsOf).filter((x) => x !== null);
   const inTok = nonInfra.map((r) => r.generation?.usage?.inputTokens).filter((x) => typeof x === 'number');
   const outTok = nonInfra.map((r) => r.generation?.usage?.outputTokens).filter((x) => typeof x === 'number');
   const costs = nonInfra.map((r) => costOf(r, pricing)).filter((x) => x !== null);
@@ -148,7 +159,8 @@ export function modelMetrics(records, allAttempts, { pricing = {}, bootOpts, k =
       lean_compile_ms: timeSummary(compileTimes, timeouts),
       lean_total_ms: timeSummary(leanTimes, timeouts),
       total_item_ms: timeSummary(totalTimes, timeouts + genTimeouts),
-      note: 'observed latency includes network and provider delays; all-attempt timing is reported regardless of success',
+      working_item_ms: timeSummary(workingTimes, timeouts + genTimeouts),
+      note: 'observed latency and total time include network and provider delays; working time is the model calls that succeeded plus Lean and tool execution, without requests that ended in a transport error or the waits after them; all-attempt timing is reported regardless of success',
     },
     tokens: {
       n_with_usage: Math.min(inTok.length, outTok.length),
@@ -288,7 +300,9 @@ export function buildSummary({ items, manifest, references, config, models, revi
   const bootOpts = { B: config.bootstrap?.B ?? 1000, seed: config.bootstrap?.seed ?? 1 };
   const k = config.generation?.attempts ?? 1;
   const repairRounds = config.generation?.repairRounds ?? 0;
-  const primary = items.filter(isPrimary);
+  const agentRun = run.protocol === 'agent';
+  const primary = items.filter(agentRun ? isPrimaryAgent : isPrimary);
+  const factsOf = (m) => run.model_facts?.[m] ?? modelFacts(primary.find((x) => x.provider === m)?.model_id, config.modelFacts || {});
   const papers = manifest.papers || [];
   const opts = { pricing: config.pricing || {}, bootOpts, k, repairRounds, references };
 
@@ -358,10 +372,10 @@ export function buildSummary({ items, manifest, references, config, models, revi
   return {
     schema: SUMMARY_SCHEMA,
     generated_at: new Date().toISOString(),
-    run: { run_id: run.run_id ?? null, source: run.source ?? manifest.source ?? null, toolchain: run.toolchain ?? null, prompt_template_version: run.prompt_template_version ?? null, settings: run.settings ?? null },
-    primary_endpoint: config.primaryEndpoint,
+    run: { run_id: run.run_id ?? null, protocol: run.protocol ?? 'single_call', harness: run.harness ?? null, sandbox: run.sandbox ?? null, source: run.source ?? manifest.source ?? null, toolchain: run.toolchain ?? null, prompt_template_version: run.prompt_template_version ?? null, settings: run.settings ?? null, protocol_mismatches: run.protocol_mismatches ?? [], bundles: run.bundles ?? null },
+    primary_endpoint: run.primary_endpoint ?? config.primaryEndpoint,
     eligibility_rules: ELIGIBILITY,
-    models: models.map((m) => { const r = primary.find((x) => x.provider === m); return { id: m, model_id: r?.model_id ?? null, display_name: r?.model_display_name ?? m, label: r?.model_label ?? null, host: r?.api_host ?? null }; }),
+    models: models.map((m) => { const r = primary.find((x) => x.provider === m); return { id: m, model_id: r?.model_id ?? null, display_name: r?.model_display_name ?? m, label: r?.model_label ?? null, host: r?.api_host ?? null, effort: r?.generation?.effort ?? null, facts: factsOf(m) }; }),
     settings: { k, repair_rounds: repairRounds, bootstrap: bootOpts, temperature: config.generation?.temperature, max_tokens: config.generation?.maxTokens },
     coverage,
     by_target: byTarget,
@@ -369,6 +383,11 @@ export function buildSummary({ items, manifest, references, config, models, revi
     model_comparison: comparison,
     subgroups,
     subsets,
+    effort: effortByDifficulty(primary, models, papers),
+    difficulty_proxies: difficultyProxies(primary, models, papers, factsOf),
+    generations: capabilityByRelease(primary, models, factsOf, bootOpts, (m) => primary.find((x) => x.provider === m)?.model_display_name ?? m),
+    contamination: contaminationSplit(primary, models, bootOpts),
+    agent: agentRun ? agentSummary(primary, models, bootOpts) : null,
     reference_defects: referenceDefects,
     caveats: [
       'Prior training contamination cannot be ruled out for public papers and public Lean formalizations.',
@@ -420,6 +439,7 @@ export function matrixRows(summary) {
         median_latency_ms: round(mm.time.observed_model_latency_ms.median, 0),
         median_lean_ms: round(mm.time.lean_total_ms.median, 0),
         median_total_ms: round(mm.time.total_item_ms.median, 0),
+        median_working_ms: round(mm.time.working_item_ms?.median, 0),
         timeouts: mm.time.total_item_ms.timeouts,
         median_input_tokens: mm.tokens.median_input ?? 'unavailable',
         median_output_tokens: mm.tokens.median_output ?? 'unavailable',

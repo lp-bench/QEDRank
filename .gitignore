@@ -98,3 +98,11 @@ qedrank.config.json
 .vercel
 .env*
 !.env.example
+
+# Python harness
+harness/.venv/
+harness/**/__pycache__/
+harness/*.egg-info/
+harness/logs/
+logs/
+.pytest_cache/

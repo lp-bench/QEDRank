@@ -391,12 +391,14 @@ export async function evaluateAttempt({ runner, toolchain, paper, target, refere
     mathematical_status: target.mathematical_status,
     reference_proof_status: reference.reference_proof_status,
     reference_statement_available: reference.statement_available,
+    contamination: contaminationOf(paper, generation),
     generation: {
       mode: generation.mode,
       error: generation.error,
       http_status: generation.http_status,
       finish_reason: generation.finish_reason,
       observed_latency_ms: generation.observed_latency_ms,
+      working_ms: generation.working_ms ?? null,
       usage: generation.usage,
       reasoning_chars: generation.reasoning_chars ?? null,
       provider_attempts: generation.provider_attempts ?? null,
@@ -424,7 +426,7 @@ export async function evaluateAttempt({ runner, toolchain, paper, target, refere
     statement_match: 'not_evaluated',
     statement_match_source: null,
     loc: null,
-    timing: { evaluation_started_at: isoNow(), lean_compile_ms: null, lean_audit_ms: null, lean_compare_ms: null, lean_total_ms: null, evaluation_total_ms: null },
+    timing: { evaluation_started_at: isoNow(), lean_compile_ms: null, lean_audit_ms: null, lean_compare_ms: null, lean_total_ms: null, evaluation_total_ms: null, total_ms: null, working_ms: null },
     eligibility: { statement_track: false, proof_track: false, reasons: [] },
     outcomes: { infrastructure_failure: false, compiled: null, audit_clean: null, statement_faithful: null, verified: null },
     notes: [],
@@ -616,8 +618,36 @@ export async function evaluateAttempt({ runner, toolchain, paper, target, refere
   return rec;
 }
 
+/**
+ * Could the model have seen the problem's source during training? Dates are compared as
+ * ISO strings (YYYY, YYYY-MM or YYYY-MM-DD); an unknown date gives null, never a guess.
+ */
+export function contaminationOf(paper, generation) {
+  const cutoff = generation?.facts?.training_cutoff ?? null;
+  const published = paper?.publication_date ?? null;
+  return {
+    model_training_cutoff: cutoff,
+    problem_publication_date: published,
+    published_before_cutoff: publishedBeforeCutoff(published, cutoff),
+    public_formal_proof: paper?.public_formal_proof ?? null,
+  };
+}
+
+export function publishedBeforeCutoff(published, cutoff) {
+  if (!published || !cutoff) return null;
+  const p = String(published);
+  const c = String(cutoff);
+  const n = Math.min(p.length, c.length);
+  // Same year or month at the shared precision: the order cannot be decided.
+  if (p.slice(0, n) === c.slice(0, n)) return p.length === 10 && c.length === 10 ? true : null;
+  return p.slice(0, n) < c.slice(0, n);
+}
+
 function finish(rec, t0) {
   rec.timing.evaluation_total_ms = nowMono() - t0;
+  rec.timing.total_ms = (rec.generation?.observed_latency_ms ?? 0) + rec.timing.evaluation_total_ms;
+  // Working time: the model call that succeeded plus Lean execution; no waits on rate limits.
+  rec.timing.working_ms = typeof rec.generation?.working_ms === 'number' ? rec.generation.working_ms + (rec.timing.lean_total_ms ?? 0) : null;
   rec.timing.evaluation_ended_at = isoNow();
   rec.evaluation_complete = true;
 }

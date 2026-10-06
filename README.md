@@ -113,10 +113,12 @@ Protection (Project → Settings → Deployment Protection) or put only low-cost
 │   ├── feedback.js      # feedback collection and storage
 │   └── qedrank/discover.js  # corpus preview (GitHub URL + ref -> manifest)
 ├── lib/providers.js     # the model registry and the two transports (OpenAI-compatible, Anthropic Messages)
+├── lib/model-facts.js   # release date, training cutoff and size per model id, with sources
 ├── qedrank/             # QEDRank batch benchmark runner (Node CLI) + tests
-│   ├── cli.js           # models | ping | discover | run | resume | stats | serve | toolchain
-│   └── lib/             # source, corpus, pdf, prompt, models, lean, evaluate, compare, metrics, stats, export
-├── lean/                # pinned Lean 4 + Mathlib sandbox (QEDRank.Prelude, QEDRank.Audit)
+│   ├── cli.js           # models | ping | discover | run | resume | stats | grade | import-agent | serve | toolchain
+│   └── lib/             # source, corpus, pdf, prompt, models, lean, evaluate, compare, grade, agent, metrics, analysis, stats, export
+├── harness/             # Inspect AI agent harness: sessions, handoff, tools, sandbox image, export (see harness/README.md)
+├── lean/                # pinned Lean 4 + Mathlib sandbox (QEDRank.Prelude, QEDRank.Audit = evaluator commands)
 ├── scripts/
 │   ├── set-llm-keys.ps1     # masked key entry (Vercel / user env / session; -Advanced per-slot endpoints)
 │   └── qedrank-preview.ps1  # masked GitHub token for private corpus previews
@@ -148,6 +150,15 @@ Protection (Project → Settings → Deployment Protection) or put only low-cost
 
 Full details (measurements, eligibility rules, corpus layout, annotations, expert-review inputs,
 isolation policy, statistics) are in [qedrank/README.md](qedrank/README.md).
+
+## Agent protocol (Inspect AI)
+
+The paper's evaluation protocol — a tool-using agent on the challenge file, at most *x* fresh
+sessions with a fixed handoff note, an independent Lean check after every session, web search
+through one external provider or no network at all — is implemented in [harness/](harness/README.md)
+on Inspect AI. The check is `node qedrank/cli.js grade` (compiled-declaration comparison, axiom
+audit, kernel replay, completeness); results come back into QEDRank with
+`node qedrank/cli.js import-agent` and get the same statistics and the same Evaluation page.
 
 ## Local development
 

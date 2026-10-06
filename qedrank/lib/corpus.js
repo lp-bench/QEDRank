@@ -113,6 +113,14 @@ function safeJson(text) {
 }
 
 /** "P014", "p-014", "014", "14" all normalise to "14"; non-numeric ids compare case-insensitively. */
+/** ISO date, month or year (YYYY-MM-DD | YYYY-MM | YYYY) from an annotation value; null otherwise. */
+export function normalizeDate(v) {
+  if (v === null || v === undefined) return null;
+  const m = /^(\d{4})(?:-(\d{2}))?(?:-(\d{2}))?/.exec(String(v).trim());
+  if (!m) return null;
+  return [m[1], m[2], m[2] ? m[3] : undefined].filter(Boolean).join('-');
+}
+
 export function normalizeId(id) {
   const s = String(id ?? '').trim();
   const m = /^[A-Za-z_-]*0*(\d+)$/.exec(s);
@@ -519,6 +527,10 @@ export async function discoverCorpus(source, {
       subject_tags: Array.isArray(pAnn.subject_tags) ? pAnn.subject_tags : idx?.entry.subject_tags?.length ? idx.entry.subject_tags : [],
       subject_tags_source: Array.isArray(pAnn.subject_tags) ? 'annotations' : idx?.entry.subject_tags?.length ? `index:${idx.file}` : null,
       difficulty: pAnn.difficulty || idx?.entry.difficulty || null,
+      // When the result was first public (ISO date, month or year) and whether a public Lean proof
+      // is known: both feed the contamination columns and are only ever taken from reviewed inputs.
+      publication_date: normalizeDate(pAnn.publication_date ?? pAnn.published ?? pAnn.year),
+      public_formal_proof: typeof pAnn.public_formal_proof === 'boolean' ? pAnn.public_formal_proof : null,
       requires_figures: pAnn.requires_figures ?? 'unknown',
       bridge_checks: Array.isArray(pAnn.bridge_checks) ? pAnn.bridge_checks : [],
       annotations_applied: Boolean(annPapers[paperId] || annPapers[p.stem]),
@@ -547,6 +559,8 @@ export async function discoverCorpus(source, {
                 if (!rec.title && typeof j.title === 'string') { rec.title = j.title; rec.title_source = mf; }
                 if (!rec.citation && typeof j.citation === 'string') rec.citation = j.citation;
                 if (!rec.citation && Array.isArray(j.authors) && j.title) rec.citation = `${j.authors.join(', ')}. ${j.title}${j.year ? ` (${j.year})` : ''}`;
+                if (!rec.publication_date) rec.publication_date = normalizeDate(j.publication_date ?? j.published ?? j.date ?? j.year);
+                if (rec.public_formal_proof === null && typeof j.public_formal_proof === 'boolean') rec.public_formal_proof = j.public_formal_proof;
                 if (j.mathematical_status && typeof j.mathematical_status === 'object') rec._metaStatus = j.mathematical_status;
                 if (j.targets && typeof j.targets === 'object') rec._metaTargets = j.targets;
               } else rec.flags.push({ code: 'metadata_unparseable', message: `${mf} is not valid JSON`, paths: [mf] });

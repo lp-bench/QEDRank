@@ -14,6 +14,12 @@
 //   node qedrank/cli.js stats --run-id ID
 //   node qedrank/cli.js serve [--port 8787]
 //   node qedrank/cli.js prompt --run-id ID --paper P --target main_theorem
+//   node qedrank/cli.js import-agent --bundle bundle.json[,more.json] --run-id ID [--force]
+//       results of the Inspect AI harness (harness/, `proofbench-export`) as a run: same statistics, same UI
+//   node qedrank/cli.js grade --challenge P001.lean --solution solution.lean [--target P001] [--lean-project DIR]
+//                          [--library-prefix A,B] [--allow-extra-imports] [--extra-lean-path DIR] [--allow-unused-sorry]
+//                          [--no-kernel-replay] [--out grade.json] [--scratch DIR]
+//       independent Lean check of an agent's solution file; exit code 0 = graded, 2 = the grader itself failed
 //
 // A local directory can replace --repo with --path DIR (fixtures, offline review).
 
@@ -31,6 +37,10 @@ import { createServer } from './lib/serve.js';
 import { readJson, writeJson } from './lib/util.js';
 import { TARGET_KINDS } from './lib/schema.js';
 import { matrixRows, fmtRate } from './lib/metrics.js';
+import os from 'node:os';
+import { LeanRunner } from './lib/lean.js';
+import { gradeSubmission, DEFAULT_GRADE_POLICY } from './lib/grade.js';
+import { importAgentBundles } from './lib/agent.js';
 
 function parseArgs(argv) {
   const args = { _: [] };
@@ -144,7 +154,7 @@ async function main() {
       if (!args['run-id']) throw new Error(`${cmd} requires --run-id`);
       const ctx = await openRun({ config, runId: args['run-id'], log });
       const { summary, exports: ex } = await stageStatistics(ctx);
-      printMatrix(summary);
+      if (summary.agent) printAgent(summary); else printMatrix(summary);
       log(`exports: ${Object.values(ex).join(', ')}`);
       return;
     }
@@ -157,6 +167,42 @@ async function main() {
       console.log(await fs.readFile(ctx.p('items', key, 'prompt-a1.txt'), 'utf8'));
       return;
     }
+    case 'import-agent': {
+      if (!args.bundle || !args['run-id']) throw new Error('import-agent requires --bundle <file[,file]> and --run-id');
+      await importAgentBundles({ config, runId: args['run-id'], files: list(args.bundle).map((f) => path.resolve(f)), force: Boolean(args.force), log });
+      const ctx = await openRun({ config, runId: args['run-id'], log });
+      const { summary, exports: ex } = await stageStatistics(ctx);
+      printAgent(summary);
+      log(`exports: ${Object.values(ex).join(', ')}`);
+      return;
+    }
+    case 'grade': {
+      if (!args.challenge || !args.solution) throw new Error('grade requires --challenge <file> and --solution <file>');
+      const leanDir = args['lean-project'] ? path.resolve(args['lean-project']) : config.leanDir;
+      const toolchain = await detectToolchain(leanDir, { log });
+      const runner = new LeanRunner(toolchain, { ...config.lean, log });
+      const challengeSrc = await fs.readFile(args.challenge, 'utf8');
+      const solutionSrc = await fs.readFile(args.solution, 'utf8').catch(() => null);
+      const scratchDir = args.scratch ? path.resolve(args.scratch) : await fs.mkdtemp(path.join(os.tmpdir(), 'qedrank-grade-'));
+      const policy = {
+        libraryPrefixes: list(args['library-prefix']).length ? list(args['library-prefix']) : DEFAULT_GRADE_POLICY.libraryPrefixes,
+        allowExtraImports: Boolean(args['allow-extra-imports']),
+        allowUnusedSorry: Boolean(args['allow-unused-sorry']),
+        kernelReplay: !args['no-kernel-replay'],
+      };
+      const extraLeanPath = typeof args['extra-lean-path'] === 'string' ? args['extra-lean-path'].split(path.delimiter).filter(Boolean).map((d) => path.resolve(d)) : [];
+      let grade;
+      try {
+        grade = await gradeSubmission({ runner, toolchain, challengeSrc, solutionSrc, target: typeof args.target === 'string' ? args.target : null, scratchDir, cacheDir: path.join(config.runsDir, '.grade-cache'), policy, extraLeanPath, allowedAxioms: config.allowedAxioms, log });
+      } finally {
+        if (!args.scratch) await fs.rm(scratchDir, { recursive: true, force: true }).catch(() => {});
+      }
+      if (args.out) { await writeJson(path.resolve(args.out), grade); log(`wrote ${args.out}`); }
+      else console.log(JSON.stringify(grade, null, 2));
+      log(`verdict: ${grade.verdict}${grade.reasons.length ? ` (${grade.reasons.join(', ')})` : ''}`);
+      if (grade.verdict === 'grader_error') process.exitCode = 2;
+      return;
+    }
     case 'serve': {
       const port = Number(args.port || 8787);
       const server = createServer({ runsDir: config.runsDir });
@@ -164,9 +210,24 @@ async function main() {
       return;
     }
     default:
-      console.error('usage: node qedrank/cli.js <toolchain|models|ping|discover|run|resume|stats|export|prompt|serve> [options]');
+      console.error('usage: node qedrank/cli.js <toolchain|models|ping|discover|run|resume|stats|export|prompt|grade|import-agent|serve> [options]');
       process.exitCode = 1;
   }
+}
+
+function printAgent(summary) {
+  const a = summary.agent;
+  const name = (id) => summary.models.find((m) => m.id === id)?.display_name ?? id;
+  console.log(`\nAgent run: at most ${a.sessions_max} session(s) per problem; web search ${a.web_search ? 'on' : 'off'}; harness ${summary.run.harness?.commit?.slice(0, 10) ?? 'unknown'}`);
+  console.log(`model | ${a.tiers.map((k) => `solved within ${k}`).join(' | ')} | median sessions to success | output tokens (total) | working time (total) | tool calls | awaiting audit`);
+  for (const [m, r] of Object.entries(a.by_model)) {
+    const tiers = a.tiers.map((k) => `${fmtRate(r.solved_within[k])}`).join(' | ');
+    const hours = r.totals.working_ms != null ? `${(r.totals.working_ms / 3.6e6).toFixed(2)} h` : 'n/a';
+    console.log(`${name(m)} | ${tiers} | ${r.sessions_to_success.median ?? 'n/a'} | ${r.totals.output_tokens ?? 'n/a'} | ${hours} | ${r.totals.tool_calls ?? 'n/a'} | ${r.awaiting_manual_audit.length}`);
+    if (r.open_claim_escalations.length) console.log(`    ESCALATE for review (apparent proofs of open claims): ${r.open_claim_escalations.join(', ')}`);
+    if (r.infrastructure_failures) console.log(`    ${r.infrastructure_failures} problem(s) could not be graded or errored; excluded from the rates`);
+  }
+  for (const mm of summary.run.protocol_mismatches || []) console.log(`WARNING: ${mm.model} differs from ${mm.reference_model} in ${mm.field}`);
 }
 
 function printMatrix(summary) {

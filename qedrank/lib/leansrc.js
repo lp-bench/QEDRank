@@ -317,6 +317,10 @@ export function staticScreen(src, {
     rejections.push({ code: 'file_too_large', line: 0, text: `${Buffer.byteLength(src, 'utf8')} bytes > ${maxBytes}` });
   }
   if (/^\s*prelude\b/m.test(src)) rejections.push({ code: 'prelude_module', line: 1, text: 'prelude' });
+  // A `module` header switches the file to the module system, which splits its object file and
+  // hides proof bodies from the audit.
+  const firstCode = stripComments(src).split(/\r?\n/).find((l) => l.trim() !== '');
+  if (firstCode && /^\s*module\s*$/.test(firstCode)) rejections.push({ code: 'module_header', line: 1, text: 'module' });
   for (const mod of parseImports(src)) {
     const ok = allowedImports.includes(mod) || allowedImportPrefixes.some((p) => mod === p || mod.startsWith(`${p}.`));
     if (!ok) rejections.push({ code: 'disallowed_import', line: 0, text: mod });
@@ -331,6 +335,8 @@ export function staticScreen(src, {
   stripped.forEach((line, idx) => {
     const m = forbidden.exec(line);
     if (m) rejections.push({ code: 'forbidden_command', line: idx + 1, text: m[2] });
+    // Options that switch off kernel checking would let an unchecked proof into the object file.
+    if (/debug\.skipKernelTC/.test(line)) rejections.push({ code: 'forbidden_option', line: idx + 1, text: 'debug.skipKernelTC' });
     const hb = heartbeatRe.exec(line);
     if (hb) {
       const v = Number(hb[1]);

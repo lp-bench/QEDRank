@@ -40,6 +40,7 @@ export async function detectToolchain(leanDir, { log = () => {} } = {}) {
     mathlib: null,
     mathlib_built: false,
     audit_built: false,
+    lean_options: [],
     detected_at: isoNow(),
   };
   try {
@@ -82,6 +83,7 @@ export async function detectToolchain(leanDir, { log = () => {} } = {}) {
     info.reason = `lean --version failed: ${err.message}`;
     return info;
   }
+  info.lean_options = await readLeanOptions(info.lean_dir);
   const libDirs = info.lean_path.split(path.delimiter);
   for (const d of libDirs) {
     if (await exists(path.join(d, 'Mathlib.olean'))) info.mathlib_built = true;
@@ -92,6 +94,37 @@ export async function detectToolchain(leanDir, { log = () => {} } = {}) {
   else if (!info.audit_built) info.reason = 'QEDRank.Audit not built; run `lake build` in lean/. Statement comparison and axiom audits will be infrastructure_failure.';
   log(`lean: ${info.lean_version}; mathlib ${info.mathlib.rev || 'unknown'}; built=${info.mathlib_built}; audit=${info.audit_built}`);
   return info;
+}
+
+/**
+ * The `[leanOptions]` table of the project's lakefile.toml as `-Dkey=value` arguments. Lake passes
+ * these to every file of the project, so a file checked outside Lake must get the same ones
+ * (e.g. `maxSynthPendingDepth` changes which instances are found).
+ */
+export function parseLeanOptions(tomlText) {
+  const out = [];
+  let inTable = false;
+  for (const raw of tomlText.split(/\r?\n/)) {
+    const line = raw.replace(/\s+#.*$/, '').trim();
+    if (!line || line.startsWith('#')) continue;
+    if (line.startsWith('[')) { inTable = /^\[\s*leanOptions\s*\]$/.test(line); continue; }
+    if (!inTable) continue;
+    const m = /^([A-Za-z_][A-Za-z0-9_.]*)\s*=\s*(.+)$/.exec(line);
+    if (!m) continue;
+    let v = m[2].trim();
+    if ((v.startsWith('"') && v.endsWith('"')) || (v.startsWith("'") && v.endsWith("'"))) v = v.slice(1, -1);
+    if (!/^[A-Za-z0-9_.+-]*$/.test(v)) continue; // nothing that needs shell or Lean quoting
+    out.push(`-D${m[1]}=${v}`);
+  }
+  return out;
+}
+
+async function readLeanOptions(leanDir) {
+  try {
+    return parseLeanOptions(await fs.readFile(path.join(leanDir, 'lakefile.toml'), 'utf8'));
+  } catch {
+    return [];
+  }
 }
 
 /** Parse `lean --json` output lines into message objects. */
@@ -159,7 +192,7 @@ export class LeanRunner {
    * Run `lean` on one file. Returns a result record; never throws.
    * @param {{file:string, cwd:string, extraLeanPath?:string[], olean?:string, ilean?:string, label?:string}} opts
    */
-  async runLean({ file, cwd, extraLeanPath = [], olean = null, ilean = null, label = null }) {
+  async runLean({ file, cwd, extraLeanPath = [], olean = null, ilean = null, label = null, extraArgs = [] }) {
     const started = { iso: isoNow(), mono: nowMono() };
     const result = {
       label,
@@ -186,42 +219,11 @@ export class LeanRunner {
       result.duration_ms = 0;
       return result;
     }
-    const args = ['--json', `-M${this.memoryMb}`, `-DmaxHeartbeats=${this.maxHeartbeats}`];
+    const args = ['--json', `-M${this.memoryMb}`, `-DmaxHeartbeats=${this.maxHeartbeats}`, ...extraArgs];
     if (olean) args.push('-o', olean);
     if (ilean) args.push('-i', ilean);
     args.push(file);
-    const leanPath = [...extraLeanPath, this.tc.lean_path].filter(Boolean).join(path.delimiter);
-    const env = { ...process.env, LEAN_PATH: leanPath, LEAN_SYSROOT: this.tc.sysroot || '' };
-    if (this.tc.path_env) env.PATH = this.tc.path_env;
-    // Never leak provider credentials into the compiler subprocess.
-    for (const k of Object.keys(env)) if (/_API_KEY$|^GITHUB_TOKEN$/.test(k)) delete env[k];
-
-    const { code, stdout, stderr, timedOut, spawnError } = await new Promise((resolve) => {
-      let out = '';
-      let err = '';
-      let done = false;
-      let proc;
-      try {
-        proc = spawn(this.tc.lean_exe, args, { cwd, env, windowsHide: true });
-      } catch (e) {
-        resolve({ code: null, stdout: '', stderr: '', timedOut: false, spawnError: e });
-        return;
-      }
-      const timer = setTimeout(() => {
-        if (done) return;
-        try { proc.kill('SIGKILL'); } catch { /* ignore */ }
-        setTimeout(() => { if (!done) { done = true; resolve({ code: null, stdout: out, stderr: err, timedOut: true, spawnError: null }); } }, 2000);
-      }, this.timeoutMs);
-      proc.stdout.on('data', (d) => { out += d.toString(); });
-      proc.stderr.on('data', (d) => { err += d.toString(); });
-      proc.on('error', (e) => { if (!done) { done = true; clearTimeout(timer); resolve({ code: null, stdout: out, stderr: err, timedOut: false, spawnError: e }); } });
-      proc.on('close', (c, signal) => {
-        if (done) return;
-        done = true;
-        clearTimeout(timer);
-        resolve({ code: c, stdout: out, stderr: err, timedOut: signal === 'SIGKILL' && c === null, spawnError: null });
-      });
-    });
+    const { code, stdout, stderr, timedOut, spawnError } = await this.spawnTimed(this.tc.lean_exe, args, { cwd, extraLeanPath });
 
     result.duration_ms = nowMono() - started.mono;
     result.ended_at = isoNow();
@@ -256,17 +258,58 @@ export class LeanRunner {
     return result;
   }
 
+  /** Environment for a toolchain subprocess: project search path first, no credentials. */
+  childEnv(extraLeanPath = []) {
+    const leanPath = [...extraLeanPath, this.tc.lean_path].filter(Boolean).join(path.delimiter);
+    const env = { ...process.env, LEAN_PATH: leanPath, LEAN_SYSROOT: this.tc.sysroot || '' };
+    if (this.tc.path_env) env.PATH = this.tc.path_env;
+    // Never leak provider credentials into the compiler subprocess.
+    for (const k of Object.keys(env)) if (/_API_KEY$|^GITHUB_TOKEN$/.test(k)) delete env[k];
+    return env;
+  }
+
+  /** Spawn a toolchain executable with the wall-clock limit. Never rejects. */
+  spawnTimed(exe, args, { cwd, extraLeanPath = [], timeoutMs = this.timeoutMs }) {
+    const env = this.childEnv(extraLeanPath);
+    return new Promise((resolve) => {
+      let out = '';
+      let err = '';
+      let done = false;
+      let proc;
+      try {
+        proc = spawn(exe, args, { cwd, env, windowsHide: true });
+      } catch (e) {
+        resolve({ code: null, stdout: '', stderr: '', timedOut: false, spawnError: e });
+        return;
+      }
+      const timer = setTimeout(() => {
+        if (done) return;
+        try { proc.kill('SIGKILL'); } catch { /* ignore */ }
+        setTimeout(() => { if (!done) { done = true; resolve({ code: null, stdout: out, stderr: err, timedOut: true, spawnError: null }); } }, 2000);
+      }, timeoutMs);
+      proc.stdout.on('data', (d) => { out += d.toString(); });
+      proc.stderr.on('data', (d) => { err += d.toString(); });
+      proc.on('error', (e) => { if (!done) { done = true; clearTimeout(timer); resolve({ code: null, stdout: out, stderr: err, timedOut: false, spawnError: e }); } });
+      proc.on('close', (c, signal) => {
+        if (done) return;
+        done = true;
+        clearTimeout(timer);
+        resolve({ code: c, stdout: out, stderr: err, timedOut: signal === 'SIGKILL' && c === null, spawnError: null });
+      });
+    });
+  }
+
   /**
    * Write `src` as `<scratchDir>/<moduleName>.lean` and compile it to an .olean in place
    * so later scripts can `import <moduleName>` with scratchDir on LEAN_PATH.
    */
-  async compileModule({ src, moduleName, scratchDir, extraLeanPath = [], label = null }) {
+  async compileModule({ src, moduleName, scratchDir, extraLeanPath = [], label = null, extraArgs = [] }) {
     await ensureDir(scratchDir);
     const file = path.join(scratchDir, `${moduleName}.lean`);
     await writeText(file, src);
     const olean = path.join(scratchDir, `${moduleName}.olean`);
     const ilean = path.join(scratchDir, `${moduleName}.ilean`);
-    const r = await this.runLean({ file, cwd: scratchDir, extraLeanPath: [scratchDir, ...extraLeanPath], olean, ilean, label: label || moduleName });
+    const r = await this.runLean({ file, cwd: scratchDir, extraLeanPath: [scratchDir, ...extraLeanPath], olean, ilean, label: label || moduleName, extraArgs });
     r.module = moduleName;
     r.src_sha256 = sha256(src);
     r.olean = r.status === 'compiler_success' ? olean : null;

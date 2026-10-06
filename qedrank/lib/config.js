@@ -40,6 +40,9 @@ export const DEFAULT_CONFIG = Object.freeze({
   // Per-model pricing in USD per million tokens, e.g. { "gpt-4": { "input": 30, "output": 60 } }.
   // Empty by default: cost is reported as unavailable unless you configure it.
   pricing: {},
+  // Release date, training cutoff and parameter count per model id; extends lib/model-facts.js.
+  // e.g. { "my-model": { "released": "2026-05-01", "training_cutoff": "2025-12", "parameters_b": 70 } }
+  modelFacts: {},
   allowedAxioms: ['propext', 'Classical.choice', 'Quot.sound'],
 });
 

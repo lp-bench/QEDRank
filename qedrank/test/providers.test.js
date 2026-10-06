@@ -81,7 +81,7 @@ test('OpenAI-compatible request: URL, auth, system + user messages, model and li
   assert.equal(body.temperature, 0.1);
   assert.equal(body.max_tokens, 99);
   assert.equal(r.text, '```lean\ntheorem t : 1 = 1 := rfl\n```');
-  assert.deepEqual(r.usage, { inputTokens: 11, outputTokens: 22, reasoningTokens: 7 });
+  assert.deepEqual(r.usage, { inputTokens: 11, outputTokens: 22, reasoningTokens: 7, cachedInputTokens: null });
   assert.deepEqual(r.sampling, { temperature: 0.1, effort: null });
   assert.equal(r.attempts, 1);
   assert.equal(r.baseUrlHost, 'openrouter.ai');
@@ -146,7 +146,7 @@ test('Anthropic Messages API: request shape, text/thinking blocks, usage and sto
   assert.equal(body.fallbacks, undefined, 'no server-side fallback: the answer must come from the named model');
   assert.equal(r.text, '```lean\ntheorem t : 1 = 1 := rfl\n```');
   assert.equal(r.reasoningChars, 'plan the proof'.length);
-  assert.deepEqual(r.usage, { inputTokens: 40, outputTokens: 900, reasoningTokens: null });
+  assert.deepEqual(r.usage, { inputTokens: 40, outputTokens: 900, reasoningTokens: null, cachedInputTokens: null });
   assert.equal(r.finishReason, 'stop');
   assert.equal(r.responseModel, 'claude-opus-5-5');
   assert.deepEqual(r.sampling, { temperature: null, effort: 'high' });

@@ -12,11 +12,24 @@ your machine through `node qedrank/cli.js`. The web app's *QEDRank benchmark*
 tab previews a corpus (`/api/qedrank/discover`) and renders finished or
 in-progress runs.
 
+Two protocols share the Lean checks and the statistics:
+
+- **single call** (this runner): one model call per item, no tools; the model formalizes the
+  claim from the paper text and proves it; the statement is compared with the audited reference.
+  It is the baseline.
+- **agent** ([harness/](../harness/README.md), Inspect AI): a tool-using agent works on the
+  challenge file in a sandbox over several sessions; after every session the independent check
+  of [`grade`](#independent-check-grade) is applied. Results come back through
+  `import-agent` and get the same summary, with the session metrics added.
+
 ## Contents
 
 - [Quick start](#quick-start)
 - [Model roster](#model-roster)
 - [What is measured](#what-is-measured)
+- [Independent check: grade](#independent-check-grade)
+- [Agent runs](#agent-runs)
+- [Model facts, difficulty and contamination](#model-facts-difficulty-and-contamination)
 - [Corpus layout and annotations](#corpus-layout-and-annotations)
 - [Run directory and resume](#run-directory-and-resume)
 - [Configuration](#configuration)
@@ -126,6 +139,16 @@ pair `(ground_truth[p,t], model_output[m,p,t])`:
 | Sandwich coverage | all three of main/upper/lower model statements are accepted matches and every declared bridge check has review status `passed` | papers whose three references are all audited |
 | pass@k / repair | separate settings with identical k / repair budget for every model | same as verified |
 
+Time is reported two ways. *Total time* is wall clock: provider latency, waits on rate limits and
+retries included. *Working time* is the model call that succeeded plus Lean (and, for agents, tool)
+execution: requests that ended in a transport error (overloaded, rate limited, dropped) and the
+waits after them are left out. Both are in every record (`timing.total_ms`, `timing.working_ms`)
+and in the summary (`time.total_item_ms`, `time.working_item_ms`).
+
+Every run records the harness commit it was produced with (`run.harness`: commit, branch and
+whether the working tree had uncommitted changes), next to the corpus commit, the Lean toolchain
+and the Mathlib commit.
+
 Everything else is reported alongside, never folded into a score: statement
 match distribution (`stronger`/`weaker`/`different` come only from expert
 review; automated failure to find an equivalence is `unresolved`), abstention,
@@ -136,6 +159,89 @@ all attempts), tokens and cost (only when the provider reports usage and
 `pricing` is configured), and lines of code (rule stated in every record).
 Apparent proofs of `open` claims are listed under `coverage.open_claim_escalations`
 for independent review and never counted as successes.
+
+## Independent check: grade
+
+```bash
+node qedrank/cli.js grade --challenge P001.lean --solution solution.lean --target P001 \
+    --lean-project /path/to/ProofBench --out grade.json
+```
+
+`grade` decides whether a solution file solves a challenge file, with the rules of the agent
+protocol. It takes nothing from the agent but the text of the solution; Mathlib and the statement
+library come from the Lean project given with `--lean-project` (its `lean-toolchain`,
+`lake-manifest.json` and the `[leanOptions]` of its `lakefile.toml` are used, so the file is
+checked exactly as Lake would). The verdict is `solved` when every check passes, `not_solved` with
+the list of `reasons` otherwise, and `grader_error` when the check itself could not be carried out
+(never counted as either).
+
+| Check | How |
+|---|---|
+| static screen | the solution is rejected before compilation when it contains `#eval`, `run_cmd`, `elab`, `macro`, `syntax`, `initialize`, `implemented_by`, `extern`, `unsafe`, `set_option debug.skipKernelTC`, a `module` header, or a `maxHeartbeats` above the cap |
+| imports | only `Mathlib` and the statement library (`--library-prefix`, default `ProofBench.Mathlib_Problems`); the proctor library (`ProofBench.Mathlib`) never; every import of the challenge must still be there (`import Mathlib` covers Mathlib modules). `--allow-extra-imports` is the web-search configuration, where the agent may add libraries (their object files on `--extra-lean-path`) |
+| compiles | the solution compiles without errors under the project's toolchain and options; `compile_ms` is recorded |
+| no `sorry` | the target does not depend on `sorryAx`, and no declaration of the file does (`--allow-unused-sorry` relaxes the second part) |
+| standard axioms | the target depends only on `propext`, `Classical.choice` and `Quot.sound`; `native_decide` and declared axioms fail |
+| statement and definitions unchanged | the challenge and the solution are compiled under the same module name and **every declaration of the challenge is compared with the declaration of the same name in the solution, as compiled** (`#qr_olean_diff`): the target's type, and the type and value of every definition, structure and constructor, private ones included. A changed `variable`, `open`, notation or instance that alters what the unchanged text means is caught; the record says when the text is identical but the meaning changed (`ESCALATE`), and when the text was reformatted but means the same |
+| kernel replay | every declaration of the solution is sent to the kernel again from the environment of its imports (`#qr_replay`, what `leanchecker` does for one module) |
+| proof length | `proof.proof_lines`: code lines of the solution beyond the challenge's statement and definitions (rule stated in the record), plus the target's own proof lines |
+| completeness | for a file that compiles but is not a solution: the share of proof steps that are done, where the steps are the target plus every lemma of the solution its proof uses (and every axiom it relies on), and a step is done when its own proof has no `sorry`. Not available when the file does not compile or the statement was changed; 1 for a solution. The agent chooses the decomposition, so compare within a problem |
+
+`compiler_output` holds the diagnostics in a form the next session can read. The evaluator
+commands live in `lean/QEDRank/Audit.lean` and are compiled by the grader for the project's
+toolchain on first use (cached under `runs/.grade-cache/`), so a project on another Lean version
+needs no build of this repository's `lean/` folder.
+
+## Agent runs
+
+```bash
+proofbench-export logs/*.eval --out bundle.json          # from the harness (one log per model)
+node qedrank/cli.js import-agent --bundle bundle.json --run-id agent-x4
+node qedrank/cli.js stats --run-id agent-x4              # again after a hand audit
+```
+
+An agent run directory holds one record per problem, model and epoch: `setting: "agent"`,
+`outcomes.verified = 1` when the independent check passed in one of the sessions, and under
+`agent`: sessions used, the session that solved it, per-session verdict, tokens, cost, total and
+working time, model and tool calls (by tool), stop reason (agent ended, output-token budget,
+context window, idle, safety limit), handoff-note statistics, completeness, the search log and
+the hand-audit state. `summary.agent` reports, per model, solved-within-*k* for the tiers 1, 4,
+16 (those within the run's session limit) with bootstrap intervals, the distribution of sessions
+to success, totals and per-problem medians of tokens, time and calls, mean completeness over
+unsolved problems, search usage, open-claim escalations and the solves still awaiting audit.
+`protocol_mismatches` lists fields in which the imported models' runs differed (harness commit,
+problem-set commit, image, limits, search flag): models that did not run under one protocol are
+not comparable.
+
+The hand audit of solved problems goes in `runs/<run_id>/review/audit.json`:
+
+```json
+{ "P004__main_theorem__anthropic_claude-fable-5-1": { "status": "confirmed", "reviewer": "…", "date": "…" },
+  "P007__main_theorem__openai_gpt-6-astra": { "status": "rejected", "reviewer": "…", "note": "…" } }
+```
+
+A rejected solve stops counting when `stats` is run again; unaudited solves count and are listed.
+
+## Model facts, difficulty and contamination
+
+`lib/model-facts.js` records, per model id, the release date, the training-data cutoff and the
+parameter count (open-weight models only), each with the page it was read from; the summary
+carries them under `models[].facts`, and `modelFacts` in `qedrank.config.json` extends or
+overrides the table. Three analyses use them:
+
+- `effort.by_difficulty`: per difficulty label and model, medians of total time, working time,
+  tokens, sessions, tool calls and proof lines, over all attempts and over solved ones.
+- `difficulty_proxies.items`: per problem, who solved it, the earliest-released and the smallest
+  model that did, the least working time, output tokens, sessions and proof lines a solve took,
+  next to the human difficulty label and the reference proof's length.
+- `generations.rows`: verified rate per model ordered by release date, with intervals. No trend is
+  fitted and no forecast is made; the table is the input a forecast would need.
+
+Each record also carries `contamination`: the model's training cutoff next to the problem's
+publication date (`publication_date` in `qedrank-annotations.json` or the paper's metadata file,
+ISO year, month or day) and whether the source was public before the cutoff, compared at the
+shared precision and `null` when it cannot be decided. `summary.contamination` splits the verified
+rate by that flag. A higher rate on problems published before the cutoff is a warning, not proof.
 
 ## Repository links, private repositories and deployment
 
@@ -309,3 +415,8 @@ interval, p-value or ranking is produced before item records exist.
   using real credentials before a full run.
 - Loading Mathlib takes minutes per Lean invocation on some Windows machines;
   `lean.concurrency` and narrow imports in the prelude mitigate this.
+- `grade` compares compiled declarations, so it cannot be fooled by text, but it does not
+  replace the hand audit: a solution could still prove the stated theorem in a way the
+  benchmark did not intend (for example through a library lemma that trivialises it).
+- Completeness counts proof steps; it does not weigh them. A solution with one hard
+  `sorry` and nine easy lemmas scores 0.9.

@@ -14,7 +14,7 @@ export function listModels(env = process.env, ids = null) {
   const list = ids || getRoster(env);
   return list.map((id) => {
     const d = describeProvider(id, env);
-    return { id, label: d.label, vendor: d.vendor, display_name: d.display_name, model_id: d.model_id, host: d.host, configured: d.configured, retired: d.retired, tier: d.tier, env_key: d.env_key, key_env_in_use: d.key_env_in_use, reasoning: d.reasoning, portal: d.portal };
+    return { id, label: d.label, vendor: d.vendor, display_name: d.display_name, model_id: d.model_id, host: d.host, configured: d.configured, retired: d.retired, tier: d.tier, env_key: d.env_key, key_env_in_use: d.key_env_in_use, reasoning: d.reasoning, portal: d.portal, facts: d.facts };
   });
 }
 
@@ -71,6 +71,7 @@ export async function generateOnce({
     sampling: null, // what was actually sent: { temperature, effort }; null in fixture mode
     reasoning_chars: null,
     observed_latency_ms: null,
+    working_ms: null, // the successful request only: no failed requests, no waits after them
     http_status: null,
     finish_reason: null,
     provider_attempts: null,
@@ -104,6 +105,7 @@ export async function generateOnce({
         base.response_model = r.responseModel;
         base.provider_attempts = r.attempts;
         base.retry_wait_ms = r.retryWaitMs;
+        base.working_ms = r.workingMs ?? null;
         if (r.finishReason === 'length') base.truncated = true;
       }
     } catch (err) {
@@ -119,6 +121,7 @@ export async function generateOnce({
     base.ended_at = isoNow();
     // Observed latency covers every attempt, including waits after rate-limit responses.
     base.observed_latency_ms = base.ended_mono_ms - base.started_mono_ms;
+    if (mode === 'fixture' && !base.error) base.working_ms = base.observed_latency_ms;
     return base;
   };
   return mode === 'fixture' ? run() : limiterFor(provider, providerConcurrency)(run);
