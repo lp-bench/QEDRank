@@ -2,7 +2,9 @@
 Keep every item short: not much explanations.
 When an item is done, delete it. When part of it is done, delete only that part.
 
-- Local pilot (Docker, Qwen, P083/P088/P090): build image, mock-model test, then Qwen.
+- Local pilot (Docker, Qwen, P088/P089/P090): finish image build, mock-model test, then Qwen.
+- Image build: PyPI downloads stall in Docker's network; if `--network host` works, add it to `build_image.sh`.
+- Dockerfile: run `lake exe cache get` before copying problem files (no re-download per IDS).
 - Copy paste and use interesting parts of lean-eval and epoch-research/LeanOpenProblems.
 - Allow the agent to write multiple files.
 - Test P002/P015 (Matroid) end to end.
@@ -17,7 +19,7 @@ When an item is done, delete it. When part of it is done, delete only that part.
 - Ask ZIH: is rootless Podman available on Capella? (then use inspect-podman)
 - Release the Apptainer sandbox as a package with the paper.
 - push `proofbench-statements` to private GitHub repo.
-- Sessions with handoff (paper): up to x fresh sessions, fixed-format note, check after each.
+- Sessions with handoff (paper): up to 10 fresh sessions, fixed-format note, check after each.
 - Output-token budget per session; total-token and time limits only as safety caps.
 - Record cost per session.
 - Manifest: record the Mathlib commit.
