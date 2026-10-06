@@ -101,6 +101,16 @@ test('OpenAI reasoning models (GPT-5.x / GPT-6) get max_completion_tokens and re
   assert.equal(r.vendor, 'OpenAI');
 });
 
+test('Kimi K3 gets max_tokens but no temperature (the API allows only its default)', async () => {
+  let body;
+  const fetchImpl = async (url, init) => { body = JSON.parse(init.body); return completion('ok'); };
+  const r = await callProvider('kimi', { prompt: 'P', temperature: 0, maxTokens: 500, env: { MOONSHOT_API_KEY: 'sk-1' }, fetchImpl, sleep: noSleep });
+  assert.equal(body.model, 'kimi-k3');
+  assert.equal(body.max_tokens, 500);
+  assert.equal(body.temperature, undefined);
+  assert.deepEqual(r.sampling, { temperature: null, effort: null });
+});
+
 test('every roster slot accepts a per-slot endpoint, model and auth header (Azure AI Foundry style)', async () => {
   let seen;
   const fetchImpl = async (url, init) => { seen = { url, headers: init.headers, body: JSON.parse(init.body) }; return completion('ok'); };

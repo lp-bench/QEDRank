@@ -90,7 +90,7 @@ async function main() {
     }
     case 'ping': {
       const ids = list(args.models).length ? list(args.models) : getRoster();
-      const rows = await pingModels(ids, { compile: Boolean(args.compile), leanDir: config.leanDir, timeoutMs: Number(args.timeout || 120000), maxTokens: Number(args['max-tokens'] || 4096), log });
+      const rows = await pingModels(ids, { compile: Boolean(args.compile), leanDir: config.leanDir, timeoutMs: Number(args.timeout || 120000), maxTokens: Number(args['max-tokens'] || config.generation.maxTokens), log });
       if (args.out) { await writeJson(args.out, rows); log(`wrote ${args.out}`); }
       console.log('\nmodel | status | latency | output tokens | attempts' + (args.compile ? ' | compile' : ''));
       for (const r of rows) {
