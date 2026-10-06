@@ -9,9 +9,10 @@ export const DEFAULT_CONFIG = Object.freeze({
   runsDir: 'runs',
   leanDir: 'lean',
   expectedPaperCount: 108,
-  models: getRoster(), // the ten default slots, or QEDRANK_MODELS
+  models: getRoster(), // the eleven default slots, or QEDRANK_MODELS
   generation: {
-    temperature: 0,
+    temperature: 0,       // not sent to reasoning models (Claude, GPT-5.x/6); each record stores what was sent
+    effort: 'high',       // reasoning effort for reasoning models; QEDRANK_EFFORT_<ID> overrides per slot
     maxTokens: 16384,     // reasoning models spend part of the budget thinking before answering
     timeoutMs: 300000,   // per attempt; reasoning models can think for minutes
     retries: 4,          // on 429 / 5xx / network errors, honouring Retry-After

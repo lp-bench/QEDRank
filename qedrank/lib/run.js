@@ -289,7 +289,7 @@ export async function stageGeneration(ctx, { selection = null, retryFailed = fal
   if (mode === 'fixture') { ctx.run.fixture_dir = fixture.dir; }
   ctx.run.model_ids = Object.fromEntries(listModels(process.env, models).map((m) => [m.id, mode === 'fixture' ? `fixture:${m.id}` : m.model_id]));
   ctx.run.model_hosts = Object.fromEntries(listModels(process.env, models).map((m) => [m.id, mode === 'fixture' ? null : m.host]));
-  const genOpts = { system: SYSTEM_PROMPT, temperature: ctx.config.generation.temperature, maxTokens: ctx.config.generation.maxTokens, timeoutMs: ctx.config.generation.timeoutMs, retries: ctx.config.generation.retries ?? 4, baseDelayMs: ctx.config.generation.retryBaseDelayMs ?? 2000, maxDelayMs: ctx.config.generation.retryMaxDelayMs ?? 60000, providerConcurrency: ctx.config.generation.providerConcurrency ?? 1 };
+  const genOpts = { system: SYSTEM_PROMPT, temperature: ctx.config.generation.temperature, effort: ctx.config.generation.effort ?? null, maxTokens: ctx.config.generation.maxTokens, timeoutMs: ctx.config.generation.timeoutMs, retries: ctx.config.generation.retries ?? 4, baseDelayMs: ctx.config.generation.retryBaseDelayMs ?? 2000, maxDelayMs: ctx.config.generation.retryMaxDelayMs ?? 60000, providerConcurrency: ctx.config.generation.providerConcurrency ?? 1 };
   ctx.run.selection = { papers: papers.map((p) => p.paper_id), models, targets: kinds };
   await ctx.setStage('generation', 'running');
   await ctx.setStage('compilation', 'running');
@@ -348,7 +348,9 @@ export async function stageGeneration(ctx, { selection = null, retryFailed = fal
                 gen = await generateOnce({ provider, prompt: prompt.text, ...genOpts, mode, fixture, meta: { paper_id: paper.paper_id, target_kind: kind, attempt } });
                 gen.prompt_hash = prompt.hash;
                 gen.prompt_template_version = prompt.templateVersion;
-                gen.temperature = ctx.config.generation.temperature;
+                // Record what was actually sent: reasoning models accept no temperature (null), only an effort.
+                gen.temperature = gen.sampling ? gen.sampling.temperature : ctx.config.generation.temperature;
+                gen.effort = gen.sampling?.effort ?? null;
                 gen.max_tokens = ctx.config.generation.maxTokens;
                 gen.timeout_ms = ctx.config.generation.timeoutMs;
                 await writeJson(genFile, gen);
@@ -373,7 +375,7 @@ export async function stageGeneration(ctx, { selection = null, retryFailed = fal
 
 ${repairPrompt}`);
                   rg.prompt_template_version = `${prompt.templateVersion}+repair`;
-                  rg.temperature = ctx.config.generation.temperature; rg.max_tokens = ctx.config.generation.maxTokens; rg.timeout_ms = ctx.config.generation.timeoutMs;
+                  rg.temperature = rg.sampling ? rg.sampling.temperature : ctx.config.generation.temperature; rg.effort = rg.sampling?.effort ?? null; rg.max_tokens = ctx.config.generation.maxTokens; rg.timeout_ms = ctx.config.generation.timeoutMs;
                   await writeJson(path.join(itemDir, `generation-a1r${r}.json`), rg);
                   last = await evaluateAttempt({ runner: ctx.runner, toolchain: ctx.toolchain, paper, target, reference, prelude, generation: rg, itemDir, config: ctx.config, expertDecision: decision, setting: 'repair', attempt: 1, repairRound: r, log: ctx.log });
                   lastGen = rg;

@@ -14,7 +14,7 @@ export function listModels(env = process.env, ids = null) {
   const list = ids || getRoster(env);
   return list.map((id) => {
     const d = describeProvider(id, env);
-    return { id, label: d.label, display_name: d.display_name, model_id: d.model_id, host: d.host, configured: d.configured, retired: d.retired, tier: d.tier, env_key: d.env_key, portal: d.portal };
+    return { id, label: d.label, vendor: d.vendor, display_name: d.display_name, model_id: d.model_id, host: d.host, configured: d.configured, retired: d.retired, tier: d.tier, env_key: d.env_key, key_env_in_use: d.key_env_in_use, reasoning: d.reasoning, portal: d.portal };
   });
 }
 
@@ -53,7 +53,7 @@ function limiterFor(provider, concurrency) {
  * `error` so the item is recorded as an infrastructure/provider failure.
  */
 export async function generateOnce({
-  provider, prompt, system = SYSTEM_PROMPT, temperature, maxTokens, timeoutMs, retries = 4, baseDelayMs = 2000, maxDelayMs = 60000,
+  provider, prompt, system = SYSTEM_PROMPT, temperature, maxTokens, effort = null, timeoutMs, retries = 4, baseDelayMs = 2000, maxDelayMs = 60000,
   providerConcurrency = 1, env = process.env, mode = 'live', fixture = null, meta = {},
 }) {
   const d = describeProvider(provider, env);
@@ -61,12 +61,14 @@ export async function generateOnce({
     provider,
     display_name: mode === 'fixture' ? `fixture · ${d.label}` : d.display_name,
     label: d.label,
+    vendor: d.vendor,
     model_id: mode === 'fixture' ? `fixture:${provider}` : d.model_id,
     api_host: mode === 'fixture' ? null : d.host,
     response_model: null,
     mode,
     text: '',
     usage: null,
+    sampling: null, // what was actually sent: { temperature, effort }; null in fixture mode
     reasoning_chars: null,
     observed_latency_ms: null,
     http_status: null,
@@ -92,9 +94,10 @@ export async function generateOnce({
         base.provider_attempts = 1;
         if (!r.text) base.error = { kind: 'fixture_missing', message: 'no fixture response for this item', http_status: null };
       } else {
-        const r = await callProvider(provider, { prompt, system, temperature, maxTokens, timeoutMs, retries, baseDelayMs, maxDelayMs, env });
+        const r = await callProvider(provider, { prompt, system, temperature, maxTokens, effort, timeoutMs, retries, baseDelayMs, maxDelayMs, env });
         base.text = r.text;
         base.usage = r.usage;
+        base.sampling = r.sampling;
         base.reasoning_chars = r.reasoningChars;
         base.http_status = r.httpStatus;
         base.finish_reason = r.finishReason;

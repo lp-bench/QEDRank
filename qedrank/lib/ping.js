@@ -31,10 +31,10 @@ export async function pingModels(ids, { env = process.env, timeoutMs = 120000, m
     const d = describeProvider(id, env);
     const row = { id, label: d.label, model_id: d.model_id, host: d.host, configured: d.configured, status: null, latency_ms: null, output_tokens: null, reasoning_tokens: null, attempts: null, answer: null, error: null, compile: null };
     if (d.retired) { row.status = 'retired'; row.error = d.retired; return row; }
-    if (!d.configured) { row.status = 'not_configured'; row.error = `set ${d.env_key}${id === 'custom' ? ', QEDRANK_CUSTOM_BASE_URL and QEDRANK_CUSTOM_MODEL' : ''}`; return row; }
+    if (!d.configured) { row.status = 'not_configured'; row.error = `set ${d.env_key}${id === 'custom' ? ', QEDRANK_CUSTOM_BASE_URL and QEDRANK_CUSTOM_MODEL' : d.host ? '' : ` plus QEDRANK_BASEURL_${id.toUpperCase()} and QEDRANK_MODEL_${id.toUpperCase()}`}`; return row; }
     const t0 = nowMono();
     try {
-      const r = await callProvider(id, { prompt: PING_PROMPT, system: SYSTEM_PROMPT, temperature: 0.1, maxTokens, timeoutMs, retries, env });
+      const r = await callProvider(id, { prompt: PING_PROMPT, system: SYSTEM_PROMPT, temperature: 0.1, effort: 'low', maxTokens, timeoutMs, retries, env });
       row.status = r.text ? 'ok' : 'empty';
       row.latency_ms = Math.round(nowMono() - t0);
       row.output_tokens = r.usage?.outputTokens ?? null;

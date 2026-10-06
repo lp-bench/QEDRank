@@ -1,10 +1,11 @@
 // Simple test script to verify project structure
 // Run with: node test-setup.js
 
-const fs = require('fs');
-const path = require('path');
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-const projectRoot = __dirname;
+const projectRoot = path.dirname(fileURLToPath(import.meta.url));
 const requiredFiles = [
   'package.json',
   'vite.config.js',
@@ -17,8 +18,15 @@ const requiredFiles = [
   'src/App.jsx',
   'src/index.css',
   'src/App.css',
+  'src/state/AppState.jsx',
+  'src/pages/HomePage.jsx',
+  'src/pages/BenchmarkPage.jsx',
+  'src/evaluation/EvaluationPage.jsx',
+  'lib/providers.js',
   'api/verify.js',
-  'api/feedback.js'
+  'api/models.js',
+  'api/feedback.js',
+  'scripts/set-llm-keys.ps1'
 ];
 
 console.log('🔍 QEDengine Project Structure Verification\n');
@@ -41,8 +49,9 @@ if (allFilesExist) {
   console.log('🎉 All required files are present!');
   console.log('\nNext steps:');
   console.log('1. Install dependencies: npm install');
-  console.log('2. Copy environment variables: cp .env.example .env.local');
-  console.log('3. Add your API keys to .env.local');
+  console.log('2. Add API keys with hidden input: .\\scripts\\set-llm-keys.ps1 -Target User');
+  console.log('   (or copy .env.example to .env.local and fill it in)');
+  console.log('3. Check the roster: node qedrank/cli.js models');
   console.log('4. Start development server: npm run dev');
   console.log('5. Visit http://localhost:3000');
 } else {

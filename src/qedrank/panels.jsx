@@ -8,7 +8,7 @@ const STAGES = ['discovery', 'preparation', 'generation', 'compilation', 'audit'
 /* Corpus discovery: GitHub URL + ref -> preview manifest               */
 /* ------------------------------------------------------------------ */
 
-export function CorpusPanel({ onManifest }) {
+export function CorpusPanel({ onManifest, modelsArg = '' }) {
   const [repoUrl, setRepoUrl] = useState('')
   const [ref, setRef] = useState('')
   const [subdir, setSubdir] = useState('')
@@ -67,17 +67,19 @@ export function CorpusPanel({ onManifest }) {
         <button type="submit" className="qr-btn" disabled={busy}>{busy ? 'Discovering…' : 'Preview manifest'}</button>
       </form>
       {error && <div className="error-message">{error}</div>}
-      {manifest && <ManifestView manifest={manifest} />}
+      {manifest && <ManifestView manifest={manifest} modelsArg={modelsArg} />}
     </section>
   )
 }
 
-export function ManifestView({ manifest }) {
+export function ManifestView({ manifest, modelsArg = '' }) {
   const c = manifest.counts || {}
   const src = manifest.source || {}
   const [showAll, setShowAll] = useState(false)
   const papers = manifest.papers || []
   const shown = showAll ? papers : papers.slice(0, 25)
+  // The run command uses the models selected in the picker (the CLI default is the whole roster).
+  const nextStep = manifest.next_step ? (modelsArg && !/--models/.test(manifest.next_step) ? `${manifest.next_step} --models ${modelsArg}` : manifest.next_step) : null
   return (
     <div className="qr-manifest">
       <div className="qr-kv">
@@ -97,10 +99,10 @@ export function ManifestView({ manifest }) {
       <div className="qr-actions">
         <button className="qr-btn qr-btn-secondary" onClick={() => download('manifest.json', JSON.stringify(manifest, null, 2), 'application/json')}>Download manifest JSON</button>
       </div>
-      {manifest.next_step && (
+      {nextStep && (
         <div className="qr-note">
-          <b>Run the benchmark locally</b> (models, Lean compilation and evaluation run on your machine, pinned to this commit):
-          <pre>{manifest.next_step}</pre>
+          <b>Run the benchmark locally</b> (models, Lean compilation and evaluation run on your machine, pinned to this commit; <code>--models</code> is the selection above):
+          <pre>{nextStep}</pre>
         </div>
       )}
       <div className="qr-table-wrap">

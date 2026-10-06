@@ -2,7 +2,7 @@
 // QEDRank command line.
 //
 //   node qedrank/cli.js toolchain
-//   node qedrank/cli.js models [--all] [--json]          the ten-slot roster and which keys are set
+//   node qedrank/cli.js models [--all] [--json]          the model roster and which keys are set
 //   node qedrank/cli.js ping [--models a,b] [--compile] [--show]   one small Lean task per configured model
 //   node qedrank/cli.js discover --repo <github url> [--ref <branch|tag|sha>] [--out manifest.json] [--annotations file.json]
 //       --repo accepts https://github.com/<owner>/<repo>[/tree/<branch>] (private: --token <PAT> or GITHUB_TOKEN)

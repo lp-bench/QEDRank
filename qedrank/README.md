@@ -1,8 +1,8 @@
 # QEDRank — batch benchmark mode
 
 QEDRank extends the single-problem ProofBench workflow (one natural-language
-problem → five LLMs) into a batch benchmark over a corpus of research papers.
-For every paper it evaluates each model in the project's roster (ten provider slots by
+problem → any set of models) into a batch benchmark over a corpus of research papers.
+For every paper it evaluates each model in the project's roster (eleven model slots by
 default, see [Model roster](#model-roster)) on the
 **main theorem**, **upper bound**, **lower bound** and an optional **disproof**
 target, always against that paper's audited ground-truth Lean statement.
@@ -34,8 +34,8 @@ npm install                      # adds pdfjs-dist for PDF text extraction
 cd lean && lake update && lake exe cache get && lake build && cd ..
 node qedrank/cli.js toolchain    # must report available=true, mathlib_built=true, audit_built=true
 
-# 2. Provider keys for the ten-slot roster (see "Model roster"): enter them with hidden input
-#    .scriptsset-llm-keys.ps1 -Target User      then check with: node qedrank/cli.js ping
+# 2. API keys for the roster (see "Model roster"): enter them with hidden input
+#    .\scripts\set-llm-keys.ps1 -Target User     then check with: node qedrank/cli.js ping
 
 # 3. Preview the corpus (no model calls)
 node qedrank/cli.js discover --repo https://github.com/<owner>/<corpus> --ref main --out manifest.json
@@ -64,34 +64,43 @@ node qedrank/cli.js run --path qedrank/test/fixtures/corpus-a \
 
 ## Model roster
 
-Ten slots, all called through one OpenAI-compatible client (`lib/providers.js`) that both the
-single-problem page and the benchmark use. Every model receives the same system message
-(*"You are an expert Lean 4 formal verification agent. Provide valid Lean 4 code."*).
-Endpoints and model ids were checked against the providers' live catalogs and documentation
-on 2026-10-01; where the originally requested model is gone, the replacement is noted.
+Eleven slots, offered in this order in the web app. Nine are called through the OpenAI-compatible
+chat-completions protocol and two through the Anthropic Messages API, all from one client
+(`lib/providers.js`) that both the single-problem page and the benchmark use. Every model receives
+the same system message (*"You are an expert Lean 4 formal verification agent. Provide valid Lean 4
+code."*). Model ids and endpoints were checked against the vendors' documentation on 2026-10-01.
 
-| # | Provider | Base URL | Default model | Key | Access |
-|---|---|---|---|---|---|
-| 1 | Mistral AI | `https://api.mistral.ai/v1` | `labs-leanstral-2603` | `MISTRAL_API_KEY` | free Experiment plan; Labs model. `labs-leanstral-1-5` retired 2026-09-30 |
-| 2 | DeepSeek | `https://api.deepseek.com` | `deepseek-v4-pro` | `DEEPSEEK_API_KEY` | paid. The API serves `deepseek-v4-pro` and `deepseek-flash`; `deepseek-prover-v2` is not served |
-| 3 | OpenRouter | `https://openrouter.ai/api/v1` | `nvidia/nemotron-3-ultra-550b-a55b:free` | `OPENROUTER_API_KEY` | free `:free` models with daily caps. `deepseek/deepseek-r1:free` is no longer listed |
-| 4 | Groq Cloud | `https://api.groq.com/openai/v1` | `openai/gpt-oss-120b` | `GROQ_API_KEY` | free, rate-limited. `deepseek-r1-distill-llama-70b` shut down 2025-10-02 |
-| 5 | SiliconFlow | `https://api.siliconflow.cn/v1` | `deepseek-ai/DeepSeek-R1` | `SILICONFLOW_API_KEY` | paid model, trial credits. Not verifiable without a key |
-| 6 | Custom slot | `QEDRANK_CUSTOM_BASE_URL` | `QEDRANK_CUSTOM_MODEL` | `QEDRANK_CUSTOM_API_KEY` | replaces GitHub Models, fully retired 2026-07-30. `QEDRANK_CUSTOM_AUTH_HEADER=api-key` for Azure AI Foundry |
-| 7 | Together AI | `https://api.together.xyz/v1` | `Qwen/Qwen3.8-Flash` | `TOGETHER_API_KEY` | paid. DeepSeek-R1 is no longer served serverless |
-| 8 | Google AI Studio | `https://generativelanguage.googleapis.com/v1beta/openai` | `gemini-3.8-flash` | `GEMINI_API_KEY` | free tier, rate-limited. `gemini-2.5-pro` is no longer in the model list |
-| 9 | Hugging Face | `https://router.huggingface.co/v1` | `Qwen/Qwen2.5-Coder-32B-Instruct` | `HF_TOKEN` | free monthly credits. `api-inference.huggingface.co` no longer answers |
-| 10 | NVIDIA NIM | `https://integrate.api.nvidia.com/v1` | `deepseek-ai/deepseek-v4.1-flash` | `NVIDIA_API_KEY` | free developer access. DeepSeek-R1 is no longer in the catalog |
+| # | Slot id | Model | Endpoint | Default model id | Key | Notes |
+|---|---|---|---|---|---|---|
+| 1 | `fable` | Claude Fable 5.1 | `https://api.anthropic.com/v1` (Messages API) | `claude-fable-5-1` | `ANTHROPIC_API_KEY` | reasoning; thinking always on, effort sent (default high); no temperature |
+| 2 | `opus` | Claude Opus 5.5 | `https://api.anthropic.com/v1` (Messages API) | `claude-opus-5-5` | `ANTHROPIC_API_KEY` | reasoning; same key as Fable |
+| 3 | `qwen` | Qwen3 30B-A3B Instruct | `https://dashscope-intl.aliyuncs.com/compatible-mode/v1` | `qwen3-30b-a3b-instruct-2507` | `DASHSCOPE_API_KEY` | Beijing endpoint: `https://dashscope.aliyuncs.com/compatible-mode/v1` |
+| 4 | `mistral` | Leanstral | `https://api.mistral.ai/v1` | `labs-leanstral-2603` | `MISTRAL_API_KEY` | Lean 4 specialist; `labs-leanstral-1-5` retired 2026-09-30 |
+| 5 | `gpt6_astra` | GPT-6 Astra | `https://api.openai.com/v1` | `gpt-6-astra` | `OPENAI_API_KEY` | reasoning; `max_completion_tokens` + `reasoning_effort`, no temperature |
+| 6 | `gpt6_sol` | GPT-6 Sol | `https://api.openai.com/v1` | `gpt-6-sol` | `OPENAI_API_KEY` | reasoning |
+| 7 | `gpt56_terra` | GPT-5.6 Terra | `https://api.openai.com/v1` | `gpt-5.6-terra` | `OPENAI_API_KEY` | reasoning (OpenAI spells it "Terra") |
+| 8 | `gpt54` | GPT-5.4 | `https://api.openai.com/v1` | `gpt-5.4` | `OPENAI_API_KEY` | reasoning |
+| 9 | `kimi` | Kimi K3 | `https://api.moonshot.ai/v1` | `kimi-k3` | `MOONSHOT_API_KEY` | China platform: `https://api.moonshot.cn/v1` |
+| 10 | `llama` | Llama 3.1 8B Instruct | `https://chat-ai.academiccloud.de/v1` (GWDG Chat AI / AcademicCloud) | `meta-llama-3.1-8b-instruct` | `LLAMA_API_KEY` | academic access; re-point with `QEDRANK_BASEURL_LLAMA` / `QEDRANK_MODEL_LLAMA` for OpenRouter, Groq, NVIDIA NIM or Azure AI Foundry |
+| 11 | `deepseek` | DeepSeek V4 | `https://api.deepseek.com` | `deepseek-v4-pro` | `DEEPSEEK_API_KEY` | `reasoning_content` separated from the answer |
 
-Change anything without code edits: `QEDRANK_MODELS=groq,gemini,…` picks and orders the
-roster, `QEDRANK_MODEL_<ID>` and `QEDRANK_BASEURL_<ID>` override one provider's model and
-endpoint. OpenAI, Anthropic and Cohere remain available as optional ids outside the default ten.
+Change anything without code edits (`<ID>` = slot id upper-cased, e.g. `GPT54`, `GPT6_ASTRA`):
+`QEDRANK_MODELS=gpt54,deepseek,…` picks and orders the roster; `QEDRANK_API_KEY_<ID>`,
+`QEDRANK_BASEURL_<ID>`, `QEDRANK_MODEL_<ID>`, `QEDRANK_AUTH_HEADER_<ID>` (`api-key` for Azure AI
+Foundry) and `QEDRANK_EFFORT_<ID>` override one slot's key, endpoint, model, auth header and
+reasoning effort. Optional slots outside the default roster: `openrouter`, `groq`, `siliconflow`,
+`together`, `gemini`, `huggingface`, `nvidia`, `custom`, `openai`, `anthropic`, `cohere`.
+
+Reasoning models accept no sampling temperature: the runner sends `generation.effort` (default
+`high`) and each record stores the temperature (null) and effort actually sent. Anthropic calls use
+no server-side fallback, so a refusal is recorded as a failure rather than answered by another model.
 
 Enter keys with hidden input and store them in Vercel, your user environment, or the session:
 
 ```powershell
-.scriptsset-llm-keys.ps1 -Target Vercel -Redeploy     # deployed app
-.scriptsset-llm-keys.ps1 -Target User                 # local CLI / runner
+.\scripts\set-llm-keys.ps1 -Target Vercel -Redeploy     # deployed app
+.\scripts\set-llm-keys.ps1 -Target User                 # local CLI / runner
+.\scripts\set-llm-keys.ps1 -Target User -Only llama -Advanced   # per-slot endpoint / model / key
 node qedrank/cli.js models                              # which slots have a key
 node qedrank/cli.js ping --compile --show               # one Lean task per model, compiled
 ```
@@ -161,7 +170,7 @@ that were renumbered after the index was written.
 
 Deploying the web app to Vercel (`vercel.json` is included; the preview function gets a 60 s
 budget): import the GitHub repository in Vercel or run `vercel deploy --prod` from the
-checkout. Add the five provider keys (and optionally `GITHUB_TOKEN`) as environment variables
+checkout. Add the provider keys (and optionally `GITHUB_TOKEN`) as environment variables
 in the Vercel project. Only the preview endpoint runs on Vercel; generation, Lean checking and
 evaluation always run locally and are loaded into the page from `node qedrank/cli.js serve`
 or from downloaded `summary.json` / `run.json` / `exports/items.json` files.
@@ -283,7 +292,7 @@ The original and corrected reference versions both stay in the run directory
 95% intervals are percentile cluster bootstraps by paper (all targets and all
 models of a paper stay together in a resample). The k-model comparison
 uses Cochran's Q on the common eligible papers and exact McNemar tests for the
-k(k-1)/2 model pairs (45 for ten models) with Holm correction, reporting paired percentage-point differences
+k(k-1)/2 model pairs (55 for eleven models) with Holm correction, reporting paired percentage-point differences
 with bootstrap CIs. Rankings are descriptive; only pairs listed in
 `statistically_supported_pairs` differ after correction. Subgroups with fewer
 than `exploratoryThreshold` papers are labelled exploratory. No confidence
@@ -295,8 +304,8 @@ interval, p-value or ranking is produced before item records exist.
   Lean formalizations.
 - The automated equivalence check is a bounded tactic portfolio; `unresolved`
   is expected to be common and is meant to be resolved by expert review.
-- Provider integrations are the project's existing ones (`lib/providers.js`);
-  the Anthropic and Cohere calls use the legacy completion endpoints and must be
-  verified with real credentials before a full run.
+- Provider integrations live in `lib/providers.js`; the Cohere slot still uses the
+  legacy generate endpoint. Every slot should be checked with `node qedrank/cli.js ping`
+  using real credentials before a full run.
 - Loading Mathlib takes minutes per Lean invocation on some Windows machines;
   `lean.concurrency` and narrow imports in the prelude mitigate this.

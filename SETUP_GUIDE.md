@@ -4,7 +4,6 @@
 
 You need Node.js (version 18 or higher) and npm installed on your system.
 
-### Check if Node.js is installed:
 ```bash
 node --version
 npm --version
@@ -14,159 +13,92 @@ If not installed, download from: https://nodejs.org/
 
 ## Quick Setup
 
-### 1. Navigate to Project Directory
-```bash
-cd proof-checker
-```
-
-### 2. Install Dependencies
+### 1. Install dependencies
 ```bash
 npm install
 ```
 
-### 3. Configure Environment Variables
-```bash
-cp .env.example .env.local
-```
+### 2. Enter your API keys (masked input, PowerShell)
 
-Edit `.env.local` and add your API keys:
-```bash
-# Open in your preferred editor
-code .env.local
-# or
-notepad .env.local
-# or
-vim .env.local
-```
+Nothing is echoed; only the first four characters are printed back; nothing is written to a file.
 
-API keys (one per model slot; a slot without a key is skipped). Portals and default models are listed in `.env.example`:
-- `MISTRAL_API_KEY` - console.mistral.ai
-- `DEEPSEEK_API_KEY` - platform.deepseek.com
-- `OPENROUTER_API_KEY` - openrouter.ai/keys
-- `GROQ_API_KEY` - console.groq.com/keys
-- `SILICONFLOW_API_KEY` - cloud.siliconflow.cn
-- `QEDRANK_CUSTOM_BASE_URL`, `QEDRANK_CUSTOM_MODEL`, `QEDRANK_CUSTOM_API_KEY` - any OpenAI-compatible endpoint
-- `TOGETHER_API_KEY` - api.together.ai
-- `GEMINI_API_KEY` - aistudio.google.com/apikey
-- `HF_TOKEN` - huggingface.co/settings/tokens
-- `NVIDIA_API_KEY` - build.nvidia.com
-
-On Windows you can enter them with hidden input instead of editing a file:
 ```powershell
-.scriptsset-llm-keys.ps1 -Target User
+# Windows user environment (local CLI, runner and `vercel dev` see them in a new terminal)
+.\scripts\set-llm-keys.ps1 -Target User
+
+# just the slots you have keys for today — press Enter to skip the rest
+.\scripts\set-llm-keys.ps1 -Target User -Only gpt54,deepseek,llama
+
+# a model served from your own endpoint (Azure AI Foundry, a gateway, Groq, NVIDIA NIM…)
+.\scripts\set-llm-keys.ps1 -Target User -Only llama -Advanced
 ```
 
-### 4. Optional: Setup Feedback Storage
+The eleven slots and their key variables:
 
-**Option A: Supabase (Recommended)**
-1. Create account at https://supabase.com
-2. Create new project
-3. Run the SQL from `supabase-setup.sql` in SQL Editor
-4. Add `SUPABASE_URL` and `SUPABASE_ANON_KEY` to `.env.local`
+| Slot id | Model | Key variable |
+|---|---|---|
+| `fable`, `opus` | Claude Fable 5.1, Claude Opus 5.5 | `ANTHROPIC_API_KEY` (asked once) |
+| `qwen` | Qwen3 30B-A3B Instruct (Alibaba Model Studio) | `DASHSCOPE_API_KEY` |
+| `mistral` | Leanstral | `MISTRAL_API_KEY` |
+| `gpt6_astra`, `gpt6_sol`, `gpt56_terra`, `gpt54` | GPT-6 Astra, GPT-6 Sol, GPT-5.6 Terra, GPT-5.4 | `OPENAI_API_KEY` (asked once) |
+| `kimi` | Kimi K3 (Moonshot) | `MOONSHOT_API_KEY` |
+| `llama` | Llama 3.1 8B Instruct (GWDG Chat AI / AcademicCloud by default) | `LLAMA_API_KEY` |
+| `deepseek` | DeepSeek V4 | `DEEPSEEK_API_KEY` |
 
-**Option B: EmailJS**
-1. Create account at https://emailjs.com
-2. Set up email service and template
-3. Add `EMAILJS_SERVICE_ID`, `EMAILJS_TEMPLATE_ID`, and `EMAILJS_PUBLIC_KEY` to `.env.local`
+Prefer a file? `cp .env.example .env.local` and fill it in (used by `vercel dev`). Per-slot
+overrides (`QEDRANK_API_KEY_<ID>`, `QEDRANK_BASEURL_<ID>`, `QEDRANK_MODEL_<ID>`,
+`QEDRANK_AUTH_HEADER_<ID>`, `QEDRANK_EFFORT_<ID>`) are documented there.
 
-### 5. Start Development Server
+### 3. Check the roster
 ```bash
-npm run dev
+node qedrank/cli.js models          # which slots have a key
+node qedrank/cli.js ping            # one small Lean task per configured model
+node qedrank/cli.js ping --compile  # …and compile each answer with the pinned toolchain
 ```
 
-### 6. Open in Browser
-Visit: http://localhost:3000
+### 4. Optional: feedback storage
 
-## Testing the Setup
+**Supabase (recommended)** — create a project, run `supabase-setup.sql` in the SQL editor, set
+`SUPABASE_URL` and `SUPABASE_ANON_KEY`.
+**EmailJS** — set `EMAILJS_SERVICE_ID`, `EMAILJS_TEMPLATE_ID`, `EMAILJS_PUBLIC_KEY`.
 
-Run the verification script:
+### 5. Start the development server
 ```bash
-node test-setup.js
+npm run dev          # Vite only (pages render; /api routes need the next line)
+vercel dev           # Vite + the serverless functions, reads .env.local
 ```
+Visit http://localhost:3000 (or the port `vercel dev` prints).
 
-This will check if all required files are present.
+### 6. Pages
+
+- **Convert** `/` — choose models, state a problem, compare answers and the performance snapshot.
+- **Benchmark** `/benchmark` — preview a corpus, get the run command, load runs.
+- **Evaluation** `/evaluation` — the complete matrix, charts and statistics for the loaded run.
+
+## Testing the setup
+
+```bash
+node test-setup.js   # required files present?
+npm test             # provider + runner tests
+npm run build
+```
 
 ## Troubleshooting
 
-### Common Issues:
-
-1. **Port 3000 already in use:**
-   ```bash
-   npm run dev -- --port 3001
-   ```
-
-2. **Missing dependencies:**
-   ```bash
-   npm install
-   ```
-
-3. **Environment variables not loading:**
-   - Restart your terminal
-   - Ensure `.env.local` is in the root directory
-   - Check that variable names match exactly
-
-4. **API errors:**
-   - Verify API keys are correct
-   - Check API usage limits
-   - Ensure internet connection
-
-## Production Build
-
-```bash
-npm run build
-npm run preview
-```
+1. **Port 3000 already in use:** `npm run dev -- --port 3001`
+2. **A model shows “No key”:** its key variable is listed on the card; run the PowerShell script
+   with `-Only <slot>` and open a new terminal.
+3. **A model has a key but errors at call time:** the vendor key may not have access to that
+   model id (e.g. an OpenAI key without GPT-6 access). Override the model with
+   `QEDRANK_MODEL_<ID>` or deselect the model.
+4. **A model you host elsewhere (Azure, gateway):** `.\scripts\set-llm-keys.ps1 -Only <slot> -Advanced`
+   sets the per-slot endpoint, model id, auth header and key.
+5. **`/benchmark` or `/evaluation` 404 on Vercel:** keep the `rewrites` entry in `vercel.json`.
 
 ## Deployment to Vercel
 
-1. **Push to GitHub:**
-   ```bash
-   git init
-   git add .
-   git commit -m "initial commit"
-   git remote add origin <YOUR_GITHUB_URL>
-   git push -u origin main
-   ```
-
-2. **Deploy to Vercel:**
-   - Go to https://vercel.com
-   - Sign up with GitHub
-   - Import your repository
-   - Add environment variables in Vercel dashboard
-   - Click Deploy
-
-## File Structure Reference
-
-```
-proof-checker/
-├── api/           # Serverless functions
-│   ├── verify.js  # Main API for LLM calls
-│   └── feedback.js # Feedback collection
-├── src/           # React frontend
-│   ├── App.jsx    # Main component
-│   ├── main.jsx   # Entry point
-│   ├── index.css  # Global styles
-│   └── App.css    # Component styles
-├── .env.local     # Your API keys (create this)
-├── package.json   # Dependencies
-└── README.md      # Full documentation
-```
-
-## Getting API Keys
-
-The ten model slots, their key portals, default models and free-tier status are listed in
-`.env.example` and in the "Model roster" section of `qedrank/README.md`. After adding keys,
-check every slot in one go:
-
 ```bash
-node qedrank/cli.js models     # which slots have a key
-node qedrank/cli.js ping       # one small Lean task per configured model
+git push                       # to GitHub, then import the repo in Vercel, or:
+vercel deploy --prod
+.\scripts\set-llm-keys.ps1 -Target Vercel -Redeploy   # keys with masked input, then redeploy
 ```
-
-## Support
-
-For issues:
-1. Check console logs in browser
-2. Verify API keys are correct
-3. Check network connectivity
-4. Review Vercel deployment logs (if deployed)
