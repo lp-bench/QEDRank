@@ -12,7 +12,11 @@ import sys
 import time
 from pathlib import Path
 
-ALLOWED_IMPORT = re.compile(r"^import (Mathlib(\.\S+)?|ProofBench\.Mathlib_Problems\.\S+)\s*$")
+# Imports a submission may add; any import of the reference file (e.g. another
+# challenge statement) may also stay.
+ALLOWED_IMPORT = re.compile(
+    r"^import (Mathlib(\.\S+)?|ProofBench\.Mathlib_Problems\.\S+|Matroid(\.\S+)?|Archive\.Sensitivity)\s*$"
+)
 ALLOWED_AXIOMS = {"propext", "Classical.choice", "Quot.sound"}
 FORBIDDEN = [
     (re.compile(r"\bsorry\b"), "contains sorry"),
@@ -52,8 +56,9 @@ def main() -> None:
     sub_lines, ref_lines = sub_text.splitlines(), ref_text.splitlines()
 
     # 1. imports
+    ref_imports = {norm(l) for l in ref_lines if l.startswith("import")}
     for l in sub_lines:
-        if l.startswith("import") and not ALLOWED_IMPORT.match(l):
+        if l.startswith("import") and not ALLOWED_IMPORT.match(l) and norm(l) not in ref_imports:
             errors.append(f"disallowed import: {l.strip()}")
 
     # 2. forbidden constructs (comments stripped so a mention in a comment is fine)

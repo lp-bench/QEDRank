@@ -1,36 +1,55 @@
 #!/usr/bin/env bash
-# Stage the ProofBench statement layer and build the sandbox image.
-# usage: scripts/build_image.sh [--apptainer] /path/to/ProofBench
+# Stage what the selected problems import and build the sandbox image.
+# usage: IDS="P083 P088 P090" scripts/build_image.sh [--apptainer] [proofbench-statements]
 #   default: docker build -> proofbench-sandbox:latest
 #   --apptainer: apptainer build --fakeroot -> proofbench-sandbox.sif (no Docker needed)
+# Only the statement-layer modules (and challenge statements) the selected problems
+# import, transitively, enter the image; anything else is an error.
 set -euo pipefail
 MODE=docker
 if [ "${1:-}" = "--apptainer" ]; then MODE=apptainer; shift; fi
-PB=${1:?path to the ProofBench repository}
 HERE=$(cd "$(dirname "$0")/.." && pwd)
+PB=${1:-$HERE/proofbench-statements}
+IDS=${IDS:?problems to build for, e.g. IDS="P083 P088 P090"}
 CTX="$HERE/image/context"
 rm -rf "$CTX"; mkdir -p "$CTX/ProofBench"
 cp "$PB/lean-toolchain" "$PB/lakefile.toml" "$PB/lake-manifest.json" "$CTX/"
-cp -r "$PB/ProofBench/Mathlib_Problems" "$CTX/ProofBench/"
 : > "$CTX/ProofBench.lean"
-# Drop the Matroid dependency when no visible module imports it (saves a long source build).
-if ! grep -rq '^import Matroid' "$CTX/ProofBench/Mathlib_Problems"; then
-  python3 - "$CTX" <<'PY'
-import json, re, sys
+python3 - "$PB" "$CTX" $IDS <<'PY'
+import json, re, shutil, sys
 from pathlib import Path
-ctx = Path(sys.argv[1])
-lf = ctx / "lakefile.toml"
-lf.write_text(re.sub(r'\[\[require\]\]\nname = "Matroid"\n(?:.*\n)*?(?=\[\[require\]\]|\[\[lean_lib\]\])', "", lf.read_text()))
-mf = ctx / "lake-manifest.json"
-m = json.loads(mf.read_text()); m["packages"] = [p for p in m["packages"] if p["name"] != "Matroid"]
-mf.write_text(json.dumps(m, indent=1) + "\n")
-print("Matroid dependency dropped (unused by the statement layer)")
+pb, ctx, ids = Path(sys.argv[1]), Path(sys.argv[2]), sys.argv[3:]
+IMPORT = re.compile(r"^(?:public\s+)?import\s+(\S+)", re.M)
+STATEMENT = re.compile(r"ProofBench\.(Mathlib_Problems\..+|PROBLEMS\.P\d{3}\.P\d{3})$")
+def imports(f):
+    return IMPORT.findall(f.read_text(encoding="utf-8"))
+top = sorted({m for i in ids for m in imports(pb / "ProofBench/PROBLEMS" / i / f"{i}.lean")})
+seen, todo, staged = set(top), [m for m in top if m.startswith("ProofBench.")], set()
+while todo:
+    m = todo.pop()
+    if m in staged:
+        continue
+    if not STATEMENT.match(m):
+        sys.exit(f"{m}: not a statement module (only Mathlib_Problems and Pxxx statements enter the image)")
+    rel = Path(*m.split(".")).with_suffix(".lean")
+    (ctx / rel).parent.mkdir(parents=True, exist_ok=True)
+    shutil.copyfile(pb / rel, ctx / rel)
+    staged.add(m)
+    seen.update(imports(pb / rel))
+    todo += [i for i in imports(pb / rel) if i.startswith("ProofBench.")]
+# Aggregator module so one `lake build` compiles everything the problems import
+# (statement layer, Matroid, Archive.Sensitivity, imported challenge statements).
+(ctx / "ProofBench" / "Visible.lean").write_text("".join(f"import {m}\n" for m in top))
+print(f"staged {len(staged)} statement modules for {len(ids)} problems")
+# Drop the Matroid dependency when nothing imports it (saves a long source build).
+if not any(m.split(".")[0] == "Matroid" for m in seen):
+    lf = ctx / "lakefile.toml"
+    lf.write_text(re.sub(r'\[\[require\]\]\nname = "Matroid"\n(?:.*\n)*?(?=\[\[require\]\]|\[\[lean_lib\]\])', "", lf.read_text()))
+    mf = ctx / "lake-manifest.json"
+    m = json.loads(mf.read_text()); m["packages"] = [p for p in m["packages"] if p["name"] != "Matroid"]
+    mf.write_text(json.dumps(m, indent=1) + "\n")
+    print("Matroid dependency dropped (no staged module imports it)")
 PY
-fi
-# Aggregator module so one `lake build` compiles the whole statement layer.
-{ cd "$CTX"; find ProofBench/Mathlib_Problems -name '*.lean' | sort \
-    | sed 's#/#.#g; s#\.lean$##; s#^#import #'; } > "$CTX/ProofBench/Visible.lean"
-echo "staged $(grep -c . "$CTX/ProofBench/Visible.lean") visible modules"
 if [ "$MODE" = docker ]; then
   docker build -t proofbench-sandbox:latest -f "$HERE/image/Dockerfile" "$HERE/image"
   docker image inspect --format 'image id {{.Id}}' proofbench-sandbox:latest

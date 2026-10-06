@@ -11,6 +11,11 @@
 # HTTPS_PROXY set).  For a self-hosted model use MODEL=openai-api/kimi/<name>
 # with OPENAI_API_BASE pointing at the vLLM server on the GPU node.
 set -euo pipefail
+# Disabled: the agent's commands run in the same container as Inspect, with this
+# repo mounted at /work, so it could read data/ (all statements), .env, logs/ and
+# the API keys.  Re-enable only once the Apptainer sandbox (ROADMAP 10-12) exists.
+echo "slurm_eval.sbatch is disabled until the Apptainer sandbox exists (see ROADMAP.md)" >&2
+exit 1
 cd "${SLURM_SUBMIT_DIR:-$(dirname "$0")/..}"
 module load apptainer 2>/dev/null || true
 source "$HOME/.proofbench_keys"
@@ -18,7 +23,7 @@ SIF=${SIF:-$HOME/proofbench-sandbox.sif}
 MODEL=${MODEL:?}
 EFFORT=${EFFORT:-}
 SEARCH=${SEARCH:-false}
-EPOCHS=${EPOCHS:-4}
+EPOCHS=1  # one attempt per model and problem: a problem is never restarted from scratch
 RUN_ID=${RUN_ID:-$(date -u +%Y%m%dT%H%M%SZ)_$(echo "$MODEL" | tr '/:' '__')_search-${SEARCH}}
 LOG_DIR=logs/$RUN_ID
 python3 scripts/manifest.py "$LOG_DIR" model="$MODEL" effort="$EFFORT" search="$SEARCH" \
@@ -29,7 +34,7 @@ apptainer exec --containall --writable-tmpfs --bind "$PWD":/work --pwd /work \
   --env-file "$HOME/.proofbench_keys" "$SIF" \
   inspect eval proofbench_eval/task.py@proofbench \
     --model "$MODEL" ${EFFORT:+--reasoning-effort "$EFFORT"} \
-    -T problems=data/problems.json -T sandbox=local -T search="$SEARCH" \
+    -T ids="$IDS" -T sandbox=local -T search="$SEARCH" \
     --epochs "$EPOCHS" --max-samples 1 --token-limit 300000 --time-limit 7200 \
     --working-limit 3600 --log-dir "$LOG_DIR" --tags "proofbench,pilot,hpc"
 python3 scripts/analyze.py "$LOG_DIR"

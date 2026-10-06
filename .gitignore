@@ -2,11 +2,13 @@
 __pycache__/
 *.pyc
 *.egg-info/
-# exported problems: private, never committed
-data/
+# clone of the private proofbench-statements repo: never committed
+proofbench-statements/
 # Inspect .eval logs: keep on project storage
 logs/
 # staged copy of the ProofBench statement layer
 image/context/
 *.sif
 .env
+# paper draft: kept next to the harness, never committed
+journal-submission/

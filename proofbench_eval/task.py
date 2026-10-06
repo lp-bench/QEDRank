@@ -8,7 +8,8 @@ Lean check performed by the scorer (see scorer.py): statement unchanged, no
 `sorry`, standard axioms only.
 
 Task parameters (pass with `-T name=value`):
-  problems    path to the problems manifest written by scripts/export_problems.py
+  ids         problems to run, e.g. P083,P088,P090 (required)
+  statements  path to the proofbench-statements clone (default proofbench-statements)
   sandbox     "docker" (default) or "local" (for Apptainer on HPC)
   network     whether the docker sandbox has internet (default True)
   search      give the agent a web_search tool (default False)
@@ -20,6 +21,8 @@ Task parameters (pass with `-T name=value`):
 """
 
 import json
+import re
+import subprocess
 import sys
 from pathlib import Path
 
@@ -50,8 +53,9 @@ replaced by `sorry`.  Replace that `sorry` with a complete proof.
 Rules, checked automatically after you submit:
 1. The theorem statement, every definition in the file, and their order must
    stay exactly as given.  You may add helper lemmas and definitions above
-   the main theorem, and you may add imports, but only `Mathlib.*` and
-   `ProofBench.Mathlib_Problems.*`.
+   the main theorem, and you may add imports, but only `Mathlib.*`,
+   `ProofBench.Mathlib_Problems.*`, `Matroid.*`, `Archive.Sensitivity` and
+   the imports the file already has.
 2. No `sorry`, no `axiom`, no `native_decide`.  The proof must depend only on
    the axioms `propext`, `Classical.choice` and `Quot.sound`.
 3. Compile with:  cd {project_dir} && lake env lean {submission}
@@ -66,35 +70,63 @@ recorded.
 """
 
 
-def load_samples(problems_file: str, project_dir: str) -> list[Sample]:
-    path = Path(problems_file)
-    if not path.is_absolute():  # Inspect runs tasks from the task file's directory
-        path = ROOT / path
-    spec = json.loads(path.read_text(encoding="utf-8"))
+def qualified_theorem(text: str, pid: str) -> str:
+    """`pid` prefixed by the namespaces open at its declaration."""
+    stack: list[str] = []
+    for line in text.splitlines():
+        m = re.match(r"^namespace\s+(\S+)", line)
+        if m:
+            stack.append(m.group(1))
+        elif re.match(r"^end\s+\S+", line) and stack:
+            stack.pop()
+        elif re.match(rf"^\s*theorem\s+{pid}\b", line):
+            return ".".join(stack + [pid])
+    raise ValueError(f"{pid}: no `theorem {pid}` found")
+
+
+def load_samples(statements: str, ids: str | list[str], project_dir: str) -> list[Sample]:
+    root = Path(statements)
+    if not root.is_absolute():  # Inspect runs tasks from the task file's directory
+        root = ROOT / root
+    pids = ids.replace(",", " ").split() if isinstance(ids, str) else [str(i) for i in ids]
+    if not pids:
+        raise ValueError("no problems selected; pass -T ids=P083,P088,P090")
+    git = lambda *a: subprocess.run(["git", "-C", str(root), *a], capture_output=True, text=True).stdout.strip()
+    if git("status", "--porcelain"):
+        raise ValueError(f"{root} has uncommitted changes; a run must use a committed version")
+    commit = git("rev-parse", "HEAD")
+    pb_commit = (root / "SOURCE_COMMIT").read_text().strip() if (root / "SOURCE_COMMIT").exists() else ""
+    db = {e["id"]: e for e in json.loads((root / "ProofBench/DATABASE/Database.json").read_text(encoding="utf-8"))}
     samples: list[Sample] = []
-    for p in spec["problems"]:
-        src = (path.parent / p["file"]).resolve()
-        submission_rel = f"Submission/{p['id']}.lean"
+    for pid in pids:
+        src = root / "ProofBench/PROBLEMS" / pid / f"{pid}.lean"
+        reference = src.read_text(encoding="utf-8")
+        if reference.count("sorry") != 1:
+            raise ValueError(f"{pid}: expected exactly one sorry, found {reference.count('sorry')}")
+        theorem = qualified_theorem(reference, pid)
+        entry = db.get(pid[1:], {})
+        submission_rel = f"Submission/{pid}.lean"
         submission = f"{project_dir}/{submission_rel}"
         samples.append(
             Sample(
-                id=p["id"],
+                id=pid,
                 input=INSTRUCTIONS.format(
                     submission=submission,
                     submission_rel=submission_rel,
-                    theorem=p["theorem"],
+                    theorem=theorem,
                     project_dir=project_dir,
                 ),
-                target=p["theorem"],
+                target=theorem,
                 files={submission: str(src)},
                 metadata={
-                    "name": p.get("name", ""),
-                    "difficulty": p.get("difficulty", ""),
-                    "theorem": p["theorem"],
+                    "name": entry.get("name", ""),
+                    "difficulty": entry.get("difficulty", ""),
+                    "theorem": theorem,
                     "submission": submission,
                     "project_dir": project_dir,
-                    "reference": src.read_text(encoding="utf-8"),
-                    "source_commit": spec.get("source_commit", ""),
+                    "reference": reference,
+                    "statements_commit": commit,
+                    "proofbench_commit": pb_commit,
                 },
             )
         )
@@ -103,7 +135,8 @@ def load_samples(problems_file: str, project_dir: str) -> list[Sample]:
 
 @task
 def proofbench(
-    problems: str = "data/problems.json",
+    ids: str = "",
+    statements: str = "proofbench-statements",
     sandbox: str = "docker",
     network: bool = True,
     search: bool = False,
@@ -147,7 +180,7 @@ def proofbench(
     )
 
     return Task(
-        dataset=load_samples(problems, project_dir),
+        dataset=load_samples(statements, ids, project_dir),
         solver=agent,
         scorer=lean_check(),
         sandbox=sandbox_spec,
@@ -156,6 +189,6 @@ def proofbench(
             "search_provider": search_provider if search else None,
             "network": network,
             "lean_mcp": lean_mcp,
-            "problems": problems,
+            "ids": ids,
         },
     )

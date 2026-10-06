@@ -3,8 +3,9 @@
 Inspect AI harness for running ProofBench with the same agent loop, tools,
 sandbox and budgets for every model, and grading proofs with Lean alone.
 The private problems and the proctor library never enter this repository:
-`scripts/export_problems.py` copies only the statement files into the
-gitignored `data/` folder.
+the statements live in a clone of the private proofbench-statements repo,
+in the gitignored folder `proofbench-statements/`, and a run names its
+problems with `IDS`.
 
 ## Layout
 
@@ -14,8 +15,7 @@ gitignored `data/` folder.
     image/Dockerfile            Lean toolchain + Mathlib cache + ProofBench statement layer + lean-lsp-mcp
                                 + Python (sympy, networkx, python-sat), SageMath (GAP, nauty), CaDiCaL
     image/compose*.yaml         docker sandbox, with and without network
-    scripts/export_problems.py  stage problems from the ProofBench repo
-    scripts/build_image.sh      stage the statement layer and build the image
+    scripts/build_image.sh      stage only the statement modules the exported problems import; build the image
     scripts/build_apptainer.sh  convert the image to .sif for HPC
     scripts/run.sh              one run on a Docker machine (writes manifest, runs, analyses)
     scripts/slurm_eval.sbatch   one run on Slurm with Apptainer and the local sandbox
@@ -24,11 +24,12 @@ gitignored `data/` folder.
 ## Setup on a machine with Docker (university server or a PC with Docker)
 
     python3 -m venv .venv && . .venv/bin/activate && pip install -e .
-    scripts/export_problems.py --proofbench ../ProofBench --ids P083 P088 P090
-    scripts/build_image.sh ../ProofBench            # ~30-60 min the first time (Mathlib cache)
+    git clone <proofbench-statements> proofbench-statements   # private; gitignored here
+    export IDS="P083 P088 P090"                     # the problems of this run
+    scripts/build_image.sh                          # ~30-60 min the first time (Mathlib cache)
     export ANTHROPIC_API_KEY=... OPENAI_API_KEY=... TAVILY_API_KEY=...
-    MODEL=anthropic/claude-opus-5 EFFORT=high SEARCH=false EPOCHS=4 scripts/run.sh
-    MODEL=anthropic/claude-opus-5 EFFORT=high SEARCH=true  EPOCHS=4 scripts/run.sh
+    MODEL=anthropic/claude-opus-5 EFFORT=high SEARCH=false scripts/run.sh
+    MODEL=anthropic/claude-opus-5 EFFORT=high SEARCH=true  scripts/run.sh
     inspect view --log-dir logs                     # browse transcripts
 
 Models are addressed as `provider/name` (`anthropic/claude-opus-5`,
@@ -41,7 +42,7 @@ Where Docker is unavailable (HPC clusters, or a PC without Docker) the same
 image is built as an Apptainer file and Inspect runs inside it with the local
 sandbox, one sample at a time:
 
-    scripts/build_image.sh --apptainer ../ProofBench     # builds proofbench-sandbox.sif
+    IDS="P083 P088 P090" scripts/build_image.sh --apptainer   # builds proofbench-sandbox.sif
     export SIF=$PWD/proofbench-sandbox.sif
     MODEL=openai-api/qwen/qwen3-max bash scripts/slurm_eval.sbatch   # works without Slurm too
 
