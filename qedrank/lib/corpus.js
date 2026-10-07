@@ -196,7 +196,9 @@ function statusFromIndex(entry) {
   }
   const d = typeof entry.difficulty === 'string' ? entry.difficulty.trim() : '';
   if (/^open$/i.test(d)) return { status: 'open', field: 'difficulty' };
-  if (/proved in (the )?literature|full lean reference proof/i.test(d)) return { status: 'established', field: 'difficulty' };
+  // ProofBench labels: "Open" is an open conjecture; "Research", "Undergraduate" and the
+  // "Calibration (…)" tiers are results proved in the literature.
+  if (/proved in (the )?literature|full lean reference proof|^(research|undergraduate|calibration)\b/i.test(d)) return { status: 'established', field: 'difficulty' };
   return null;
 }
 

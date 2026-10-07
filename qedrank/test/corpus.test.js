@@ -75,12 +75,14 @@ test('ProofBench-style layout: <Id>/<Id>.lean, _UB/_LB/_DISPROVE, two PDFs, cent
   assert.equal(p14.pdf_candidates.length, 2);
   assert.equal(p14.pdf.path, 'Bench/PROBLEMS/P014/Essentially tight bounds for rainbow cycles.pdf');
   assert.ok(p14.flags.some((f) => f.code === 'multiple_pdfs'));
-  // index metadata: title, MSC code, difficulty; Research difficulty does not decide the status
+  // index metadata: title, MSC code, difficulty. In ProofBench's vocabulary "Open" is an open
+  // conjecture and every other label (Research, Undergraduate, Calibration …) a result proved in
+  // the literature, so the Research label makes the claim established.
   assert.equal(p14.title, 'Essentially tight bounds for rainbow cycles in proper edge-colourings');
   assert.match(p14.title_source, /^index:Bench\/DATABASE\/Database\.json$/);
   assert.deepEqual(p14.subject_tags, ['05C38']);
   assert.equal(p14.difficulty, 'Research');
-  assert.equal(p14.targets.main_theorem.mathematical_status, 'uncertain');
+  assert.equal(p14.targets.main_theorem.mathematical_status, 'established');
 
   const p1 = by.P001;
   assert.equal(p1.pdf.path, 'Bench/DATABASE/content/pdf/P001.pdf');
@@ -120,7 +122,7 @@ test('ProofBench-style layout: <Id>/<Id>.lean, _UB/_LB/_DISPROVE, two PDFs, cent
   assert.equal(p30.index_entry.id, '031');
   assert.equal(p30.index_entry.join_rule, 'title_match');
   assert.deepEqual(p30.subject_tags, ['05C15']);
-  assert.equal(p30.targets.main_theorem.mathematical_status, 'uncertain'); // the stale entry's 'Open' was not used
+  assert.equal(p30.targets.main_theorem.mathematical_status, 'established'); // from entry 031's label; the stale entry's 'Open' was not used
   assert.ok(p30.flags.some((f) => f.code === 'index_entry_conflicts_with_folder_content'));
   assert.deepEqual(m.counts.index_entries_without_paper.sort(), ['020', '030', '050']);
   // formal statements/proofs from the index never reach the manifest
