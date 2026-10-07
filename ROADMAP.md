@@ -14,9 +14,7 @@ proofbench-eval-docker and proofbench-eval-apptainer.
 - Get Comparator working on our toolchain which is too old, v4.33.0-rc1 
 (we prefer to move to v4.33.1, even though its more work. We aim for perfection.)
 - Check Landlock is active on Capella before trusting Comparator there.
-- Write an Inspect Apptainer sandbox; fork inspect-podman + mini-swe-agent `singularity.py`.
-(ultimately aim to drop the retired word singularity becase apptainer is the up-to-date approach now.)
-- Sandbox: always `--containall`, never mount the repo (keys via `/proc`, `data/`).
+- inspect-apptainer: test the proofbench image end to end locally, then on a cluster; pick a license.
 - Test `--net --network none` on Capella first.
 - Ask ZIH: is rootless Podman available on Capella? (then use inspect-podman)
 (what is this? if claude is reading this can you explain more? thanks.)

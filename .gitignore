@@ -12,3 +12,5 @@ image/context/
 .env
 # paper draft: kept next to the harness, never committed
 journal-submission/
+# scratch for apptainer build
+.apptainer-tmp/
