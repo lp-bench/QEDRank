@@ -2,7 +2,7 @@
 Keep every item short: not much explanations.
 When an item is done, delete it. When part of it is done, delete only that part.
 
-- Local pilot (Docker, Qwen, P088/P089/P090): rerun all three with sessions and handoff.
+- Local pilot (Docker, Qwen): P088/P089 running with handoff; then the new P090 (SRG eigenvalues).
 - Copy paste and use interesting parts of lean-eval and epoch-research/LeanOpenProblems.
 - Allow the agent to write multiple files; session prompt then lists files, agent reads what it needs.
 - Test P002/P015 (Matroid) end to end.
