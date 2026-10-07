@@ -16,7 +16,9 @@ SESSION_TOKENS=${SESSION_TOKENS:-1000000}
 SESSION_WORKING_TIME=${SESSION_WORKING_TIME:-1800}
 NOTE_TOKENS=${NOTE_TOKENS:-8000}
 MAX_TOKENS=${MAX_TOKENS:-16000}           # cap per model reply
-REQUEST_TIMEOUT=${REQUEST_TIMEOUT:-900}   # seconds per model request
+REQUEST_TIMEOUT=${REQUEST_TIMEOUT:-1800}  # total seconds per model request, retries included
+ATTEMPT_TIMEOUT=${ATTEMPT_TIMEOUT:-600}   # seconds per single attempt of a request
+MAX_SAMPLES=${MAX_SAMPLES:-4}             # problems in parallel (Inspect's default here was 1)
 TIME_LIMIT=${TIME_LIMIT:-$((SESSIONS * SESSION_WORKING_TIME * 3))}  # wall clock per problem, all sessions
 IDS=${IDS:?problems to run, e.g. IDS="P083 P088 P090"}
 RUN_ID=${RUN_ID:-$(date -u +%Y%m%dT%H%M%SZ)_$(echo "$MODEL" | tr '/:' '__')_search-${SEARCH}}
@@ -26,7 +28,7 @@ python3 scripts/manifest.py "$LOG_DIR" model="$MODEL" effort="$EFFORT" search="$
   search_provider="$SEARCH_PROVIDER" network="$NETWORK" epochs="$EPOCHS" sessions="$SESSIONS" \
   session_output_tokens="$SESSION_OUTPUT_TOKENS" session_tokens="$SESSION_TOKENS" \
   session_working_time="$SESSION_WORKING_TIME" note_tokens="$NOTE_TOKENS" max_tokens="$MAX_TOKENS" \
-  request_timeout="$REQUEST_TIMEOUT" time_limit="$TIME_LIMIT" ids="$IDS" sandbox=docker
+  request_timeout="$REQUEST_TIMEOUT" attempt_timeout="$ATTEMPT_TIMEOUT" max_samples="$MAX_SAMPLES" time_limit="$TIME_LIMIT" ids="$IDS" sandbox=docker
 
 inspect eval proofbench_eval/task.py@proofbench \
   --model "$MODEL" ${EFFORT:+--reasoning-effort "$EFFORT"} \
@@ -35,8 +37,8 @@ inspect eval proofbench_eval/task.py@proofbench \
   -T sessions="$SESSIONS" -T session_output_tokens="$SESSION_OUTPUT_TOKENS" \
   -T session_tokens="$SESSION_TOKENS" -T session_working_time="$SESSION_WORKING_TIME" \
   -T note_tokens="$NOTE_TOKENS" \
-  --epochs "$EPOCHS" --max-tokens "$MAX_TOKENS" --timeout "$REQUEST_TIMEOUT" --time-limit "$TIME_LIMIT" \
-  --max-connections 4 --max-sandboxes 4 \
+  --epochs "$EPOCHS" --max-tokens "$MAX_TOKENS" --timeout "$REQUEST_TIMEOUT" --attempt-timeout "$ATTEMPT_TIMEOUT" --time-limit "$TIME_LIMIT" \
+  --max-samples "$MAX_SAMPLES" --max-connections 4 --max-sandboxes 4 \
   --log-dir "$LOG_DIR" --tags "proofbench,pilot" --metadata run_id="$RUN_ID"
 
 python3 scripts/analyze.py "$LOG_DIR"
