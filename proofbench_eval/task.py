@@ -94,7 +94,7 @@ def load_samples(statements: str, ids: str | list[str], project_dir: str) -> lis
     if not pids:
         raise ValueError("no problems selected; pass -T ids=P083,P088,P090")
     git = lambda *a: subprocess.run(["git", "-C", str(root), *a], capture_output=True, text=True).stdout.strip()
-    if git("status", "--porcelain"):
+    if git("status", "--porcelain", "--untracked-files=no"):  # untracked files are never read
         raise ValueError(f"{root} has uncommitted changes; a run must use a committed version")
     commit = git("rev-parse", "HEAD")
     pb_commit = (root / "SOURCE_COMMIT").read_text().strip() if (root / "SOURCE_COMMIT").exists() else ""
