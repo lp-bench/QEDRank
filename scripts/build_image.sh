@@ -51,7 +51,8 @@ if not any(m.split(".")[0] == "Matroid" for m in seen):
     print("Matroid dependency dropped (no staged module imports it)")
 PY
 if [ "$MODE" = docker ]; then
-  docker build -t proofbench-sandbox:latest -f "$HERE/image/Dockerfile" "$HERE/image"
+  # host network: PyPI downloads stall on the default build network (WSL2)
+  docker build --network host -t proofbench-sandbox:latest -f "$HERE/image/Dockerfile" "$HERE/image"
   docker image inspect --format 'image id {{.Id}}' proofbench-sandbox:latest
 else
   (cd "$HERE/image" && apptainer build --fakeroot "$HERE/proofbench-sandbox.sif" proofbench.def)
