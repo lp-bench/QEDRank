@@ -18,7 +18,7 @@ problems with `IDS`.
     scripts/build_image.sh      stage only the statement modules the exported problems import; build the image
     scripts/build_apptainer.sh  convert the image to .sif for HPC
     scripts/run.sh              one run on a Docker machine (writes manifest, runs, analyses)
-    scripts/slurm_eval.sbatch   one run on Slurm with Apptainer and the local sandbox
+    scripts/slurm_eval.sbatch   one run on Slurm with the Apptainer sandbox
     scripts/analyze.py          logs -> results.csv (verdict, tokens, time, tool calls, lines, axioms)
 
 ## Setup on a machine with Docker (university server or a PC with Docker)
@@ -36,34 +36,42 @@ Models are addressed as `provider/name` (`anthropic/claude-opus-5`,
 `openai/gpt-5.6`, `google/gemini-3.1-pro`, `grok/grok-4`).  Model access is
 through the providers' APIs with API keys; chat subscriptions do not work here.
 
-## Setup without Docker (Apptainer)
+## Setup without Docker (Apptainer, for HPC)
 
-Where Docker is unavailable (HPC clusters, or a PC without Docker) the same
-image is built as an Apptainer file and Inspect runs inside it with the local
-sandbox, one sample at a time:
+The same image runs under Apptainer through the
+[inspect-apptainer](../inspect-apptainer) sandbox: Inspect runs on the node
+and starts one container instance per problem with no host environment (no
+API keys), no network and no host directories inside; only the problem file is
+copied in.  Build the image where Docker exists and convert it:
 
-    IDS="P083 P088 P090" scripts/build_image.sh --apptainer   # builds proofbench-sandbox.sif
-    export SIF=$PWD/proofbench-sandbox.sif
-    MODEL=openai-api/qwen/qwen3-max bash scripts/slurm_eval.sbatch   # works without Slurm too
+    IDS="P088 P089 P090" scripts/build_image.sh --sif      # docker build + proofbench-sandbox.sif
+    pip install -e ../inspect-apptainer
+    SANDBOX=apptainer MODEL=openai-api/qwen/qwen3.8-27b scripts/run.sh
+
+Without Docker anywhere, `scripts/build_image.sh --apptainer` builds the
+`.sif` from `image/proofbench.def` with `--fakeroot` instead.
 
 Any OpenAI-compatible endpoint works with `openai-api/<name>/<model>` and the
-variables `<NAME>_API_KEY`, `<NAME>_BASE_URL` in `$HOME/.proofbench_keys`, e.g.
-`QWEN_BASE_URL=https://dashscope-intl.aliyuncs.com/compatible-mode/v1` or
-Blablador's `https://api.blablador.fz-juelich.de/v1` for hosted open-weight models.
+variables `<NAME>_API_KEY`, `<NAME>_BASE_URL` in `.env`, e.g.
+`QWEN_BASE_URL=https://chat-ai.academiccloud.de/v1` (GWDG) for hosted
+open-weight models.
 
 ## Setup on HPC
 
-1. Build the `.sif` as above (or on a Docker machine with
-   `scripts/build_apptainer.sh`) and copy it to the cluster.
-2. Clone this repo on the cluster and export the problems there too.
-3. Put API keys in `$HOME/.proofbench_keys` (`export ANTHROPIC_API_KEY=...`).
+1. Build `proofbench-sandbox.sif` as above and copy it to the cluster.
+2. Clone this repo and `proofbench-statements` (into the repo folder) on the
+   cluster; create the venv: `pip install -e . -e ../inspect-apptainer`.
+3. Put API keys in `.env` (Inspect reads it; the agents never see it).
 4. Check that a compute node can reach the provider (`curl -sI https://api.anthropic.com`);
-   otherwise set `HTTPS_PROXY` in the keys file or run from a login node.
-5. `MODEL=anthropic/claude-opus-5 sbatch scripts/slurm_eval.sbatch`
+   otherwise set `HTTPS_PROXY` in `.env`.
+5. Check once that an unprivileged `apptainer instance start --net --network none`
+   works on a compute node; if the site disallows network namespaces, the
+   sandbox config needs `network: host`.
+6. `IDS="..." MODEL=anthropic/claude-opus-5 sbatch scripts/slurm_eval.sbatch`
 
 For a self-hosted open-weight model (Kimi on a GPU node): start vLLM with an
 OpenAI-compatible endpoint and use `MODEL=openai-api/kimi/<served-name>` with
-`OPENAI_API_BASE=http://<gpu-node>:8000/v1` in the keys file.
+`KIMI_BASE_URL=http://<gpu-node>:8000/v1` in `.env`.
 
 ## Frozen per run (manifest.json)
 
@@ -76,6 +84,5 @@ epochs, token/time/working limits.  Change any of these and it is a new run.
 * Statement integrity is checked textually (reference lines must survive in
   order, statement verbatim, imports restricted).  A transcript audit of every
   correct solve is still required before reporting.
-* With the local sandbox (HPC) samples run one at a time; use Docker for parallel runs.
 * Uniformity across vendors is not perfect: reasoning-effort dials differ, and
   Fable has always-on thinking.  Record the effort per model and report it.

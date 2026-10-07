@@ -27,7 +27,7 @@ def main() -> None:
         "harness_commit": sh(["git", "rev-parse", "HEAD"]),
         "harness_dirty": bool(sh(["git", "status", "--porcelain"])),
         "inspect_version": sh([sys.executable, "-c", "import inspect_ai;print(inspect_ai.__version__)"]),
-        "image_id": sh(["docker", "image", "inspect", "--format", "{{.Id}}", "proofbench-sandbox:latest"]) or kv.get("image", ""),
+        "image_id": kv.get("image") or sh(["docker", "image", "inspect", "--format", "{{.Id}}", "proofbench-sandbox:latest"]),
         "lean_toolchain": (Path("image/context/lean-toolchain").read_text().strip() if Path("image/context/lean-toolchain").exists() else ""),
         "statements_commit": sh(["git", "-C", str(statements), "rev-parse", "HEAD"]),
         "proofbench_commit": (statements / "SOURCE_COMMIT").read_text().strip() if (statements / "SOURCE_COMMIT").exists() else "",

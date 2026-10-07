@@ -10,7 +10,8 @@ Lean check performed by the scorer (see scorer.py): statement unchanged, no
 Task parameters (pass with `-T name=value`):
   ids         problems to run, e.g. P083,P088,P090 (required)
   statements  path to the proofbench-statements clone (default proofbench-statements)
-  sandbox     "docker" (default) or "local" (for Apptainer on HPC)
+  sandbox     "docker" (default) or "apptainer" (HPC: needs the inspect-apptainer package)
+  sif         the .sif image for the apptainer sandbox (default proofbench-sandbox.sif)
   network     whether the docker sandbox has internet (default True)
   search      give the agent a web_search tool (default False)
   search_provider  "tavily" or "exa" (one external provider for all models)
@@ -140,6 +141,7 @@ def proofbench(
     ids: str = "",
     statements: str = "proofbench-statements",
     sandbox: str = "docker",
+    sif: str = "proofbench-sandbox.sif",
     network: bool = True,
     search: bool = False,
     search_provider: str = "tavily",
@@ -160,7 +162,8 @@ def proofbench(
             name="lean",
             command="lean-lsp-mcp",
             cwd=project_dir,
-            env={"LEAN_PROJECT_PATH": project_dir, "PATH": IMAGE_PATH, "ELAN_HOME": "/opt/elan", "HOME": "/root"},
+            env={"LEAN_PROJECT_PATH": project_dir, "PATH": IMAGE_PATH, "ELAN_HOME": "/opt/elan",
+                 "HOME": "/root" if sandbox == "docker" else "/tmp"},
         )
         # Without network the web-backed search tools only return errors; the
         # same subset is removed for every model.  Names as of lean-lsp-mcp 0.31.
@@ -174,10 +177,23 @@ def proofbench(
     if sandbox == "docker":
         compose = ROOT / "image" / ("compose.yaml" if network else "compose-offline.yaml")
         sandbox_spec = ("docker", str(compose))
-    elif sandbox == "local":
-        sandbox_spec = "local"
+    elif sandbox == "apptainer":
+        from inspect_apptainer import ApptainerSandboxConfig  # registers the sandbox type
+
+        sif_path = Path(sif) if Path(sif).is_absolute() else ROOT / sif
+        sandbox_spec = (
+            "apptainer",
+            ApptainerSandboxConfig(
+                image=str(sif_path),
+                network="host" if network else "none",
+                # the image is read-only and the agent is not root: give it scratch
+                # space where it needs to write
+                writable=["/tmp", "/var/tmp", f"{project_dir}/Submission"],
+                workdir=project_dir,
+            ),
+        )
     else:
-        raise ValueError(f"unknown sandbox {sandbox!r}; use docker or local")
+        raise ValueError(f"unknown sandbox {sandbox!r}; use docker or apptainer")
 
     solver = handoff_sessions(
         tools,
@@ -198,6 +214,7 @@ def proofbench(
             "search_provider": search_provider if search else None,
             "network": network,
             "lean_mcp": lean_mcp,
+            "sandbox_type": sandbox,
             "ids": ids,
             "sessions": sessions,
             "session_output_tokens": session_output_tokens,

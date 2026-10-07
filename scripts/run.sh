@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# One evaluation run on a machine with Docker.
+# One evaluation run. SANDBOX=docker (default) needs Docker; SANDBOX=apptainer needs
+# Apptainer, the inspect-apptainer package and the .sif from scripts/build_image.sh --sif.
 # usage: IDS="P083 P088 P090" MODEL=anthropic/claude-opus-5 EFFORT=high SEARCH=false scripts/run.sh
 set -euo pipefail
 cd "$(dirname "$0")/.."
@@ -8,6 +9,8 @@ EFFORT=${EFFORT:-}                 # low|medium|high|xhigh|max (model-specific; 
 SEARCH=${SEARCH:-false}            # true -> web_search tool via SEARCH_PROVIDER
 SEARCH_PROVIDER=${SEARCH_PROVIDER:-tavily}
 NETWORK=${NETWORK:-$SEARCH}        # sandbox internet; default: only when search is on
+SANDBOX=${SANDBOX:-docker}         # docker | apptainer
+SIF=${SIF:-proofbench-sandbox.sif} # image for the apptainer sandbox
 EPOCHS=1  # one attempt per model and problem: a problem is never restarted from scratch
 # Sessions with handoff: the output-token budget ends a session; the others are safety caps.
 SESSIONS=${SESSIONS:-10}
@@ -19,6 +22,7 @@ MAX_TOKENS=${MAX_TOKENS:-16000}           # cap per model reply
 REQUEST_TIMEOUT=${REQUEST_TIMEOUT:-1800}  # total seconds per model request, retries included
 ATTEMPT_TIMEOUT=${ATTEMPT_TIMEOUT:-600}   # seconds per single attempt of a request
 MAX_SAMPLES=${MAX_SAMPLES:-4}             # problems in parallel (Inspect's default here was 1)
+if [ "$SANDBOX" = apptainer ]; then IMAGE=$(sha256sum "$SIF" | cut -c1-16); else IMAGE=; fi
 TIME_LIMIT=${TIME_LIMIT:-$((SESSIONS * SESSION_WORKING_TIME * 3))}  # wall clock per problem, all sessions
 IDS=${IDS:?problems to run, e.g. IDS="P083 P088 P090"}
 RUN_ID=${RUN_ID:-$(date -u +%Y%m%dT%H%M%SZ)_$(echo "$MODEL" | tr '/:' '__')_search-${SEARCH}}
@@ -28,11 +32,11 @@ python3 scripts/manifest.py "$LOG_DIR" model="$MODEL" effort="$EFFORT" search="$
   search_provider="$SEARCH_PROVIDER" network="$NETWORK" epochs="$EPOCHS" sessions="$SESSIONS" \
   session_output_tokens="$SESSION_OUTPUT_TOKENS" session_tokens="$SESSION_TOKENS" \
   session_working_time="$SESSION_WORKING_TIME" note_tokens="$NOTE_TOKENS" max_tokens="$MAX_TOKENS" \
-  request_timeout="$REQUEST_TIMEOUT" attempt_timeout="$ATTEMPT_TIMEOUT" max_samples="$MAX_SAMPLES" time_limit="$TIME_LIMIT" ids="$IDS" sandbox=docker
+  request_timeout="$REQUEST_TIMEOUT" attempt_timeout="$ATTEMPT_TIMEOUT" max_samples="$MAX_SAMPLES" time_limit="$TIME_LIMIT" ids="$IDS" sandbox="$SANDBOX" ${IMAGE:+image="$IMAGE"}
 
 inspect eval proofbench_eval/task.py@proofbench \
   --model "$MODEL" ${EFFORT:+--reasoning-effort "$EFFORT"} \
-  -T ids="$IDS" -T sandbox=docker -T network="$NETWORK" \
+  -T ids="$IDS" -T sandbox="$SANDBOX" -T sif="$SIF" -T network="$NETWORK" \
   -T search="$SEARCH" -T search_provider="$SEARCH_PROVIDER" \
   -T sessions="$SESSIONS" -T session_output_tokens="$SESSION_OUTPUT_TOKENS" \
   -T session_tokens="$SESSION_TOKENS" -T session_working_time="$SESSION_WORKING_TIME" \

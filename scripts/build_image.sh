@@ -1,13 +1,15 @@
 #!/usr/bin/env bash
 # Stage what the selected problems import and build the sandbox image.
-# usage: IDS="P083 P088 P090" scripts/build_image.sh [--apptainer] [proofbench-statements]
+# usage: IDS="P083 P088 P090" scripts/build_image.sh [--sif|--apptainer] [proofbench-statements]
 #   default: docker build -> proofbench-sandbox:latest
-#   --apptainer: apptainer build --fakeroot -> proofbench-sandbox.sif (no Docker needed)
+#   --sif: the docker build, then convert that image to proofbench-sandbox.sif (same content)
+#   --apptainer: apptainer build --fakeroot from image/proofbench.def (no Docker needed)
 # Only the statement-layer modules (and challenge statements) the selected problems
 # import, transitively, enter the image; anything else is an error.
 set -euo pipefail
 MODE=docker
 if [ "${1:-}" = "--apptainer" ]; then MODE=apptainer; shift; fi
+if [ "${1:-}" = "--sif" ]; then MODE=sif; shift; fi
 HERE=$(cd "$(dirname "$0")/.." && pwd)
 PB=${1:-$HERE/proofbench-statements}
 IDS=${IDS:?problems to build for, e.g. IDS="P083 P088 P090"}
@@ -50,10 +52,15 @@ if not any(m.split(".")[0] == "Matroid" for m in seen):
     mf.write_text(json.dumps(m, indent=1) + "\n")
     print("Matroid dependency dropped (no staged module imports it)")
 PY
-if [ "$MODE" = docker ]; then
+if [ "$MODE" = docker ] || [ "$MODE" = sif ]; then
   # host network: PyPI downloads stall on the default build network (WSL2)
   docker build --network host -t proofbench-sandbox:latest -f "$HERE/image/Dockerfile" "$HERE/image"
   docker image inspect --format 'image id {{.Id}}' proofbench-sandbox:latest
+  if [ "$MODE" = sif ]; then
+    # same bytes as the docker image; APPTAINER_TMPDIR needs ~2x the image size
+    apptainer build --force "$HERE/proofbench-sandbox.sif" docker-daemon://proofbench-sandbox:latest
+    echo "built $HERE/proofbench-sandbox.sif ($(sha256sum "$HERE/proofbench-sandbox.sif" | cut -c1-16))"
+  fi
 else
   (cd "$HERE/image" && apptainer build --fakeroot "$HERE/proofbench-sandbox.sif" proofbench.def)
   echo "built $HERE/proofbench-sandbox.sif ($(sha256sum "$HERE/proofbench-sandbox.sif" | cut -c1-16))"
