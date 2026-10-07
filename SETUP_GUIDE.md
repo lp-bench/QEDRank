@@ -38,11 +38,11 @@ The eleven slots and their key variables:
 | Slot id | Model | Key variable |
 |---|---|---|
 | `fable`, `opus` | Claude Fable 5.1, Claude Opus 5.5 | `ANTHROPIC_API_KEY` (asked once) |
-| `qwen` | Qwen3 30B-A3B Instruct (Alibaba Model Studio) | `DASHSCOPE_API_KEY` |
+| `qwen` | Qwen3 30B-A3B Instruct (GWDG Chat AI / AcademicCloud) | `GWDG_API_KEY` (asked once, shared with `llama`; an existing `LLAMA_API_KEY` works) |
 | `mistral` | Leanstral | `MISTRAL_API_KEY` |
 | `gpt6_astra`, `gpt6_sol`, `gpt56_terra`, `gpt54` | GPT-6 Astra, GPT-6 Sol, GPT-5.6 Terra, GPT-5.4 | `OPENAI_API_KEY` (asked once) |
 | `kimi` | Kimi K3 (Moonshot) | `MOONSHOT_API_KEY` |
-| `llama` | Llama 3.1 8B Instruct (GWDG Chat AI / AcademicCloud by default) | `LLAMA_API_KEY` |
+| `llama` | Llama 3.1 8B Instruct (GWDG Chat AI / AcademicCloud by default) | `GWDG_API_KEY` (or `LLAMA_API_KEY`) |
 | `deepseek` | DeepSeek V4 | `DEEPSEEK_API_KEY` |
 
 Prefer a file? `cp .env.example .env.local` and fill it in (used by `vercel dev`). Per-slot

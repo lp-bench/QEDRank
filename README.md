@@ -25,14 +25,14 @@ that both the single-problem page and the benchmark use. Ids and endpoints were 
 |---|---|---|---|---|---|
 | 1 | `fable` | Claude Fable 5.1 | Anthropic Messages API | `claude-fable-5-1` | `ANTHROPIC_API_KEY` |
 | 2 | `opus` | Claude Opus 5.5 | Anthropic Messages API | `claude-opus-5-5` | `ANTHROPIC_API_KEY` |
-| 3 | `qwen` | Qwen3 30B-A3B Instruct | Alibaba Cloud Model Studio (DashScope) | `qwen3-30b-a3b-instruct-2507` | `DASHSCOPE_API_KEY` |
+| 3 | `qwen` | Qwen3 30B-A3B Instruct | GWDG Chat AI / AcademicCloud (`https://chat-ai.academiccloud.de/v1`) | `qwen3-30b-a3b-instruct-2507` | `GWDG_API_KEY` (shared with `llama`; an existing `LLAMA_API_KEY` works) |
 | 4 | `mistral` | Leanstral | Mistral AI | `labs-leanstral-2603` | `MISTRAL_API_KEY` |
 | 5 | `gpt6_astra` | GPT-6 Astra | OpenAI | `gpt-6-astra` | `OPENAI_API_KEY` |
 | 6 | `gpt6_sol` | GPT-6 Sol | OpenAI | `gpt-6-sol` | `OPENAI_API_KEY` |
 | 7 | `gpt56_terra` | GPT-5.6 Terra | OpenAI | `gpt-5.6-terra` | `OPENAI_API_KEY` |
 | 8 | `gpt54` | GPT-5.4 | OpenAI | `gpt-5.4` | `OPENAI_API_KEY` |
 | 9 | `kimi` | Kimi K3 | Moonshot AI | `kimi-k3` | `MOONSHOT_API_KEY` |
-| 10 | `llama` | Llama 3.1 8B Instruct | GWDG Chat AI / AcademicCloud (`https://chat-ai.academiccloud.de/v1`) | `meta-llama-3.1-8b-instruct` | `LLAMA_API_KEY` |
+| 10 | `llama` | Llama 3.1 8B Instruct | GWDG Chat AI / AcademicCloud (`https://chat-ai.academiccloud.de/v1`) | `meta-llama-3.1-8b-instruct` | `GWDG_API_KEY` (or `LLAMA_API_KEY`) |
 | 11 | `deepseek` | DeepSeek V4 | DeepSeek | `deepseek-v4-pro` | `DEEPSEEK_API_KEY` |
 
 A slot without a key is shown as “no key” and skipped (benchmark items are recorded as

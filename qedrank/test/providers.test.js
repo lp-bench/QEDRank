@@ -49,6 +49,14 @@ test('roster, model, base URL, auth header, effort and per-slot key overrides co
   assert.deepEqual(resolveApiKey('llama', { LLAMA_API_KEY: 'k' }), { key: 'k', source: 'LLAMA_API_KEY' });
   assert.equal(resolveBaseUrl('llama', {}), 'https://chat-ai.academiccloud.de/v1');
   assert.equal(resolveModelId('llama', {}), 'meta-llama-3.1-8b-instruct');
+  // The Qwen slot is served by the same GWDG service: one key for both, the older name still accepted.
+  assert.deepEqual(resolveApiKey('qwen', { GWDG_API_KEY: 'g', LLAMA_API_KEY: 'k' }), { key: 'g', source: 'GWDG_API_KEY' });
+  assert.deepEqual(resolveApiKey('qwen', { LLAMA_API_KEY: 'k' }), { key: 'k', source: 'LLAMA_API_KEY' });
+  assert.deepEqual(resolveApiKey('llama', { GWDG_API_KEY: 'g' }), { key: 'g', source: 'GWDG_API_KEY' });
+  assert.deepEqual(resolveApiKey('qwen', { DASHSCOPE_API_KEY: 'd' }), { key: null, source: null });
+  assert.equal(resolveBaseUrl('qwen', {}), 'https://chat-ai.academiccloud.de/v1');
+  assert.equal(resolveModelId('qwen', {}), 'qwen3-30b-a3b-instruct-2507');
+  assert.equal(isConfigured('qwen', { LLAMA_API_KEY: 'k' }), true);
   assert.equal(isConfigured('gpt54', { OPENAI_API_KEY: 'sk' }), true);
   assert.equal(isConfigured('gpt54', {}), false);
 

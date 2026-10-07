@@ -87,7 +87,7 @@ code."*). Model ids and endpoints were checked against the vendors' documentatio
 |---|---|---|---|---|---|---|
 | 1 | `fable` | Claude Fable 5.1 | `https://api.anthropic.com/v1` (Messages API) | `claude-fable-5-1` | `ANTHROPIC_API_KEY` | reasoning; thinking always on, effort sent (default high); no temperature |
 | 2 | `opus` | Claude Opus 5.5 | `https://api.anthropic.com/v1` (Messages API) | `claude-opus-5-5` | `ANTHROPIC_API_KEY` | reasoning; same key as Fable |
-| 3 | `qwen` | Qwen3 30B-A3B Instruct | `https://dashscope-intl.aliyuncs.com/compatible-mode/v1` | `qwen3-30b-a3b-instruct-2507` | `DASHSCOPE_API_KEY` | Beijing endpoint: `https://dashscope.aliyuncs.com/compatible-mode/v1` |
+| 3 | `qwen` | Qwen3 30B-A3B Instruct | `https://chat-ai.academiccloud.de/v1` (GWDG Chat AI / AcademicCloud) | `qwen3-30b-a3b-instruct-2507` | `GWDG_API_KEY` (shared with `llama`; an existing `LLAMA_API_KEY` works) | the service also offers `qwen3-coder-next` (`QEDRANK_MODEL_QWEN`); for Alibaba Model Studio: `QEDRANK_BASEURL_QWEN=https://dashscope-intl.aliyuncs.com/compatible-mode/v1`, `QEDRANK_API_KEY_QWEN=<DashScope key>` |
 | 4 | `mistral` | Leanstral | `https://api.mistral.ai/v1` | `labs-leanstral-2603` | `MISTRAL_API_KEY` | Lean 4 specialist; `labs-leanstral-1-5` retired 2026-09-30 |
 | 5 | `gpt6_astra` | GPT-6 Astra | `https://api.openai.com/v1` | `gpt-6-astra` | `OPENAI_API_KEY` | reasoning; `max_completion_tokens` + `reasoning_effort`, no temperature |
 | 6 | `gpt6_sol` | GPT-6 Sol | `https://api.openai.com/v1` | `gpt-6-sol` | `OPENAI_API_KEY` | reasoning |

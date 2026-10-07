@@ -17,14 +17,14 @@
   The eleven roster slots (same order as the web app):
     fable        Claude Fable 5.1         ANTHROPIC_API_KEY   (shared with opus)
     opus         Claude Opus 5.5          ANTHROPIC_API_KEY
-    qwen         Qwen3 30B-A3B Instruct   DASHSCOPE_API_KEY
+    qwen         Qwen3 30B-A3B Instruct   GWDG_API_KEY        (GWDG Chat AI / AcademicCloud; shared with llama)
     mistral      Leanstral                MISTRAL_API_KEY
     gpt6_astra   GPT-6 Astra              OPENAI_API_KEY      (shared by the four GPT slots)
     gpt6_sol     GPT-6 Sol                OPENAI_API_KEY
     gpt56_terra  GPT-5.6 Terra            OPENAI_API_KEY
     gpt54        GPT-5.4                  OPENAI_API_KEY
     kimi         Kimi K3                  MOONSHOT_API_KEY
-    llama        Llama 3.1 8B Instruct    LLAMA_API_KEY       (GWDG Chat AI / AcademicCloud by default)
+    llama        Llama 3.1 8B Instruct    GWDG_API_KEY        (GWDG Chat AI / AcademicCloud by default; an existing LLAMA_API_KEY still works)
     deepseek     DeepSeek V4              DEEPSEEK_API_KEY
 
   A vendor key is asked for once and reused by every slot that shares it.
@@ -86,14 +86,14 @@ $ErrorActionPreference = 'Stop'
 $roster = @(
   @{ Id = 'fable';       Name = 'ANTHROPIC_API_KEY'; Label = 'Claude Fable 5.1';       Vendor = 'Anthropic';             Model = 'claude-fable-5-1';                 BaseUrl = 'https://api.anthropic.com/v1';                           Portal = 'https://console.anthropic.com/settings/keys' },
   @{ Id = 'opus';        Name = 'ANTHROPIC_API_KEY'; Label = 'Claude Opus 5.5';        Vendor = 'Anthropic';             Model = 'claude-opus-5-5';                  BaseUrl = 'https://api.anthropic.com/v1';                           Portal = 'https://console.anthropic.com/settings/keys' },
-  @{ Id = 'qwen';        Name = 'DASHSCOPE_API_KEY'; Label = 'Qwen3 30B-A3B Instruct'; Vendor = 'Alibaba Model Studio';  Model = 'qwen3-30b-a3b-instruct-2507';      BaseUrl = 'https://dashscope-intl.aliyuncs.com/compatible-mode/v1'; Portal = 'https://modelstudio.console.alibabacloud.com/?tab=model#/api-key' },
+  @{ Id = 'qwen';        Name = 'GWDG_API_KEY';      Label = 'Qwen3 30B-A3B Instruct'; Vendor = 'Alibaba via GWDG Chat AI'; Model = 'qwen3-30b-a3b-instruct-2507';   BaseUrl = 'https://chat-ai.academiccloud.de/v1';                    Portal = 'https://docs.hpc.gwdg.de/services/ai-services/saia/index.html' },
   @{ Id = 'mistral';     Name = 'MISTRAL_API_KEY';   Label = 'Leanstral';              Vendor = 'Mistral AI';            Model = 'labs-leanstral-2603';              BaseUrl = 'https://api.mistral.ai/v1';                              Portal = 'https://console.mistral.ai/api-keys' },
   @{ Id = 'gpt6_astra';  Name = 'OPENAI_API_KEY';    Label = 'GPT-6 Astra';            Vendor = 'OpenAI';                Model = 'gpt-6-astra';                      BaseUrl = 'https://api.openai.com/v1';                              Portal = 'https://platform.openai.com/api-keys' },
   @{ Id = 'gpt6_sol';    Name = 'OPENAI_API_KEY';    Label = 'GPT-6 Sol';              Vendor = 'OpenAI';                Model = 'gpt-6-sol';                        BaseUrl = 'https://api.openai.com/v1';                              Portal = 'https://platform.openai.com/api-keys' },
   @{ Id = 'gpt56_terra'; Name = 'OPENAI_API_KEY';    Label = 'GPT-5.6 Terra';          Vendor = 'OpenAI';                Model = 'gpt-5.6-terra';                    BaseUrl = 'https://api.openai.com/v1';                              Portal = 'https://platform.openai.com/api-keys' },
   @{ Id = 'gpt54';       Name = 'OPENAI_API_KEY';    Label = 'GPT-5.4';                Vendor = 'OpenAI';                Model = 'gpt-5.4';                          BaseUrl = 'https://api.openai.com/v1';                              Portal = 'https://platform.openai.com/api-keys' },
   @{ Id = 'kimi';        Name = 'MOONSHOT_API_KEY';  Label = 'Kimi K3';                Vendor = 'Moonshot AI';           Model = 'kimi-k3';                          BaseUrl = 'https://api.moonshot.ai/v1';                             Portal = 'https://platform.moonshot.ai/console/api-keys' },
-  @{ Id = 'llama';       Name = 'LLAMA_API_KEY';     Label = 'Llama 3.1 8B Instruct';  Vendor = 'Meta via GWDG Chat AI'; Model = 'meta-llama-3.1-8b-instruct';       BaseUrl = 'https://chat-ai.academiccloud.de/v1';                    Portal = 'https://docs.hpc.gwdg.de/services/ai-services/saia/index.html' },
+  @{ Id = 'llama';       Name = 'GWDG_API_KEY';      Label = 'Llama 3.1 8B Instruct';  Vendor = 'Meta via GWDG Chat AI'; Model = 'meta-llama-3.1-8b-instruct';       BaseUrl = 'https://chat-ai.academiccloud.de/v1';                    Portal = 'https://docs.hpc.gwdg.de/services/ai-services/saia/index.html' },
   @{ Id = 'deepseek';    Name = 'DEEPSEEK_API_KEY';  Label = 'DeepSeek V4';            Vendor = 'DeepSeek';              Model = 'deepseek-v4-pro';                  BaseUrl = 'https://api.deepseek.com';                               Portal = 'https://platform.deepseek.com/api_keys' }
 )
 $optionalSlots = @(
