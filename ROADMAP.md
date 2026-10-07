@@ -3,7 +3,8 @@ Keep every item short: not much explanations.
 When an item is done, delete it. When part of it is done, delete only that part.
 
 - Local pilot (Docker, Qwen, P088/P089/P090): P090 solved (1 line, audited); run P088, P089.
-- Dockerfile: run `lake exe cache get` before copying problem files (no re-download per IDS).
+- Per-request timeout (`--timeout`) and output cap per reply (`--max-tokens`).
+- results.csv: count tool errors per sample.
 - Copy paste and use interesting parts of lean-eval and epoch-research/LeanOpenProblems.
 - Allow the agent to write multiple files.
 - Test P002/P015 (Matroid) end to end.
