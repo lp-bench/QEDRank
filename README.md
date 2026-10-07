@@ -160,6 +160,12 @@ on Inspect AI. The check is `node qedrank/cli.js grade` (compiled-declaration co
 audit, kernel replay, completeness); results come back into QEDRank with
 `node qedrank/cli.js import-agent` and get the same statistics and the same Evaluation page.
 
+## Testing
+
+How to test each level — unit tests, the Lean grading fixtures (the grader's attack list), provider
+smoke tests, corpus dry runs, small live runs, the agent harness, and the checklist before a
+reported run — is in [TESTING.md](TESTING.md).
+
 ## Local development
 
 Prerequisites: Node.js 18+ and npm.
