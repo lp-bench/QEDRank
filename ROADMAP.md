@@ -7,8 +7,7 @@ When an item is done, delete it. When part of it is done, delete only that part.
 - Allow the agent to write multiple files; session prompt then lists files, agent reads what it needs.
 - Support Gemini and Grok: libraries installed; test one sample each once keys exist.
 - two layer check. If first Lean check passes then comparator check kicks in.
-- Get Comparator working on our toolchain which is too old, v4.33.0-rc1 
-(we prefer to move to v4.33.1, even though its more work. We aim for perfection.)
+- Comparator: build it (own toolchain, static) and lean4export (v4.33.1) into a verifier image.
 - inspect-apptainer: test on a cluster; pick a license.
 
 ## Claude not needed after this line. ##
