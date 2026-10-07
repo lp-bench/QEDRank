@@ -4,7 +4,7 @@ When an item is done, delete it. When part of it is done, delete only that part.
 
 - Local pilot (Docker, Qwen, P088/P089/P090): rerun all three with sessions and handoff.
 - Copy paste and use interesting parts of lean-eval and epoch-research/LeanOpenProblems.
-- Allow the agent to write multiple files.
+- Allow the agent to write multiple files; session prompt then lists files, agent reads what it needs.
 - Test P002/P015 (Matroid) end to end.
 - Support Gemini and Grok (install `google-genai`, `xai-sdk`).
 - Set up a read-only GitHub deploy key on the HPC cluster.
