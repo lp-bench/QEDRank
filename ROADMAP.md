@@ -2,7 +2,7 @@
 Keep every item short: not much explanations.
 When an item is done, delete it. When part of it is done, delete only that part.
 
-- Local pilot (Docker, Qwen): P088/P089 running with handoff; then the new P090 (SRG eigenvalues).
+- Local pilot: new P090 (SRG eigenvalues) not run yet; add simpler calibration problems.
 - Next run: `qwen3.8-27b` on P088, P089, new P090; same settings, after the current run (fresh daily quota).
 - Copy paste and use interesting parts of lean-eval and epoch-research/LeanOpenProblems in 
 proofbench-eval-docker and proofbench-eval-apptainer.
