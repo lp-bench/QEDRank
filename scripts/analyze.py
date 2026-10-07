@@ -2,9 +2,10 @@
 """Summarise Inspect logs as a CSV: one row per sample attempt.
 
 usage: scripts/analyze.py LOG_DIR [more LOG_DIRs]   -> writes LOG_DIR/results.csv and prints it
-Columns: run, model, problem, epoch, correct, errors, tokens_in, tokens_out,
-tokens_total, total_time_s, working_time_s, tool_calls, model_calls, lines,
-proof_lines, compile_s, axioms, limit
+Columns: run, model, problem, epoch, correct, sessions_used, session_ends,
+errors, tokens_in, tokens_out, tokens_total, total_time_s, working_time_s,
+tool_calls, tool_errors, model_calls, lines, proof_lines, compile_s, axioms, limit.
+session_ends lists how each session ended (submit, token, working, error).
 """
 
 import csv
@@ -14,9 +15,9 @@ from pathlib import Path
 from inspect_ai.event import ModelEvent, ToolEvent
 from inspect_ai.log import list_eval_logs, read_eval_log
 
-COLS = ["run", "model", "problem", "epoch", "correct", "errors", "tokens_in", "tokens_out", "tokens_total",
-        "total_time_s", "working_time_s", "tool_calls", "model_calls", "lines", "proof_lines", "compile_s",
-        "axioms", "limit"]
+COLS = ["run", "model", "problem", "epoch", "correct", "sessions_used", "session_ends", "errors", "tokens_in",
+        "tokens_out", "tokens_total", "total_time_s", "working_time_s", "tool_calls", "tool_errors", "model_calls",
+        "lines", "proof_lines", "compile_s", "axioms", "limit"]
 
 
 def rows_for(log_dir: Path):
@@ -26,12 +27,15 @@ def rows_for(log_dir: Path):
             sc = (s.scores or {}).get("lean_check")
             md = sc.metadata if sc and sc.metadata else {}
             usage = s.model_usage or {}
+            sessions = (s.store or {}).get("sessions", [])
             yield {
                 "run": log_dir.name,
                 "model": log.eval.model,
                 "problem": s.id,
                 "epoch": s.epoch,
                 "correct": int(sc.value == "C") if sc else "",
+                "sessions_used": len(sessions),
+                "session_ends": " ".join(str(r.get("ended_by", "")).split(":")[0] for r in sessions),
                 "errors": " | ".join(md.get("errors", []))[:200] if md else (sc.explanation if sc else ""),
                 "tokens_in": sum(u.input_tokens for u in usage.values()),
                 "tokens_out": sum(u.output_tokens for u in usage.values()),
@@ -39,6 +43,7 @@ def rows_for(log_dir: Path):
                 "total_time_s": round(s.total_time or 0),
                 "working_time_s": round(s.working_time or 0),
                 "tool_calls": sum(isinstance(e, ToolEvent) for e in s.events),
+                "tool_errors": sum(isinstance(e, ToolEvent) and e.error is not None for e in s.events),
                 "model_calls": sum(isinstance(e, ModelEvent) for e in s.events),
                 "lines": md.get("lines", ""),
                 "proof_lines": md.get("proof_lines", ""),
@@ -58,8 +63,9 @@ def main() -> None:
         w = csv.DictWriter(f, fieldnames=COLS); w.writeheader(); w.writerows(rows)
     print(f"{len(rows)} attempts -> {out}")
     for r in rows:
-        print(f"{r['model']:28} {r['problem']:6} e{r['epoch']} ok={r['correct']} tok={r['tokens_total']:>8} "
-              f"t={r['total_time_s']:>5}s work={r['working_time_s']:>5}s tools={r['tool_calls']:>3} lines={r['lines']}")
+        print(f"{r['model']:28} {r['problem']:6} ok={r['correct']} sessions={r['sessions_used']} "
+              f"[{r['session_ends']}] tok={r['tokens_total']:>8} out={r['tokens_out']:>7} t={r['total_time_s']:>5}s "
+              f"tools={r['tool_calls']:>3} tool_errors={r['tool_errors']:>2} lines={r['lines']}")
 
 
 if __name__ == "__main__":

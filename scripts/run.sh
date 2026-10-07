@@ -9,23 +9,34 @@ SEARCH=${SEARCH:-false}            # true -> web_search tool via SEARCH_PROVIDER
 SEARCH_PROVIDER=${SEARCH_PROVIDER:-tavily}
 NETWORK=${NETWORK:-$SEARCH}        # sandbox internet; default: only when search is on
 EPOCHS=1  # one attempt per model and problem: a problem is never restarted from scratch
-TOKEN_LIMIT=${TOKEN_LIMIT:-300000}
-TIME_LIMIT=${TIME_LIMIT:-7200}     # seconds of wall clock per sample
-WORKING_LIMIT=${WORKING_LIMIT:-3600}
+# Sessions with handoff: the output-token budget ends a session; the others are safety caps.
+SESSIONS=${SESSIONS:-10}
+SESSION_OUTPUT_TOKENS=${SESSION_OUTPUT_TOKENS:-30000}
+SESSION_TOKENS=${SESSION_TOKENS:-1000000}
+SESSION_WORKING_TIME=${SESSION_WORKING_TIME:-1800}
+NOTE_TOKENS=${NOTE_TOKENS:-8000}
+MAX_TOKENS=${MAX_TOKENS:-16000}           # cap per model reply
+REQUEST_TIMEOUT=${REQUEST_TIMEOUT:-900}   # seconds per model request
+TIME_LIMIT=${TIME_LIMIT:-$((SESSIONS * SESSION_WORKING_TIME * 3))}  # wall clock per problem, all sessions
 IDS=${IDS:?problems to run, e.g. IDS="P083 P088 P090"}
 RUN_ID=${RUN_ID:-$(date -u +%Y%m%dT%H%M%SZ)_$(echo "$MODEL" | tr '/:' '__')_search-${SEARCH}}
 LOG_DIR=logs/$RUN_ID
 
 python3 scripts/manifest.py "$LOG_DIR" model="$MODEL" effort="$EFFORT" search="$SEARCH" \
-  search_provider="$SEARCH_PROVIDER" network="$NETWORK" epochs="$EPOCHS" token_limit="$TOKEN_LIMIT" \
-  time_limit="$TIME_LIMIT" working_limit="$WORKING_LIMIT" ids="$IDS" sandbox=docker
+  search_provider="$SEARCH_PROVIDER" network="$NETWORK" epochs="$EPOCHS" sessions="$SESSIONS" \
+  session_output_tokens="$SESSION_OUTPUT_TOKENS" session_tokens="$SESSION_TOKENS" \
+  session_working_time="$SESSION_WORKING_TIME" note_tokens="$NOTE_TOKENS" max_tokens="$MAX_TOKENS" \
+  request_timeout="$REQUEST_TIMEOUT" time_limit="$TIME_LIMIT" ids="$IDS" sandbox=docker
 
 inspect eval proofbench_eval/task.py@proofbench \
   --model "$MODEL" ${EFFORT:+--reasoning-effort "$EFFORT"} \
   -T ids="$IDS" -T sandbox=docker -T network="$NETWORK" \
   -T search="$SEARCH" -T search_provider="$SEARCH_PROVIDER" \
-  --epochs "$EPOCHS" --token-limit "$TOKEN_LIMIT" --time-limit "$TIME_LIMIT" \
-  --working-limit "$WORKING_LIMIT" --max-connections 4 --max-sandboxes 4 \
+  -T sessions="$SESSIONS" -T session_output_tokens="$SESSION_OUTPUT_TOKENS" \
+  -T session_tokens="$SESSION_TOKENS" -T session_working_time="$SESSION_WORKING_TIME" \
+  -T note_tokens="$NOTE_TOKENS" \
+  --epochs "$EPOCHS" --max-tokens "$MAX_TOKENS" --timeout "$REQUEST_TIMEOUT" --time-limit "$TIME_LIMIT" \
+  --max-connections 4 --max-sandboxes 4 \
   --log-dir "$LOG_DIR" --tags "proofbench,pilot" --metadata run_id="$RUN_ID"
 
 python3 scripts/analyze.py "$LOG_DIR"

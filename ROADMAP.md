@@ -2,9 +2,7 @@
 Keep every item short: not much explanations.
 When an item is done, delete it. When part of it is done, delete only that part.
 
-- Local pilot (Docker, Qwen, P088/P089/P090): P090 solved; P088 hit 1M tokens; rerun P088, P089 on fixed image.
-- Per-request timeout (`--timeout`) and output cap per reply (`--max-tokens`).
-- results.csv: count tool errors per sample.
+- Local pilot (Docker, Qwen, P088/P089/P090): rerun all three with sessions and handoff.
 - Copy paste and use interesting parts of lean-eval and epoch-research/LeanOpenProblems.
 - Allow the agent to write multiple files.
 - Test P002/P015 (Matroid) end to end.
@@ -19,8 +17,6 @@ When an item is done, delete it. When part of it is done, delete only that part.
 - Ask ZIH: is rootless Podman available on Capella? (then use inspect-podman)
 - Release the Apptainer sandbox as a package with the paper.
 - push `proofbench-statements` to private GitHub repo.
-- Sessions with handoff (paper): up to 10 fresh sessions, fixed-format note, check after each.
-- Output-token budget per session; total-token and time limits only as safety caps.
 - Record cost per session.
 - Manifest: record the Mathlib commit.
 - Decide: may the agent install Lean libraries when search is on? (paper yes, checker no)

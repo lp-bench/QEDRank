@@ -18,6 +18,11 @@ Task parameters (pass with `-T name=value`):
               search tools are removed when network is False
   project_dir Lean project root inside the sandbox (default /opt/proofbench)
   tool_timeout seconds per bash/python call (default 600)
+  sessions    fresh sessions per problem, chained by handoff notes (default 10)
+  session_output_tokens  output tokens per session, reasoning included (default 30000)
+  session_tokens         safety cap: total tokens per session (default 1000000)
+  session_working_time   safety cap: working seconds per session (default 1800)
+  note_tokens  output tokens for writing a handoff note (default 8000)
 """
 
 import json
@@ -27,7 +32,6 @@ import sys
 from pathlib import Path
 
 from inspect_ai import Task, task
-from inspect_ai.agent import AgentPrompt, react
 from inspect_ai.dataset import Sample
 from inspect_ai.tool import bash, mcp_server_sandbox, mcp_tools, python, text_editor, web_search
 
@@ -44,6 +48,7 @@ IMAGE_PATH = "/opt/elan/bin:/opt/venv/bin:/usr/local/sbin:/usr/local/bin:/usr/sb
 if str(ROOT) not in sys.path:  # Inspect loads this file by path, not as a package
     sys.path.insert(0, str(ROOT))
 from proofbench_eval.scorer import lean_check  # noqa: E402
+from proofbench_eval.sessions import handoff_sessions  # noqa: E402
 
 INSTRUCTIONS = """\
 You are proving a theorem in Lean 4 with Mathlib.
@@ -64,10 +69,6 @@ Rules, checked automatically after you submit:
    SageMath with GAP and nauty (`sage`, `gap`), and the SAT solver `cadical`.
    The Lean language-server tools (goal state, diagnostics, search) are
    available when present; the file path for them is `{submission_rel}`.
-
-When the file compiles with the complete proof, call submit() with the
-text "done".  If you cannot finish, submit "incomplete" so the attempt is
-recorded.
 """
 
 
@@ -145,6 +146,11 @@ def proofbench(
     lean_mcp: bool = True,
     project_dir: str = "/opt/proofbench",
     tool_timeout: int = 600,
+    sessions: int = 10,
+    session_output_tokens: int = 30_000,
+    session_tokens: int = 1_000_000,
+    session_working_time: int = 1800,
+    note_tokens: int = 8000,
 ) -> Task:
     tools = [bash(timeout=tool_timeout), python(timeout=tool_timeout), text_editor(timeout=tool_timeout)]
     if lean_mcp:
@@ -173,18 +179,18 @@ def proofbench(
     else:
         raise ValueError(f"unknown sandbox {sandbox!r}; use docker or local")
 
-    agent = react(
-        prompt=AgentPrompt(
-            instructions="You are an expert in Lean 4 and Mathlib. Work carefully: "
-            "check goals and diagnostics after every edit, and compile before submitting."
-        ),
-        tools=tools,
-        attempts=1,
+    solver = handoff_sessions(
+        tools,
+        sessions=sessions,
+        output_tokens=session_output_tokens,
+        total_tokens=session_tokens,
+        working_seconds=session_working_time,
+        note_tokens=note_tokens,
     )
 
     return Task(
         dataset=load_samples(statements, ids, project_dir),
-        solver=agent,
+        solver=solver,
         scorer=lean_check(),
         sandbox=sandbox_spec,
         metadata={
@@ -193,5 +199,10 @@ def proofbench(
             "network": network,
             "lean_mcp": lean_mcp,
             "ids": ids,
+            "sessions": sessions,
+            "session_output_tokens": session_output_tokens,
+            "session_tokens": session_tokens,
+            "session_working_time": session_working_time,
+            "note_tokens": note_tokens,
         },
     )
