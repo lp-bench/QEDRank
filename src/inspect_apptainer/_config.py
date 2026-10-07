@@ -7,7 +7,7 @@ The task's ``sandbox`` is ``("apptainer", CONFIG)`` where CONFIG is a path to a
 
 import json
 from pathlib import Path
-from typing import Literal
+from typing import Any, Literal
 
 import yaml
 from pydantic import BaseModel, Field
@@ -60,6 +60,11 @@ class ApptainerSandboxConfig(BaseModel, frozen=True):
 
     start_timeout: int = 600
     """Seconds allowed for ``instance start`` (large images mount slowly)."""
+
+    services: dict[str, dict[str, Any]] = Field(default_factory=dict)
+    """Additional named instances per sample, e.g. ``{"verifier": {"network":
+    "none"}}``: each gets this config with the given fields overridden and is
+    reachable as ``sandbox("verifier")``."""
 
     def __hash__(self) -> int:
         # Inspect hashes sandbox configs to group samples; list and dict fields

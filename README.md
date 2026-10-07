@@ -33,6 +33,11 @@ Task(..., sandbox=("apptainer", ApptainerSandboxConfig(
 Or `sandbox=("apptainer", "apptainer.yaml")` with the same fields as YAML
 (a relative `image` is resolved against the YAML file).
 
+`services={"verifier": {"network": "none"}}` starts additional named instances
+per sample from the same config with the given fields overridden; the task
+reaches them as `sandbox("verifier")`, e.g. to grade in a container the
+agent never touched.
+
 Build the `.sif` where you have root or Docker and copy it to the cluster, e.g.
 `apptainer build image.sif docker-daemon://my-image:latest` or
 `apptainer pull image.sif docker://python:3.12`.

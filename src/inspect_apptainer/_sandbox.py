@@ -128,6 +128,21 @@ class ApptainerSandboxEnvironment(SandboxEnvironment):
         metadata: dict[str, str],
     ) -> dict[str, SandboxEnvironment]:
         cfg = resolve_config(config)
+        environments: dict[str, SandboxEnvironment] = {}
+        try:
+            environments["default"] = await cls._start(cfg)
+            for service, overrides in cfg.services.items():
+                environments[service] = await cls._start(
+                    cfg.model_copy(update={**overrides, "services": {}})
+                )
+        except BaseException:
+            for env in environments.values():
+                await env.as_type(ApptainerSandboxEnvironment)._stop()
+            raise
+        return environments
+
+    @classmethod
+    async def _start(cls, cfg: ApptainerSandboxConfig) -> "ApptainerSandboxEnvironment":
         binary = apptainer_binary(cfg)
         name = f"{INSTANCE_PREFIX}{uuid.uuid4().hex[:12]}"
         scratch = Path(tempfile.mkdtemp(prefix="inspect-apptainer-"))
@@ -155,7 +170,7 @@ class ApptainerSandboxEnvironment(SandboxEnvironment):
                 f"apptainer instance start failed (exit {result.returncode}):\n{result.stderr}"
             )
         cls._started.add(name)
-        return {"default": cls(binary, name, cfg, scratch)}
+        return cls(binary, name, cfg, scratch)
 
     @override
     @classmethod
