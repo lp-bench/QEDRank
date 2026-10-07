@@ -2,8 +2,7 @@
 Keep every item short: not much explanations.
 When an item is done, delete it. When part of it is done, delete only that part.
 
-- Local pilot (Docker, Qwen, P088/P089/P090): finish image build, mock-model test, then Qwen.
-- Image build: PyPI downloads stall in Docker's network; if `--network host` works, add it to `build_image.sh`.
+- Local pilot (Docker, Qwen, P088/P089/P090): P090 solved (1 line, audited); run P088, P089.
 - Dockerfile: run `lake exe cache get` before copying problem files (no re-download per IDS).
 - Copy paste and use interesting parts of lean-eval and epoch-research/LeanOpenProblems.
 - Allow the agent to write multiple files.
