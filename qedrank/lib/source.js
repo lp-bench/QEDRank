@@ -149,6 +149,18 @@ export class GitHubSource {
     }
   }
 
+  /** Split a /tree/<ref>/<folder> path: the longest prefix that is a real ref wins (branch names may contain "/"). */
+  async splitTreePath() {
+    const segs = this.treePath.split('/');
+    for (let k = segs.length; k >= 1; k -= 1) {
+      const cand = segs.slice(0, k).join('/');
+      try { validateRef(cand); } catch { continue; }
+      const commit = await this.tryCommit(cand);
+      if (commit) return { ref: cand, commit, subdir: k < segs.length ? validateSubdir(segs.slice(k).join('/')) : null };
+    }
+    return null;
+  }
+
   /** Resolve the requested ref (and any folder path in the link) to an immutable commit SHA. */
   async resolve() {
     if (this.commit) return this.descriptor();
@@ -178,21 +190,21 @@ export class GitHubSource {
       if (!commit) throw new SourceError(`Branch, tag or commit "${ref}" does not exist in ${this.owner}/${this.repo}.`, 'ref_not_found', { httpStatus: 404 });
       if (this.treePath && !this.subdir) {
         if (this.treePath.startsWith(`${ref}/`)) this.subdir = validateSubdir(this.treePath.slice(ref.length + 1));
-        else if (this.treePath !== ref) this.notes.push(`The explicit ref "${ref}" overrides the link's "${this.treePath}".`);
-      }
-    } else if (this.treePath) {
-      // A /tree/ link: the longest prefix that is a real ref wins (branch names may contain "/").
-      const segs = this.treePath.split('/');
-      for (let k = segs.length; k >= 1 && !commit; k -= 1) {
-        const cand = segs.slice(0, k).join('/');
-        try { validateRef(cand); } catch { continue; }
-        commit = await this.tryCommit(cand);
-        if (commit) {
-          ref = cand;
-          if (!this.subdir && k < segs.length) this.subdir = validateSubdir(segs.slice(k).join('/'));
+        else if (this.treePath !== ref) {
+          // The explicit ref decides the commit; the link's own branch only says where its folder starts.
+          const split = await this.splitTreePath();
+          if (split?.subdir) {
+            this.subdir = split.subdir;
+            this.notes.push(`The explicit ref "${ref}" overrides the link's "${split.ref}"; the link's folder "${split.subdir}" is kept.`);
+          } else this.notes.push(`The explicit ref "${ref}" overrides the link's "${this.treePath}".`);
         }
       }
-      if (!commit) throw new SourceError(`No branch, tag or commit in ${this.owner}/${this.repo} matches "${this.treePath}".`, 'ref_not_found', { httpStatus: 404 });
+    } else if (this.treePath) {
+      const split = await this.splitTreePath();
+      if (!split) throw new SourceError(`No branch, tag or commit in ${this.owner}/${this.repo} matches "${this.treePath}".`, 'ref_not_found', { httpStatus: 404 });
+      ref = split.ref;
+      commit = split.commit;
+      if (!this.subdir && split.subdir) this.subdir = split.subdir;
     } else {
       ref = this.defaultBranch;
       this.refType = 'default_branch';

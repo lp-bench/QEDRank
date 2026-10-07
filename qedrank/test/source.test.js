@@ -79,6 +79,16 @@ test('a /tree/ folder link with a slash in the branch resolves to the longest re
   const d2 = await src2.resolve();
   assert.equal(d2.subdir, 'ProofBench/PROBLEMS');
   assert.deepEqual(tried.slice(0, 3), ['vb/Folders/ProofBench/PROBLEMS', 'vb/Folders/ProofBench', 'vb/Folders']);
+
+  // An explicit ref (here a commit) decides the commit; the link's folder is kept, not the whole repository.
+  const sha = 'c'.repeat(40);
+  const fetchWithSha = async (url) => (/\/commits\/c{40}$/.test(url) ? json({ sha, commit: { committer: { date: null } } }) : fetchImpl(url));
+  const src3 = new GitHubSource({ owner: 'o', repo: 'r', ref: sha, treePath: parseGitHubUrl('https://github.com/o/r/tree/vb/Folders/ProofBench/PROBLEMS').refFromUrl, fetchImpl: fetchWithSha });
+  const d3 = await src3.resolve();
+  assert.equal(d3.commit, sha);
+  assert.equal(d3.subdir, 'ProofBench/PROBLEMS');
+  assert.equal(d3.ref_type, 'commit');
+  assert.ok(src3.notes.some((n) => /folder "ProofBench\/PROBLEMS" is kept/.test(n)));
 });
 
 test('a private repository without a token gets an explicit message', async () => {
