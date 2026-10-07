@@ -197,8 +197,12 @@ export function RunPanel({ onLoaded }) {
         if (j.schema === 'qedrank-summary-v1') bundle.summary = j
         else if (j.schema === 'qedrank-run-v1') bundle.run = j
         else if (j.schema === 'qedrank-items-v1') bundle.items = j.items
-        else if (j.schema === 'qedrank-results-v1') bundle.items = null // full records need the exports/items.json flat form
-        else setStatus(`Unrecognised file ${f.name}`)
+        else if (j.schema === 'qedrank-results-v1') setStatus(`${f.name} holds the full item records; this page reads the flat form exports/items.json (written next to it by the statistics stage).`)
+        else if (j.schema === 'qedrank-manifest-v1') {
+          // The corpus preview from the Benchmark page: it lists the papers, it holds no results.
+          const n = j.counts?.papers ?? j.papers?.length ?? '?'
+          setStatus(`${f.name} is a corpus manifest (${n} papers at ${j.source?.commit?.slice(0, 10) || 'unknown commit'}), not a run: it describes what to evaluate, not results. Produce a run first — ${j.next_step ? `run this on your machine: ${j.next_step}` : 'node qedrank/cli.js run --repo <url> --ref <commit>'} — then load runs/<run id>/summary.json, run.json and exports/items.json here (or serve them with npm run qedrank:serve).`)
+        } else setStatus(`Unrecognised file ${f.name}${j.schema ? ` (schema ${j.schema})` : ''}: this page reads summary.json, run.json and exports/items.json of a run.`)
       } catch (err) {
         setStatus(`${f.name}: ${err.message}`)
       }
