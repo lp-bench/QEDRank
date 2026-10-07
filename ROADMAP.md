@@ -31,3 +31,4 @@ proofbench-eval-docker and proofbench-eval-apptainer.
 (do we need to update the paper? please let me know.)
 - Paper: say each model gets one session chain per problem, never a restart.
 (I think the technical language is we used one epoch for each agent test. If you agree plz let me know. Do we need to update the paper?)
+- Paper (sessions section): every session asks the model to keep the file compiling, with `sorry` for unfinished steps replaced one at a time; only the final submission must be `sorry`-free.

@@ -39,6 +39,12 @@ or after {budget:,} output tokens from you (reasoning included).  If it ends
 without a complete proof, you will be asked for a short handoff note, and the
 next session starts fresh from the current file, its Lean output and that note.
 
+Work incrementally and keep the file compiling: state helper lemmas with
+`sorry` first, check that the main theorem compiles from them, then replace
+the `sorry`s one at a time, compiling after each change.  A file that compiles
+with a few `sorry`s is progress the next session can build on; only the final
+submission must be free of `sorry`.
+
 When the file compiles with the complete proof, call submit() with the text
 "done".
 
