@@ -2,10 +2,9 @@ Keep every item short: not much explanations.
 When an item is done, delete it. When part of it is done, delete only that part.
 
 # Roadmap
-- Next local pilot run: `qwen3.8-27b` on P088, P089, new P090; same settings, after the current run. We need to choose easier problems for this model I believe. 90 can remain for now but 88 and 89 was failed by a stonger Qwen model. The new problems should be added to main proofbench repo rather than replacing 88 and 89.
+- Pilot running: `qwen3.8-27b` on P109–P111 (new easy problems), 40k output tokens/session, Comparator off. Then: review results; decide next model/problems.
 - Copy paste and use interesting parts of lean-eval and epoch-research/LeanOpenProblems in proofbench-eval-docker and proofbench-eval-apptainer, for free and quality improvements.
 - Allow the agent to write multiple files; session prompt then lists files, agent reads what it needs.
-- two layer check: done (fresh verifier container; check_proof.py, then Comparator). Verified on Apptainer; Docker run as user `verifier` being verified.
 - When websearch is on, we must (?) allow the agent install Lean libraries and incorporate them in their proof. Checker must be adjusted accordingly because currently checker does not allow it. We should have this as a swtichable option. --libraries-on --libraries-off
 (Claude: a library's code runs at compile time inside the same containers as the agent's own code, so no new way to reach the host, but unaudited third-party code. Belongs to the search-on configuration: finding and using a library is a capability we measure; fair because every model gets the same switch.)
 
