@@ -40,6 +40,7 @@ LEAN_MCP_OFFLINE_TOOLS = [
     "lean_profile_proof", "lean_references", "lean_run_code", "lean_term_goal",
     "lean_verify", "lean_get_widgets", "lean_get_widget_source",
 ]  # excluded offline: lean_leansearch, lean_loogle, lean_leanfinder, lean_state_search, lean_hammer_premise
+IMAGE_PATH = "/opt/elan/bin:/opt/venv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"  # as in image/Dockerfile
 if str(ROOT) not in sys.path:  # Inspect loads this file by path, not as a package
     sys.path.insert(0, str(ROOT))
 from proofbench_eval.scorer import lean_check  # noqa: E402
@@ -147,11 +148,13 @@ def proofbench(
 ) -> Task:
     tools = [bash(timeout=tool_timeout), python(timeout=tool_timeout), text_editor(timeout=tool_timeout)]
     if lean_mcp:
+        # The server gets only this environment (nothing is inherited from the
+        # image), so it needs the image's PATH and ELAN_HOME to find lake.
         server = mcp_server_sandbox(
             name="lean",
             command="lean-lsp-mcp",
             cwd=project_dir,
-            env={"LEAN_PROJECT_PATH": project_dir},
+            env={"LEAN_PROJECT_PATH": project_dir, "PATH": IMAGE_PATH, "ELAN_HOME": "/opt/elan", "HOME": "/root"},
         )
         # Without network the web-backed search tools only return errors; the
         # same subset is removed for every model.  Names as of lean-lsp-mcp 0.31.
