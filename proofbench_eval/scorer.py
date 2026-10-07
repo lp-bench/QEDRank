@@ -116,12 +116,15 @@ def lean_check():
         verifier = _verifier()
         sb = verifier or sandbox()
         report = await check_submission(sb, md, state.sample_id, submission)
+        use_comparator = md.get("comparator", True)
         comparator: dict[str, Any] | None = None
-        if report["ok"]:
+        if report["ok"] and use_comparator:
             comparator = await run_comparator(sb, md, state.sample_id)
-        ok = report["ok"] and comparator is not None and comparator["ok"]
+        ok = report["ok"] and (not use_comparator or (comparator is not None and comparator["ok"]))
         if not report["ok"]:
             explanation = "; ".join(report["errors"])
+        elif not use_comparator:
+            explanation = "fast check passed (comparator off)"
         elif not ok:
             explanation = "fast check passed, comparator rejected: " + (
                 (comparator or {}).get("stderr") or (comparator or {}).get("stdout") or ""
@@ -134,7 +137,7 @@ def lean_check():
             explanation=explanation,
             metadata={
                 **report,
-                "comparator": comparator,
+                "comparator": comparator if use_comparator else "off",
                 "graded_in": "verifier" if verifier else "agent sandbox",
                 "sessions_used": len(state.store.get("sessions", [])),
             },

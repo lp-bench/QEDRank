@@ -11,6 +11,7 @@ SEARCH_PROVIDER=${SEARCH_PROVIDER:-tavily}
 NETWORK=${NETWORK:-$SEARCH}        # sandbox internet; default: only when search is on
 SANDBOX=${SANDBOX:-docker}         # docker | apptainer
 SIF=${SIF:-proofbench-sandbox.sif} # image for the apptainer sandbox
+COMPARATOR=${COMPARATOR:-on}       # on | off: Comparator as the second grading layer
 EPOCHS=1  # one attempt per model and problem: a problem is never restarted from scratch
 # Sessions with handoff: the output-token budget ends a session; the others are safety caps.
 SESSIONS=${SESSIONS:-10}
@@ -32,7 +33,7 @@ python3 scripts/manifest.py "$LOG_DIR" model="$MODEL" effort="$EFFORT" search="$
   search_provider="$SEARCH_PROVIDER" network="$NETWORK" epochs="$EPOCHS" sessions="$SESSIONS" \
   session_output_tokens="$SESSION_OUTPUT_TOKENS" session_tokens="$SESSION_TOKENS" \
   session_working_time="$SESSION_WORKING_TIME" note_tokens="$NOTE_TOKENS" max_tokens="$MAX_TOKENS" \
-  request_timeout="$REQUEST_TIMEOUT" attempt_timeout="$ATTEMPT_TIMEOUT" max_samples="$MAX_SAMPLES" time_limit="$TIME_LIMIT" ids="$IDS" sandbox="$SANDBOX" ${IMAGE:+image="$IMAGE"}
+  request_timeout="$REQUEST_TIMEOUT" attempt_timeout="$ATTEMPT_TIMEOUT" max_samples="$MAX_SAMPLES" time_limit="$TIME_LIMIT" ids="$IDS" sandbox="$SANDBOX" comparator="$COMPARATOR" ${IMAGE:+image="$IMAGE"}
 
 inspect eval proofbench_eval/task.py@proofbench \
   --model "$MODEL" ${EFFORT:+--reasoning-effort "$EFFORT"} \
@@ -40,7 +41,7 @@ inspect eval proofbench_eval/task.py@proofbench \
   -T search="$SEARCH" -T search_provider="$SEARCH_PROVIDER" \
   -T sessions="$SESSIONS" -T session_output_tokens="$SESSION_OUTPUT_TOKENS" \
   -T session_tokens="$SESSION_TOKENS" -T session_working_time="$SESSION_WORKING_TIME" \
-  -T note_tokens="$NOTE_TOKENS" \
+  -T note_tokens="$NOTE_TOKENS" -T comparator=$([ "$COMPARATOR" = on ] && echo true || echo false) \
   --epochs "$EPOCHS" --max-tokens "$MAX_TOKENS" --timeout "$REQUEST_TIMEOUT" --attempt-timeout "$ATTEMPT_TIMEOUT" --time-limit "$TIME_LIMIT" \
   --max-samples "$MAX_SAMPLES" --max-connections 4 --max-sandboxes 4 \
   --log-dir "$LOG_DIR" --tags "proofbench,pilot" --metadata run_id="$RUN_ID"

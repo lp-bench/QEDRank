@@ -24,6 +24,7 @@ Task parameters (pass with `-T name=value`):
   session_tokens         safety cap: total tokens per session (default 1000000)
   session_working_time   safety cap: working seconds per session (default 1800)
   note_tokens  output tokens for writing a handoff note (default 8000)
+  comparator  run Comparator as the second grading layer (default True)
 """
 
 import json
@@ -87,7 +88,9 @@ def qualified_theorem(text: str, pid: str) -> str:
     raise ValueError(f"{pid}: no `theorem {pid}` found")
 
 
-def load_samples(statements: str, ids: str | list[str], project_dir: str) -> list[Sample]:
+def load_samples(
+    statements: str, ids: str | list[str], project_dir: str, comparator: bool = True
+) -> list[Sample]:
     root = Path(statements)
     if not root.is_absolute():  # Inspect runs tasks from the task file's directory
         root = ROOT / root
@@ -130,6 +133,7 @@ def load_samples(statements: str, ids: str | list[str], project_dir: str) -> lis
                     "reference": reference,
                     "statements_commit": commit,
                     "proofbench_commit": pb_commit,
+                    "comparator": comparator,
                 },
             )
         )
@@ -153,6 +157,7 @@ def proofbench(
     session_tokens: int = 1_000_000,
     session_working_time: int = 1800,
     note_tokens: int = 8000,
+    comparator: bool = True,
 ) -> Task:
     tools = [bash(timeout=tool_timeout), python(timeout=tool_timeout), text_editor(timeout=tool_timeout)]
     if lean_mcp:
@@ -207,7 +212,7 @@ def proofbench(
     )
 
     return Task(
-        dataset=load_samples(statements, ids, project_dir),
+        dataset=load_samples(statements, ids, project_dir, comparator),
         solver=solver,
         scorer=lean_check(),
         sandbox=sandbox_spec,
@@ -223,5 +228,6 @@ def proofbench(
             "session_tokens": session_tokens,
             "session_working_time": session_working_time,
             "note_tokens": note_tokens,
+            "comparator": comparator,
         },
     )
