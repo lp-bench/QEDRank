@@ -61,6 +61,11 @@ class ApptainerSandboxConfig(BaseModel, frozen=True):
     start_timeout: int = 600
     """Seconds allowed for ``instance start`` (large images mount slowly)."""
 
+    def __hash__(self) -> int:
+        # Inspect hashes sandbox configs to group samples; list and dict fields
+        # make pydantic's default hash fail.
+        return hash(self.model_dump_json())
+
 
 def resolve_config(config: BaseModel | str | None) -> ApptainerSandboxConfig:
     if config is None:
