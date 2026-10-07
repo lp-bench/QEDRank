@@ -214,7 +214,7 @@ export function RunPanel({ onLoaded }) {
   return (
     <section className="qr-card">
       <h2>2. Load a run</h2>
-      <p className="qr-muted">Runs live in <code>runs/&lt;run id&gt;/</code>. Either serve them locally (<code>npm run qedrank:serve</code>) and pick one below, or drop <code>summary.json</code>, <code>run.json</code> and <code>exports/items.json</code> here.</p>
+      <p className="qr-muted">A <b>run</b> is the folder <code>runs/&lt;run id&gt;/</code> that <code>node qedrank/cli.js run …</code> (or <code>resume</code>, or <code>import-agent</code>) writes on your machine: the model answers, the Lean verdicts and the statistics. This page only displays such a folder; it computes nothing itself. Two ways to open one: start the small local server with <code>npm run qedrank:serve</code>, click <b>List runs</b>, choose a run and <b>Load</b> — or pick the run's <code>summary.json</code>, <code>run.json</code> and <code>exports/items.json</code> under <b>Or open files</b>. A <code>manifest.json</code> is the corpus preview, not a run.</p>
       <div className="qr-form qr-form-row">
         <label>Run server<input value={base} onChange={(e) => setBase(e.target.value)} /></label>
         <button type="button" className="qr-btn qr-btn-secondary" onClick={listRuns}>List runs</button>
@@ -225,7 +225,7 @@ export function RunPanel({ onLoaded }) {
           </select>
         </label>
         <button type="button" className="qr-btn" onClick={load} disabled={!runId}>Load</button>
-        <label className="qr-check"><input type="checkbox" checked={poll} onChange={(e) => setPoll(e.target.checked)} /> Auto-refresh every 10 s (partial progress)</label>
+        <label className="qr-check"><input type="checkbox" checked={poll} onChange={(e) => setPoll(e.target.checked)} /> Auto-refresh every 10 s (for a run that is still in progress)</label>
       </div>
       <div className="qr-form qr-form-row">
         <label>Or open files<input type="file" multiple accept="application/json" onChange={onFiles} /></label>

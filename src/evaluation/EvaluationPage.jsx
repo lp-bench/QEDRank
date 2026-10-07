@@ -83,7 +83,7 @@ function EmptyState({ onLoaded }) {
       <div className="page-head">
         <span className="eyebrow">QEDRank · evaluation</span>
         <h1>No run loaded yet</h1>
-        <p>Load a finished (or in-progress) benchmark run to see the complete evaluation matrix, every chart and the statistical analysis. Runs are produced locally by <code>node qedrank/cli.js run …</code>; serve them with <code>npm run qedrank:serve</code> or drop the JSON files below. The corpus preview and the run command live on the <Link to="/benchmark">Benchmark</Link> page.</p>
+        <p>This page displays the results of a <b>run</b>: the folder <code>runs/&lt;run id&gt;/</code> that <code>node qedrank/cli.js run …</code> (or <code>resume</code>, or <code>import-agent</code>) writes on your machine. Nothing is computed here, so the page is empty until a run exists. Three steps: 1. produce a run (the exact command is on the <Link to="/benchmark">Benchmark</Link> page under the corpus preview); 2. start the local server with <code>npm run qedrank:serve</code>; 3. below, click <b>List runs</b>, choose the run and <b>Load</b>. A run that is still in progress can be loaded too — tick auto-refresh.</p>
       </div>
       <RunPanel onLoaded={onLoaded} />
     </main>
