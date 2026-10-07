@@ -16,6 +16,9 @@ IDS=${IDS:?problems to build for, e.g. IDS="P083 P088 P090"}
 CTX="$HERE/image/context"
 rm -rf "$CTX"; mkdir -p "$CTX/ProofBench"
 cp "$PB/lean-toolchain" "$PB/lakefile.toml" "$PB/lake-manifest.json" "$CTX/"
+# The agent's files form the `Submission` library (Submission/Pxxx.lean -> module
+# Submission.Pxxx), which the verifier resolves through lake.
+printf '\n[[lean_lib]]\nname = "Submission"\n' >> "$CTX/lakefile.toml"
 : > "$CTX/ProofBench.lean"
 python3 - "$PB" "$CTX" $IDS <<'PY'
 import json, re, shutil, sys
@@ -25,7 +28,10 @@ IMPORT = re.compile(r"^(?:public\s+)?import\s+(\S+)", re.M)
 STATEMENT = re.compile(r"ProofBench\.(Mathlib_Problems\..+|PROBLEMS\.P\d{3}\.P\d{3})$")
 def imports(f):
     return IMPORT.findall(f.read_text(encoding="utf-8"))
-top = sorted({m for i in ids for m in imports(pb / "ProofBench/PROBLEMS" / i / f"{i}.lean")})
+# The selected problems' own statement modules are staged too: Comparator grades
+# against them as the trusted Challenge modules.
+problems = [f"ProofBench.PROBLEMS.{i}.{i}" for i in ids]
+top = sorted({m for i in ids for m in imports(pb / "ProofBench/PROBLEMS" / i / f"{i}.lean")} | set(problems))
 seen, todo, staged = set(top), [m for m in top if m.startswith("ProofBench.")], set()
 while todo:
     m = todo.pop()

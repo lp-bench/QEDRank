@@ -190,6 +190,8 @@ def proofbench(
                 # space where it needs to write
                 writable=["/tmp", "/var/tmp", f"{project_dir}/Submission"],
                 workdir=project_dir,
+                # second, always-offline instance where the scorer grades
+                services={"verifier": {"network": "none"}},
             ),
         )
     else:

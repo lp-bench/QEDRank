@@ -10,9 +10,10 @@ problems with `IDS`.
 ## Layout
 
     proofbench_eval/task.py     Inspect task: ReAct agent + bash/python + lean-lsp-mcp (+ web search)
-    proofbench_eval/scorer.py   scorer: streams image/check_proof.py into the sandbox
-    image/check_proof.py        statement unchanged, allowed imports, no sorry/axiom, compiles, standard axioms
+    proofbench_eval/scorer.py   two-layer grading in a fresh `verifier` container: check_proof.py, then Comparator
+    image/check_proof.py        layer 1: statement unchanged, allowed imports, no sorry/axiom, compiles, standard axioms
     image/Dockerfile            Lean toolchain + Mathlib cache + ProofBench statement layer + lean-lsp-mcp
+                                + the verifier: Comparator (leanprover/comparator), lean4export, landrun
                                 + Python (sympy, networkx, python-sat), SageMath (GAP, nauty), CaDiCaL
     image/compose*.yaml         docker sandbox, with and without network
     scripts/build_image.sh      stage only the statement modules the exported problems import; build the image
@@ -81,8 +82,13 @@ epochs, token/time/working limits.  Change any of these and it is a new run.
 
 ## Known limits
 
-* Statement integrity is checked textually (reference lines must survive in
-  order, statement verbatim, imports restricted).  A transcript audit of every
-  correct solve is still required before reporting.
+* Grading runs in a second container the agent never touched; only the
+  submission's source text crosses over.  Layer 1 is the textual and compile
+  check of `check_proof.py`; layer 2 is Comparator, which rebuilds statement
+  and submission in a Landlock sandbox, requires identical statements and
+  dependencies, replays the proof through the Lean kernel and checks the
+  axioms.  Comparator needs Landlock in the host kernel (check `landrun`
+  actually engages on a new machine).  Solves of open problems are still
+  audited by hand.
 * Uniformity across vendors is not perfect: reasoning-effort dials differ, and
   Fable has always-on thinking.  Record the effort per model and report it.
