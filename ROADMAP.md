@@ -2,7 +2,7 @@
 Keep every item short: not much explanations.
 When an item is done, delete it. When part of it is done, delete only that part.
 
-- Local pilot (Docker, Qwen, P088/P089/P090): P090 solved (1 line, audited); run P088, P089.
+- Local pilot (Docker, Qwen, P088/P089/P090): P090 solved; P088 hit 1M tokens; rerun P088, P089 on fixed image.
 - Per-request timeout (`--timeout`) and output cap per reply (`--max-tokens`).
 - results.csv: count tool errors per sample.
 - Copy paste and use interesting parts of lean-eval and epoch-research/LeanOpenProblems.
