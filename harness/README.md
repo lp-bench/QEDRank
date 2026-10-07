@@ -83,6 +83,22 @@ on this machine against a Lake project here; it is for development, not for repo
 `-T sandbox_type=local` runs the agent without Docker in a temporary directory on this
 machine, with no isolation at all; use it only with a scripted model.
 
+## On Windows (Docker Desktop)
+
+The commands above are bash. On Windows two scripts do the same without shell translation;
+start Docker Desktop first and wait for "Engine running":
+
+```powershell
+gh repo clone vaibhav-baj/ProofBench C:\ProofBench                       # private; uses your gh login
+.\scripts\build-sandbox.ps1 -ProofBench C:\ProofBench -Ref <commit>      # tags proofbench-sandbox:<short commit>
+.\scripts\agent-run.ps1 -Model moonshot/kimi-k3 -Problems C:\ProofBench -Ids P050 -Sessions 1 -OutputTokens 8000 -Image proofbench-sandbox:<short>
+.\scripts\agent-run.ps1 -Model openai-api/gwdg/qwen3-30b-a3b-instruct-2507 -Problems C:\ProofBench -Sessions 4 -Image proofbench-sandbox:<short>
+```
+
+`agent-run.ps1` reads the keys that `set-llm-keys.ps1` stored (the GWDG key under `GWDG_API_KEY`
+or `LLAMA_API_KEY`), runs the eval, exports the log and imports it as a QEDRank run; `-DryRun`
+prints the composed `inspect eval` command instead.
+
 ## From logs to the statistics
 
 ```bash
