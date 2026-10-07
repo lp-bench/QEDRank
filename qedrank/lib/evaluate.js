@@ -14,7 +14,7 @@ import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import {
   parseImports, rewriteImports, stripProofs, wrapNamespace, staticScreen, findDeclarations,
-  theoremNames, countLines, dropDanglingDoc,
+  theoremNames, countLines, dropDanglingDoc, splitHeader,
 } from './leansrc.js';
 import { buildComparisonScript, classifyAxioms, classifyComparison, applyExpertDecision } from './compare.js';
 import { parseModelOutput } from './prompt.js';
@@ -343,15 +343,8 @@ function ensureImports(src, preludeModules) {
   if (!imports.some((m) => m === 'Mathlib' || m.startsWith('Mathlib.'))) add.push('import Mathlib');
   for (const p of preludeModules) if (!imports.includes(p)) add.push(`import ${p}`);
   if (!add.length) return src;
-  const { imports: hdr, rest } = splitHeaderLocal(src);
+  const { imports: hdr, rest } = splitHeader(src);
   return `${hdr.trim()}\n${add.join('\n')}\n\n${rest}`;
-}
-
-function splitHeaderLocal(src) {
-  const lines = src.split(/\r?\n/);
-  let i = 0;
-  while (i < lines.length && (/^\s*import\s+/.test(lines[i]) || lines[i].trim() === '' || /^\s*--/.test(lines[i]))) i += 1;
-  return { imports: lines.slice(0, i).join('\n'), rest: lines.slice(i).join('\n') };
 }
 
 /**

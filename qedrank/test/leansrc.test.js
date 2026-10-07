@@ -101,6 +101,20 @@ test('rewriteImports maps and drops modules', () => {
   assert.deepEqual(parseImports(out), ['Mathlib', 'QEDRank.Papers.P']);
 });
 
+test('a comment banner before the imports belongs to the header; a doc comment after them does not', () => {
+  // ProofBench files open with `/- Paper: … -/`; a multi-line banner must not stop the header either.
+  const banner = '/- Paper: Dirac for linear hypergraphs\n   (Im–Lee, arXiv:2403.14269). -/\n-- note\nimport Mathlib.A\nimport Mathlib.B -- trailing\n\nopen scoped BigOperators\n\n/-- the doc of f -/\ndef f := 1\n\ntheorem t : f = 1 := rfl\n';
+  assert.deepEqual(parseImports(banner), ['Mathlib.A', 'Mathlib.B']);
+  const w = wrapNamespace(banner, 'QRRef');
+  const lines = w.split('\n');
+  assert.ok(lines.indexOf('namespace QRRef') > lines.findIndex((l) => l === 'import Mathlib.B'), 'imports stay before the namespace');
+  assert.ok(lines.indexOf('namespace QRRef') < lines.indexOf('open scoped BigOperators'));
+  assert.ok(w.includes('/-- the doc of f -/\ndef f := 1'), 'the doc comment stays attached to its declaration');
+  const out = rewriteImports(banner, (m) => (m === 'Mathlib.B' ? null : m));
+  assert.deepEqual(parseImports(out), ['Mathlib.A']);
+  assert.ok(out.startsWith('/- Paper: Dirac'), 'the banner is kept');
+});
+
 test('theoremNames and stripComments', () => {
   assert.deepEqual(theoremNames(SRC), ['main_theorem', 'aux']);
   assert.equal(stripComments('a -- b\n/- c -/ d', { blank: true }).length, 'a -- b\n/- c -/ d'.length);

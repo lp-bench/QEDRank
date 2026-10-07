@@ -58,17 +58,50 @@ export function stripComments(src, { blank = false } = {}) {
   return out;
 }
 
-/** Module names imported by the file (only `import` lines at the top). */
+/** Block-comment nesting depth after scanning one line that starts at depth `depth`. */
+function commentDepthAfter(line, depth) {
+  let d = depth;
+  for (let i = 0; i < line.length - 1; i += 1) {
+    if (line[i] === '/' && line[i + 1] === '-') { d += 1; i += 1; } else if (line[i] === '-' && line[i + 1] === '/') { d = Math.max(0, d - 1); i += 1; }
+  }
+  return d;
+}
+
+/**
+ * Number of leading lines that form the import header: comments and blank lines before the
+ * first import (corpora often open with a `/- Paper: … -/` banner), the import lines, and the
+ * blank or `--` lines between them. The header ends at the first other line, so a doc comment
+ * after the imports stays with the declaration it documents.
+ */
+export function headerLineCount(src) {
+  const lines = src.split(/\r?\n/);
+  let depth = 0;
+  let seenImport = false;
+  let end = 0;
+  for (let i = 0; i < lines.length; i += 1) {
+    const t = lines[i].trim();
+    if (depth > 0) { depth = commentDepthAfter(t, depth); end = i + 1; continue; }
+    if (!t || t.startsWith('--') || t === 'prelude') { end = i + 1; continue; }
+    if (/^import\s+/.test(t)) { seenImport = true; end = i + 1; continue; }
+    if (!seenImport && t.startsWith('/-')) { depth = commentDepthAfter(t, 0); end = i + 1; continue; }
+    break;
+  }
+  return end;
+}
+
+/** Module names imported by the file (the `import` lines of the header). */
 export function parseImports(src) {
   const mods = [];
-  for (const raw of src.split(/\r?\n/)) {
-    const line = raw.trim();
-    if (!line || line.startsWith('--')) continue;
-    if (line.startsWith('/-')) continue; // doc comment before imports is invalid Lean anyway
-    if (line === 'prelude') continue;
-    const m = /^import\s+(.+)$/.exec(line);
-    if (!m) break; // imports must be a prefix of the file
-    for (const tok of m[1].split(/\s+/)) if (tok) mods.push(tok.replace(/--.*$/, ''));
+  const lines = src.split(/\r?\n/);
+  const header = headerLineCount(src);
+  let depth = 0;
+  for (let i = 0; i < header; i += 1) {
+    const t = lines[i].trim();
+    if (depth > 0) { depth = commentDepthAfter(t, depth); continue; }
+    if (t.startsWith('/-')) { depth = commentDepthAfter(t, 0); continue; }
+    const m = /^import\s+(.+)$/.exec(t);
+    if (!m) continue;
+    for (const tok of m[1].replace(/--.*$/, '').split(/\s+/)) if (tok) mods.push(tok);
   }
   return mods;
 }
@@ -76,19 +109,23 @@ export function parseImports(src) {
 /** Replace the import block according to `mapFn(module) -> module | null` (null drops the import). */
 export function rewriteImports(src, mapFn) {
   const lines = src.split(/\r?\n/);
+  const header = headerLineCount(src);
   const out = [];
-  let inHeader = true;
-  for (const raw of lines) {
-    const line = raw.trim();
-    if (inHeader && /^import\s+/.test(line)) {
-      const mods = line.replace(/^import\s+/, '').split(/\s+/);
-      const mapped = mods.map(mapFn).filter(Boolean);
-      if (mapped.length) out.push(`import ${mapped.join(' ')}`);
-      continue;
+  let depth = 0;
+  lines.forEach((raw, i) => {
+    const t = raw.trim();
+    if (i < header) {
+      if (depth > 0) { depth = commentDepthAfter(t, depth); out.push(raw); return; }
+      if (t.startsWith('/-')) { depth = commentDepthAfter(t, 0); out.push(raw); return; }
+      if (/^import\s+/.test(t)) {
+        const mods = t.replace(/^import\s+/, '').replace(/--.*$/, '').split(/\s+/).filter(Boolean);
+        const mapped = mods.map(mapFn).filter(Boolean);
+        if (mapped.length) out.push(`import ${mapped.join(' ')}`);
+        return;
+      }
     }
-    if (inHeader && line && !line.startsWith('--') && line !== 'prelude') inHeader = false;
     out.push(raw);
-  }
+  });
   return out.join('\n');
 }
 
@@ -241,21 +278,11 @@ export function stripProofs(src) {
   return out;
 }
 
-/** Split into {imports, rest} text. */
+/** Split into {imports, rest} text: the import header (see headerLineCount) and everything after it. */
 export function splitHeader(src) {
   const lines = src.split(/\r?\n/);
-  let i = 0;
-  const header = [];
-  while (i < lines.length) {
-    const t = lines[i].trim();
-    if (/^import\s+/.test(t) || t === '' || t === 'prelude' || t.startsWith('--')) {
-      header.push(lines[i]);
-      i += 1;
-      continue;
-    }
-    break;
-  }
-  return { imports: header.join('\n'), rest: lines.slice(i).join('\n') };
+  const n = headerLineCount(src);
+  return { imports: lines.slice(0, n).join('\n'), rest: lines.slice(n).join('\n') };
 }
 
 /** Wrap all non-import content in `namespace ns ... end ns`. */
