@@ -38,6 +38,7 @@ const MATRIX_COLUMNS = [
   ['Repair setting', (mm) => (mm.repair ? <Rate r={mm.repair} color="var(--s1)" /> : <Unavail note="disabled" />)],
   ['RMS calibration (stmt / proof)', (mm) => `${fmtNum(mm.calibration.statement.rms_calibration_error, 3)} / ${fmtNum(mm.calibration.proof_audit.rms_calibration_error, 3)}`],
   ['Median total time', (mm) => `${fmtMs(mm.time.total_item_ms.median)} (timeouts ${mm.time.total_item_ms.timeouts})`],
+  ['Median working time', (mm) => (mm.time.working_item_ms?.n ? fmtMs(mm.time.working_item_ms.median) : <Unavail note="not recorded" />)],
   ['Median latency / Lean', (mm) => `${fmtMs(mm.time.observed_model_latency_ms.median)} / ${fmtMs(mm.time.lean_total_ms.median)}`],
   ['Median tokens in / out', (mm) => (mm.tokens.n_with_usage ? `${fmtInt(mm.tokens.median_input)} / ${fmtInt(mm.tokens.median_output)}` : <Unavail note="no usage data" />)],
   ['Cost / verified success', (mm) => (mm.cost.available ? (mm.cost.per_verified_success_usd === null ? <Unavail note="no verified successes" /> : `$${fmtNum(mm.cost.per_verified_success_usd, 3)}`) : <Unavail note="pricing not configured" />)],
@@ -69,6 +70,48 @@ export function MatrixTable({ summary, scope }) {
         </tbody>
       </table>
     </div>
+  )
+}
+
+/* ------------------------------------------------------------------ */
+/* Agent runs: sessions, budgets, tool calls, audit state               */
+/* ------------------------------------------------------------------ */
+
+export function AgentView({ summary }) {
+  const a = summary.agent
+  const models = summary.models
+  const ms = (v) => (typeof v === 'number' ? fmtMs(v) : 'n/a')
+  return (
+    <section id="agent" className="ev-section">
+      <h2 className="ev-h2"><span className="ev-num">0</span>Agent protocol</h2>
+      <p className="small">At most {a.sessions_max} fresh session{a.sessions_max === 1 ? '' : 's'} per problem, joined by a handoff note; the independent Lean check after every session decides. "Solved within k" counts a problem when the check passed in one of its first k sessions (95% paper-cluster intervals). Web search {a.web_search ? 'on' : 'off'}. Unaudited solves are counted and listed; a hand audit (<code>review/audit.json</code>) can withdraw them.</p>
+      <div className="table-wrap">
+        <table className="table ev-matrix">
+          <thead><tr><th>Model</th>{a.tiers.map((k) => <th key={k}>Solved within {k}</th>)}<th>Sessions to success (median)</th><th>Sessions ended by budget</th><th>Output tokens (total)</th><th>Working time (total)</th><th>Tool calls (total)</th><th>Completeness, unsolved (mean)</th><th>Awaiting audit</th><th>Open-claim escalations</th></tr></thead>
+          <tbody>
+            {models.map((m) => {
+              const r = a.by_model?.[m.id]
+              if (!r) return null
+              return (
+                <tr key={m.id}>
+                  <td className="ev-model-cell" style={{ '--mc': slotColor(m.id) }}><i className="chip-dot" /><b>{shortLabel(m)}</b><div className="small mono">{m.model_id}</div></td>
+                  {a.tiers.map((k) => <td key={k}><Rate r={r.solved_within[k]} color="var(--s1)" /></td>)}
+                  <td>{r.sessions_to_success.median ?? 'n/a'}</td>
+                  <td>{fmtRate(r.sessions_ended_by_output_budget)}</td>
+                  <td>{fmtInt(r.totals.output_tokens)}</td>
+                  <td>{ms(r.totals.working_ms)}</td>
+                  <td>{fmtInt(r.totals.tool_calls)}{r.totals.tool_calls_by_tool && Object.keys(r.totals.tool_calls_by_tool).length ? <div className="small">{Object.entries(r.totals.tool_calls_by_tool).map(([t, n]) => `${t} ${n}`).join(' · ')}</div> : null}</td>
+                  <td>{r.completeness_unsolved.n ? `${fmtNum(r.completeness_unsolved.mean, 2)} (n = ${r.completeness_unsolved.n})` : 'n/a'}</td>
+                  <td>{r.awaiting_manual_audit.length}</td>
+                  <td>{r.open_claim_escalations.length ? r.open_claim_escalations.join(', ') : '—'}</td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+      </div>
+      {summary.run?.protocol_mismatches?.length > 0 && <p className="small"><b>Warning:</b> the imported models did not run under one protocol — {[...new Set(summary.run.protocol_mismatches.map((x) => x.field))].join(', ')} differ. Their rows are not comparable.</p>}
+    </section>
   )
 }
 

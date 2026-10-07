@@ -8,7 +8,7 @@ import { RunPanel } from '../qedrank/panels.jsx'
 import { TARGET_KINDS, TARGET_LABELS, fmtRate, fmtCI, fmtMs, fmtNum, fmtInt, download, toCsv } from '../qedrank/helpers.js'
 import { Figure, HBars, GroupedBars, Heatmap, RangeDots, StackedBars, Reliability, PairMatrix, pct1 } from '../charts/primitives.jsx'
 import { shortLabel, slotColor } from '../components/vendor.js'
-import { MatrixTable, ComparisonTable, CoverageView, ItemsView, Rate, matrixCsvRows } from './views.jsx'
+import { MatrixTable, ComparisonTable, CoverageView, ItemsView, AgentView, Rate, matrixCsvRows } from './views.jsx'
 import '../qedrank/qedrank.css'
 import './evaluation.css'
 
@@ -138,7 +138,10 @@ function SummaryAnalysis({ summary, run }) {
           <span className="pill"><b>run</b> <code>{summary.run?.run_id || run?.run_id || '?'}</code></span>
           <span className="pill" title={summary.run?.source?.url || ''}><b>commit</b> <code>{(summary.run?.source?.commit || '').slice(0, 10) || '?'}</code>{summary.run?.source?.dirty ? ' · dirty' : ''}</span>
           <span className="pill"><b>toolchain</b> <code>{summary.run?.toolchain?.toolchain || 'unavailable'}</code> · Mathlib <code>{summary.run?.toolchain?.mathlib?.rev?.slice(0, 8) || '?'}</code></span>
-          <span className="pill"><b>k</b> {summary.settings?.k ?? 1} · <b>repair</b> {summary.settings?.repair_rounds ?? 0} · <b>T</b> {summary.settings?.temperature ?? '?'} · <b>max tokens</b> {summary.settings?.max_tokens ?? '?'}</span>
+          <span className="pill" title="Commit of this repository (the harness) that produced the run; dirty = uncommitted changes at run time"><b>harness</b> <code>{summary.run?.harness?.commit?.slice(0, 10) || 'not recorded'}</code>{summary.run?.harness?.dirty ? ' · dirty' : ''} · <b>protocol</b> {summary.run?.protocol === 'agent' ? 'agent' : 'single call'}</span>
+          {summary.run?.protocol === 'agent'
+            ? <span className="pill"><b>sessions</b> ≤ {summary.agent?.sessions_max ?? '?'} · <b>output budget</b> {fmtInt(summary.agent?.limits?.session_output_tokens)} / session · <b>web search</b> {summary.agent?.web_search ? 'on' : 'off'} · <b>image</b> <code>{(summary.run?.sandbox?.id || summary.run?.sandbox?.image || 'not recorded').toString().replace(/^sha256:/, '').slice(0, 12)}</code></span>
+            : <span className="pill"><b>k</b> {summary.settings?.k ?? 1} · <b>repair</b> {summary.settings?.repair_rounds ?? 0} · <b>T</b> {summary.settings?.temperature ?? '?'} · <b>max tokens</b> {summary.settings?.max_tokens ?? '?'}</span>}
           <span className="pill"><b>bootstrap</b> B={summary.settings?.bootstrap?.B} seed {summary.settings?.bootstrap?.seed}</span>
           <span className="pill"><b>generated</b> {summary.generated_at?.replace('T', ' ').slice(0, 19)}</span>
         </div>
@@ -156,6 +159,8 @@ function SummaryAnalysis({ summary, run }) {
         <div className="stat" style={{ '--stat-color': cmp?.cochran_q?.p !== null && cmp?.cochran_q?.p < 0.05 ? 'var(--good)' : 'var(--axis)' }}><div className="label">Cochran's Q</div><div className="value" style={{ fontSize: '1.2rem' }}>{cmp?.cochran_q?.Q === null || cmp?.cochran_q?.Q === undefined ? 'n/a' : `Q = ${fmtNum(cmp.cochran_q.Q, 2)}`}</div><div className="sub">{cmp?.cochran_q?.p === null || cmp?.cochran_q?.p === undefined ? (cmp?.cochran_q?.note || 'no test') : `df ${cmp.cochran_q.df} · p = ${fmtNum(cmp.cochran_q.p, 4)}`}</div></div>
         <div className="stat" style={{ '--stat-color': 'var(--s4)' }}><div className="label">Supported pairwise differences</div><div className="value">{cmp?.statistically_supported_pairs?.length ?? 0}</div><div className="sub">of {cmp?.pairwise?.length ?? 0} pairs after Holm correction</div></div>
       </section>
+
+      {summary.agent && <AgentView summary={summary} />}
 
       <section id="leaderboard" className="ev-section">
         <h2 className="ev-h2"><span className="ev-num">1</span>Leaderboard</h2>
