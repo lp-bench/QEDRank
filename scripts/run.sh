@@ -22,7 +22,10 @@ NOTE_TOKENS=${NOTE_TOKENS:-8000}
 MAX_TOKENS=${MAX_TOKENS:-16000}           # cap per model reply
 REQUEST_TIMEOUT=${REQUEST_TIMEOUT:-1800}  # total seconds per model request, retries included
 ATTEMPT_TIMEOUT=${ATTEMPT_TIMEOUT:-600}   # seconds per single attempt of a request
-MAX_SAMPLES=${MAX_SAMPLES:-4}             # problems in parallel (Inspect's default here was 1)
+MAX_SAMPLES=${MAX_SAMPLES:-4}             # problems in parallel
+# INSPECT_DISPLAY=conversation makes Inspect run one sample at a time; use `inspect view` to follow runs.
+export INSPECT_DISPLAY=${INSPECT_DISPLAY:-plain}
+[ "$INSPECT_DISPLAY" = conversation ] && echo "note: conversation display runs one sample at a time" >&2
 if [ "$SANDBOX" = apptainer ]; then IMAGE=$(sha256sum "$SIF" | cut -c1-16); else IMAGE=; fi
 TIME_LIMIT=${TIME_LIMIT:-$((SESSIONS * SESSION_WORKING_TIME * 3))}  # wall clock per problem, all sessions
 IDS=${IDS:?problems to run, e.g. IDS="P083 P088 P090"}
