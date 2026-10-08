@@ -57,5 +57,6 @@ for pid in $IDS; do
   l1=$(echo "$out" | grep -A1 "layer 1" | tail -1 | python3 -c "import sys,json; print('ok' if json.loads(sys.stdin.read())['ok'] else 'FAIL')" 2>/dev/null || echo "FAIL")
   l2=$(echo "$out" | grep -q "Your solution is okay" && echo ok || echo FAIL)
   echo "$pid: layer1=$l1 comparator=$l2"
-  [ "$l1$l2" = "okok" ] || echo "$out" | tail -n 15 | sed 's/^/    /'
+  [ "$l1" = ok ] || echo "$out" | grep -A1 "layer 1" | tail -n 1 | sed -E 's/"files".*//; s/^/    layer 1: /' | cut -c1-600
+  [ "$l2" = ok ] || echo "$out" | tail -n 12 | sed 's/^/    /'
 done

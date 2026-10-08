@@ -34,20 +34,23 @@ FORBIDDEN = [
     (re.compile(r"^\s*(?:builtin_)?initialize\b|^\s*run_(?:cmd|tac|elab)\b", re.M), "runs code at elaboration time"),
     (re.compile(r"^\s*#[A-Za-z_]", re.M), "uses a # command"),
 ]
-# Commands that change how later text parses or resolves: not in helper files,
-# and not among the lines added before the main theorem (the statement must
-# mean what the reference means).  Such lines of the reference itself are fine.
-SYNTAX_COMMANDS = re.compile(
-    r"^\s*(?:(?:local|scoped)\s+)?(?:notation|infix|infixl|infixr|prefix|postfix|macro|macro_rules|syntax|"
-    r"declare_syntax_cat|elab|elab_rules|export|unif_hint)\b"
+# Commands with a global effect on how later text parses: never in helper
+# files, never among the lines added before the main theorem (the statement
+# must mean what the reference means; such lines of the reference are fine).
+GLOBAL_SYNTAX = re.compile(
+    r"^\s*(?:notation|infix|infixl|infixr|prefix|postfix|macro|macro_rules|syntax|declare_syntax_cat|"
+    r"elab|elab_rules|export|unif_hint)\b"
 )
-SCOPE_COMMANDS = re.compile(
-    r"^\s*(?:open|namespace|(?:noncomputable\s+)?section|end|variable|include|omit|attribute|set_option)\b"
+# Scoped to the enclosing section: fine in helper files (file-local), and
+# before the main theorem only inside a section closed before it.  `open`,
+# `variable`, `set_option`, `attribute` are allowed: a changed name resolution
+# makes Lean report an ambiguity, and Comparator compares the elaborated statement.
+SCOPED_SYNTAX = re.compile(
+    r"^\s*(?:local|scoped)\s+(?:notation|infix|infixl|infixr|prefix|postfix|macro|macro_rules|syntax|"
+    r"elab|elab_rules|unif_hint)\b|^\s*include\b"
 )
-SET_OPTION_OK = re.compile(
-    r"^\s*set_option\s+(?:maxHeartbeats|maxRecDepth|synthInstance\.\S+|maxSynthPendingDepth|linter\.\S+|"
-    r"pp\.\S+|trace\.\S+|diagnostics|autoImplicit)\s+\S+\s+in\s*$"
-)
+OPENS = re.compile(r"^\s*(?:noncomputable\s+)?(?:section|namespace)\b")
+CLOSES = re.compile(r"^\s*end\b")
 MAX_FILES = 100
 
 
@@ -123,7 +126,7 @@ def main() -> None:
                 errors.append(msg if f == main_p else f"{msg} ({rel(f)})")
         if f != main_p:
             for l in stripped.splitlines():
-                if SYNTAX_COMMANDS.match(l):
+                if GLOBAL_SYNTAX.match(l):
                     errors.append(f"syntax/notation command in helper file {rel(f)}: {l.strip()[:60]}")
 
     # 3. statement and definitions unchanged: with comments stripped, every
@@ -144,12 +147,20 @@ def main() -> None:
             errors.append("theorem statement altered")
         needed = [norm(l) for l in ref_code[: rspan[0]] if norm(l) and not l.startswith("import")]
         have = [norm(l) for l in sub_code[: sspan[0]]]
-        k = 0
+        depth, after = 0, []  # section/namespace depth after each line
         for h in have:
+            depth = depth + 1 if OPENS.match(h) else max(0, depth - 1) if CLOSES.match(h) else depth
+            after.append(depth)
+        k = 0
+        for t, h in enumerate(have):
             if k < len(needed) and h == needed[k]:
                 k += 1
-            elif (SYNTAX_COMMANDS.match(h) or SCOPE_COMMANDS.match(h)) and not SET_OPTION_OK.match(h):
-                errors.append(f"line added before the theorem changes its scope or syntax: {h[:60]!r}")
+            elif GLOBAL_SYNTAX.match(h):
+                errors.append(f"line added before the theorem changes its syntax: {h[:60]!r}")
+            elif SCOPED_SYNTAX.match(h):
+                d = after[t - 1] if t else 0
+                if not (d > 0 and min(after[t:]) < d):  # its section is not closed before the theorem
+                    errors.append(f"line added before the theorem changes it: {h[:60]!r}")
         if k < len(needed):
             errors.append(f"reference line missing or altered before the theorem: {needed[k]!r}")
         after = sub_code[sspan[1]].split(":=", 1)[1].strip()

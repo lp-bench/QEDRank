@@ -38,12 +38,15 @@ def main() -> None:
         st_imports = {norm(l) for l in st_lines[:i_imp]}
         extra = [l for l in sol_imports if norm(l) != f"import {stmt_mod}" and norm(l) not in st_imports]
         helpers = [l for l in sol.splitlines() if not l.startswith("import")]
-        j = i_thm  # keep a docstring / attributes attached to the theorem
-        while j > 0 and st_lines[j - 1].strip() and not st_lines[j - 1].rstrip().endswith(("-/", ")", ":=")) \
-                and (st_lines[j - 1].lstrip().startswith(("@[", "/--")) or any("/--" in l for l in st_lines[max(0, j - 10):j]) and not any(l.rstrip().endswith("-/") for l in st_lines[max(0, j - 10):j - 1])):
+        j = i_thm  # keep attributes and a docstring attached to the theorem
+        while j > 0 and st_lines[j - 1].lstrip().startswith("@["):
             j -= 1
-        while j > 0 and any("/--" in l for l in st_lines[max(0, j - 10):j]) and not any(l.rstrip().endswith("-/") for l in st_lines[max(0, j - 10):j]):
+        if j > 0 and st_lines[j - 1].rstrip().endswith("-/"):
+            while j > 0 and "/--" not in st_lines[j - 1]:
+                j -= 1
             j -= 1
+        # The solution's own `variable`/`open` lines must not reach the theorem.
+        helpers = ["section ReferenceSolution"] + helpers + ["end ReferenceSolution"]
         thm = st_lines[j:]
         k = max(i for i, l in enumerate(thm) if re.search(r"\bsorry\b", l))
         if thm[k].strip() == "sorry":
