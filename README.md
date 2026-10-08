@@ -12,6 +12,7 @@ problems with `IDS`.
     proofbench_eval/task.py     Inspect task: ReAct agent + bash/python + lean-lsp-mcp (+ web search)
     proofbench_eval/scorer.py   two-layer grading in a fresh `verifier` container: check_proof.py, then Comparator
     image/check_proof.py        layer 1: statement unchanged, allowed imports, no sorry/axiom, compiles, standard axioms
+                                (on the main file and every `Submission/` file it imports)
     image/Dockerfile            Lean toolchain + Mathlib cache + ProofBench statement layer + lean-lsp-mcp
                                 + the verifier: Comparator (leanprover/comparator), lean4export, landrun
                                 + Python (sympy, networkx, python-sat), SageMath (GAP, nauty), CaDiCaL
@@ -90,5 +91,11 @@ epochs, token/time/working limits.  Change any of these and it is a new run.
   axioms.  Comparator needs Landlock in the host kernel (check `landrun`
   actually engages on a new machine).  Solves of open problems are still
   audited by hand.
+* A submission is the main file `Submission/Pxxx.lean` plus every file under
+  `Submission/` it imports, transitively (`Submission/Pxxx/Name.lean` is the
+  module `Submission.Pxxx.Name`).  All of them cross to the verifier, obey the
+  same rules, and are built with `lake build` before the main file compiles;
+  files the main file does not import are ignored.  A statement file with
+  several `sorry`s (P015, P017, P070) requires every one to be replaced.
 * Uniformity across vendors is not perfect: reasoning-effort dials differ, and
   Fable has always-on thinking.  Record the effort per model and report it.

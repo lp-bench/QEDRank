@@ -1,8 +1,9 @@
 """Sessions with handoff.
 
 A problem is attempted in at most `sessions` fresh sessions.  Each session is
-a new conversation that starts from the current file, the Lean output for it
-and the handoff note of the previous session; it ends when the agent submits
+a new conversation that starts from the current file (plus the names of the
+helper files it imports), the Lean output for it and the handoff note of the
+previous session; it ends when the agent submits
 or its output-token budget (reasoning included) runs out, with total tokens
 and working time as safety caps.  After every session the Lean check of
 scorer.py runs; the first session that passes ends the chain.  When a session
@@ -26,7 +27,7 @@ from inspect_ai.solver import Generate, Solver, TaskState, solver
 from inspect_ai.tool import Tool, ToolSource
 from inspect_ai.util import sandbox, token_limit, working_limit
 
-from proofbench_eval.scorer import check_submission
+from proofbench_eval.scorer import check_submission, collect_submission, helper_modules
 
 SYSTEM = (
     "You are an expert in Lean 4 and Mathlib. Work carefully: check goals and "
@@ -52,8 +53,8 @@ Current content of `{submission}`:
 ```lean
 {file}
 ```
-
-Lean output for this file:
+{others}
+Lean output (helper files are built first, then this file):
 ```
 {lean}
 ```
@@ -89,11 +90,14 @@ def _complete_turns(messages: list[ChatMessage]) -> list[ChatMessage]:
     return messages
 
 
-async def _lean_output(md: dict[str, Any]) -> str:
-    """Compiler messages for the submission, shortened to head and tail."""
+async def _lean_output(md: dict[str, Any], files: dict[str, str]) -> str:
+    """Compiler messages for the submission (helper modules built through lake
+    first), shortened to head and tail."""
+    mods = helper_modules(files, md)
+    build = f"lake build {' '.join(mods)} && " if mods else ""
     try:
         r = await sandbox().exec(
-            ["bash", "-c", f"cd {md['project_dir']} && lake env lean {md['submission']}"], timeout=900
+            ["bash", "-c", f"cd {md['project_dir']} && {build}lake env lean {md['submission']}"], timeout=900
         )
         out = (r.stdout + r.stderr).strip() or "(no messages: the file compiles without errors or warnings)"
     except TimeoutError:
@@ -127,13 +131,22 @@ def handoff_sessions(
         records: list[dict[str, Any]] = []
         transcript: list[ChatMessage] = []
         for k in range(1, sessions + 1):
+            files = await collect_submission(sandbox(), md)
+            rel = lambda p: p[len(md["project_dir"]) + 1 :]
+            helpers = [rel(p) for p in files if p != md["submission"]]
+            others = (
+                f"\nFiles that `{rel(md['submission'])}` imports (read them as needed): " + ", ".join(helpers) + "\n"
+                if helpers
+                else ""
+            )
             prompt = state.input_text + SESSION.format(
                 k=k,
                 n=sessions,
                 budget=output_tokens,
                 submission=md["submission"],
-                file=await sandbox().read_file(md["submission"]),
-                lean=await _lean_output(md),
+                file=files.get(md["submission"], "(file missing)"),
+                others=others,
+                lean=await _lean_output(md, files),
             )
             if note is not None:
                 prompt += NOTE.format(prev=k - 1, note=note)

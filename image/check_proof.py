@@ -1,7 +1,9 @@
 """Independent check of a submitted Lean proof.  Runs inside the sandbox.
 
 usage: python3 check_proof.py PROJECT_DIR SUBMISSION REFERENCE THEOREM
-Prints one JSON line: {ok, errors, lines, nonblank_lines, proof_lines,
+The submission may import further files under Submission/ (module
+Submission.X.Y is Submission/X/Y.lean); they are checked and built too.
+Prints one JSON line: {ok, errors, files, lines, nonblank_lines, proof_lines,
 axioms, compile_seconds}.
 """
 
@@ -15,8 +17,9 @@ from pathlib import Path
 # Imports a submission may add; any import of the reference file (e.g. another
 # challenge statement) may also stay.
 ALLOWED_IMPORT = re.compile(
-    r"^import (Mathlib(\.\S+)?|ProofBench\.Mathlib_Problems\.\S+|Matroid(\.\S+)?|Archive\.Sensitivity)\s*$"
+    r"^import (Mathlib(\.\S+)?|ProofBench\.Mathlib_Problems\.\S+|Matroid(\.\S+)?|Archive\.Sensitivity|Submission\.\S+)\s*$"
 )
+SUBMISSION_IMPORT = re.compile(r"^import (Submission\.\S+)", re.M)
 ALLOWED_AXIOMS = {"propext", "Classical.choice", "Quot.sound"}
 FORBIDDEN = [
     (re.compile(r"\bsorry\b"), "contains sorry"),
@@ -24,6 +27,7 @@ FORBIDDEN = [
     (re.compile(r"\bnative_decide\b"), "uses native_decide"),
     (re.compile(r"\bimplemented_by\b|\bextern\b"), "uses implemented_by/extern"),
 ]
+MAX_FILES = 100
 
 
 def norm(line: str) -> str:
@@ -47,25 +51,54 @@ def strip_comments(text: str) -> str:
     return re.sub(r"--[^\n]*", "", text)
 
 
+def closure(project: Path, main: Path) -> tuple[dict[Path, str], list[str]]:
+    """The main file and every Submission file it imports, transitively."""
+    files: dict[Path, str] = {}
+    missing: list[str] = []
+    todo = [main]
+    while todo and len(files) < MAX_FILES:
+        f = todo.pop()
+        if f in files:
+            continue
+        try:
+            files[f] = f.read_text(encoding="utf-8")
+        except OSError:
+            missing.append(str(f))
+            continue
+        todo += [project / Path(*m.split(".")).with_suffix(".lean") for m in SUBMISSION_IMPORT.findall(files[f])]
+    return files, missing
+
+
 def main() -> None:
     project, submission, reference, theorem = sys.argv[1:5]
+    project_p, main_p = Path(project), Path(submission)
     short = theorem.split(".")[-1]
     errors: list[str] = []
-    sub_text = Path(submission).read_text(encoding="utf-8")
+    files, missing = closure(project_p, main_p)
+    if main_p not in files:
+        print(json.dumps({"ok": False, "errors": ["cannot read submission"], "files": [], "lines": 0,
+                          "nonblank_lines": 0, "proof_lines": 0, "axioms": [], "compile_seconds": None}))
+        return
+    rel = lambda f: str(f.relative_to(project_p)) if f.is_relative_to(project_p) else str(f)
+    helpers = [".".join(f.relative_to(project_p).with_suffix("").parts) for f in files if f != main_p]
+    sub_text = files[main_p]
     ref_text = Path(reference).read_text(encoding="utf-8")
     sub_lines, ref_lines = sub_text.splitlines(), ref_text.splitlines()
 
-    # 1. imports
+    # 1. imports (every file)
     ref_imports = {norm(l) for l in ref_lines if l.startswith("import")}
-    for l in sub_lines:
-        if l.startswith("import") and not ALLOWED_IMPORT.match(l) and norm(l) not in ref_imports:
-            errors.append(f"disallowed import: {l.strip()}")
+    for f, text in files.items():
+        for l in text.splitlines():
+            if l.startswith("import") and not ALLOWED_IMPORT.match(l) and norm(l) not in ref_imports:
+                errors.append(f"disallowed import in {rel(f)}: {l.strip()}")
+    errors += [f"imported file not found: {m}" for m in missing]
 
     # 2. forbidden constructs (comments stripped so a mention in a comment is fine)
     code = strip_comments(sub_text)
-    for rx, msg in FORBIDDEN:
-        if rx.search(code):
-            errors.append(msg)
+    for f, text in files.items():
+        for rx, msg in FORBIDDEN:
+            if rx.search(strip_comments(text)):
+                errors.append(msg if f == main_p else f"{msg} ({rel(f)})")
 
     # 3. statement and definitions unchanged: with comments stripped, every
     #    non-empty reference line up to the `:=` of the main theorem must appear,
@@ -96,40 +129,56 @@ def main() -> None:
         if proof_lines == 0:
             errors.append("no proof after the statement")
 
-    # 4. compile and 5. axioms (only if the static checks passed)
+    # 4. compile (helper modules first, through lake) and 5. axioms
     axioms: list[str] = []
     compile_seconds = None
     if not errors:
-        tmp = Path(project) / "Submission" / f"_check_{short}.lean"
-        tmp.write_text(sub_text.rstrip("\n") + f"\n\n#print axioms {theorem}\n", encoding="utf-8")
         t0 = time.time()
-        try:
-            r = subprocess.run(
-                ["lake", "env", "lean", str(tmp)], cwd=project, capture_output=True, text=True, timeout=900
-            )
-            out = r.stdout + r.stderr
-        except subprocess.TimeoutExpired:
-            r, out = None, "compile timeout"
+        out, rc = "", 0
+        if helpers:
+            try:
+                b = subprocess.run(["lake", "build", *helpers], cwd=project, capture_output=True, text=True, timeout=900)
+                out, rc = b.stdout + b.stderr, b.returncode
+            except subprocess.TimeoutExpired:
+                out, rc = "build timeout", 1
+        if rc != 0:
+            errors.append("helper build error: " + out.strip()[-1500:])
+        else:
+            tmp = project_p / "Submission" / f"_check_{short}.lean"
+            tmp.write_text(sub_text.rstrip("\n") + f"\n\n#print axioms {theorem}\n", encoding="utf-8")
+            try:
+                r = subprocess.run(
+                    ["lake", "env", "lean", str(tmp)], cwd=project, capture_output=True, text=True, timeout=900
+                )
+                out = r.stdout + r.stderr
+            except subprocess.TimeoutExpired:
+                r, out = None, "compile timeout"
+            tmp.unlink(missing_ok=True)
+            if r is None or r.returncode != 0 or re.search(r"^.*: error:", out, re.M):
+                errors.append("compile error: " + out.strip()[-1500:])
+            if "declaration uses 'sorry'" in out or "declaration uses `sorry`" in out:
+                errors.append("declaration uses sorry")
+            m = re.search(r"depends on axioms: \[(.*?)\]", out)
+            if m:
+                axioms = [a.strip() for a in m.group(1).split(",") if a.strip()]
+            elif r is not None and "does not depend on any axioms" not in out and not errors:
+                errors.append("could not read axioms")
+            bad = sorted(set(axioms) - ALLOWED_AXIOMS)
+            if bad:
+                errors.append("non-standard axioms: " + ", ".join(bad))
         compile_seconds = round(time.time() - t0, 1)
-        tmp.unlink(missing_ok=True)
-        if r is None or r.returncode != 0 or re.search(r"^.*: error:", out, re.M):
-            errors.append("compile error: " + out.strip()[-1500:])
-        if "declaration uses 'sorry'" in out or "declaration uses `sorry`" in out:
-            errors.append("declaration uses sorry")
-        m = re.search(r"depends on axioms: \[(.*?)\]", out)
-        if m:
-            axioms = [a.strip() for a in m.group(1).split(",") if a.strip()]
-        elif r is not None and "does not depend on any axioms" not in out and not errors:
-            errors.append("could not read axioms")
-        bad = sorted(set(axioms) - ALLOWED_AXIOMS)
-        if bad:
-            errors.append("non-standard axioms: " + ", ".join(bad))
+        # Build products made here (as root under Docker) must stay usable by the
+        # unprivileged verifier user that runs Comparator next.
+        for d in ("Submission", ".lake/build/lib/lean/Submission", ".lake/build/ir/Submission"):
+            if (project_p / d).exists():
+                subprocess.run(["chmod", "-R", "a+rwX", str(project_p / d)], check=False, capture_output=True)
 
     print(json.dumps({
         "ok": not errors,
         "errors": errors,
-        "lines": len(sub_lines),
-        "nonblank_lines": sum(1 for l in sub_lines if l.strip()),
+        "files": [rel(f) for f in files],
+        "lines": sum(len(t.splitlines()) for t in files.values()),
+        "nonblank_lines": sum(1 for t in files.values() for l in t.splitlines() if l.strip()),
         "proof_lines": proof_lines,
         "axioms": axioms,
         "compile_seconds": compile_seconds,

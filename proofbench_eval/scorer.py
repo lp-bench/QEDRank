@@ -1,12 +1,13 @@
 """Two-layer Lean grading in a fresh container.
 
-Only the submission's source text leaves the agent's sandbox.  It is written
+Only the submission's source text leaves the agent's sandbox: the main file
+and the files under `Submission/` it imports, transitively.  They are written
 into the `verifier` sandbox, a second container from the same image that ran
 nothing of the agent's, and graded there:
 
 1. the fast check (image/check_proof.py, streamed over stdin): statement and
-   definitions unchanged, allowed imports, no `sorry`/`axiom`/`native_decide`,
-   compiles, standard axioms only;
+   definitions unchanged, allowed imports, no `sorry`/`axiom`/`native_decide`
+   in any file, helper files build, main file compiles, standard axioms only;
 2. if that passes, Comparator (leanprover/comparator), the Lean FRO's
    adversarial proof checker: it builds the trusted statement module and the
    submission module separately in a Landlock sandbox, requires identical
@@ -21,6 +22,7 @@ in the agent's sandbox after each session, only to decide whether to stop.
 """
 
 import json
+import re
 from pathlib import Path
 from typing import Any
 
@@ -34,21 +36,57 @@ CHECK_SCRIPT = (Path(__file__).resolve().parent.parent / "image" / "check_proof.
 PERMITTED_AXIOMS = ["propext", "Classical.choice", "Quot.sound"]
 COMPARATOR = "/opt/verifier/bin/comparator"
 COMPARATOR_LIB = "/opt/verifier/lib"
+SUBMISSION_IMPORT = re.compile(r"^import (Submission\.\S+)", re.M)
+MAX_FILES = 100
+
+
+def module_path(module: str, project_dir: str) -> str:
+    """`Submission.P110.Lemmas` -> `<project>/Submission/P110/Lemmas.lean`."""
+    return f"{project_dir}/" + "/".join(module.split(".")) + ".lean"
+
+
+def helper_modules(files: dict[str, str], md: dict[str, Any]) -> list[str]:
+    """Module names of the helper files in `files` (main file excluded)."""
+    prefix = md["project_dir"] + "/"
+    return [p[len(prefix) : -len(".lean")].replace("/", ".") for p in files if p != md["submission"]]
+
+
+async def collect_submission(sb: SandboxEnvironment, md: dict[str, Any]) -> dict[str, str]:
+    """{absolute path: text} of the main file and the Submission files it imports,
+    transitively.  Unreadable files are left out (the checker reports them)."""
+    files: dict[str, str] = {}
+    todo = [md["submission"]]
+    while todo and len(files) < MAX_FILES:
+        path = todo.pop()
+        if path in files:
+            continue
+        try:
+            text = await sb.read_file(path)
+        except Exception:
+            continue
+        files[path] = text
+        todo += [module_path(m, md["project_dir"]) for m in SUBMISSION_IMPORT.findall(text)]
+    return files
 
 
 async def check_submission(
-    sb: SandboxEnvironment, md: dict[str, Any], sample_id: Any, submission: str | None = None
+    sb: SandboxEnvironment, md: dict[str, Any], sample_id: Any, files: dict[str, str] | None = None
 ) -> dict[str, Any]:
-    """Layer 1 in sandbox `sb`; `submission` is written there first when given."""
+    """Layer 1 in sandbox `sb`.  `files` (from collect_submission) are written there
+    first when given; otherwise the files already in `sb` are checked."""
     ref_path = f"{md['project_dir']}/Submission/_reference_{sample_id}.lean"
     await sb.write_file(ref_path, md["reference"])
-    if submission is not None:
-        await sb.write_file(md["submission"], submission)
+    if files is not None:
+        for path, text in files.items():
+            await sb.write_file(path, text)
     else:
-        try:
-            submission = await sb.read_file(md["submission"])
-        except Exception as e:  # file deleted or unreadable
-            return {"ok": False, "errors": [f"cannot read submission: {e}"], "submission_text": ""}
+        files = await collect_submission(sb, md)
+    extra = {
+        "submission_text": files.get(md["submission"], ""),
+        "submission_files": {p: t for p, t in files.items() if p != md["submission"]},
+    }
+    if md["submission"] not in files:
+        return {"ok": False, "errors": ["cannot read submission"], **extra}
     result = await sb.exec(
         ["python3", "-", md["project_dir"], md["submission"], ref_path, md["theorem"]],
         input=CHECK_SCRIPT,
@@ -61,9 +99,9 @@ async def check_submission(
             "ok": False,
             "errors": [f"checker failed: rc={result.returncode}\n{result.stdout[-2000:]}\n{result.stderr[-2000:]}"],
             "checker_error": True,
-            "submission_text": submission,
+            **extra,
         }
-    return {**report, "submission_text": submission}
+    return {**report, **extra}
 
 
 async def run_comparator(sb: SandboxEnvironment, md: dict[str, Any], sample_id: Any) -> dict[str, Any]:
@@ -109,13 +147,12 @@ def _verifier() -> SandboxEnvironment | None:
 def lean_check():
     async def score(state: TaskState, target: Target) -> Score:
         md = state.metadata
-        try:
-            submission = await sandbox().read_file(md["submission"])
-        except Exception as e:
-            return Score(value=INCORRECT, explanation=f"cannot read submission: {e}")
+        files = await collect_submission(sandbox(), md)
+        if md["submission"] not in files:
+            return Score(value=INCORRECT, explanation="cannot read submission")
         verifier = _verifier()
         sb = verifier or sandbox()
-        report = await check_submission(sb, md, state.sample_id, submission)
+        report = await check_submission(sb, md, state.sample_id, files)
         use_comparator = md.get("comparator", True)
         comparator: dict[str, Any] | None = None
         if report["ok"] and use_comparator:

@@ -1,7 +1,7 @@
 """ProofBench evaluation task for Inspect AI.
 
-Each sample is one challenge file `Pxxx.lean` whose single `sorry` the agent
-must replace.  The agent works inside a sandbox that holds the ProofBench
+Each sample is one challenge file `Pxxx.lean` whose `sorry` (rarely several)
+the agent must replace; it may add helper files under `Submission/`.  The agent works inside a sandbox that holds the ProofBench
 statement layer (Mathlib plus `ProofBench.Mathlib_Problems`), with bash,
 python, the Lean MCP tools, and optionally web search.  Grading is a fresh
 Lean check performed by the scorer (see scorer.py): statement unchanged, no
@@ -56,22 +56,33 @@ INSTRUCTIONS = """\
 You are proving a theorem in Lean 4 with Mathlib.
 
 The file `{submission}` states the theorem `{theorem}` with its proof
-replaced by `sorry`.  Replace that `sorry` with a complete proof.
+replaced by `sorry`.  Replace every `sorry` in it with a complete proof.
 
 Rules, checked automatically after you submit:
 1. The theorem statement, every definition in the file, and their order must
    stay exactly as given.  You may add helper lemmas and definitions above
    the main theorem, and you may add imports, but only `Mathlib.*`,
-   `ProofBench.Mathlib_Problems.*`, `Matroid.*`, `Archive.Sensitivity` and
-   the imports the file already has.
+   `ProofBench.Mathlib_Problems.*`, `Matroid.*`, `Archive.Sensitivity`, the
+   imports the file already has, and your own files under `Submission/`.
 2. No `sorry`, no `axiom`, no `native_decide`.  The proof must depend only on
    the axioms `propext`, `Classical.choice` and `Quot.sound`.
-3. Compile with:  cd {project_dir} && lake env lean {submission}
+3. You may split the work over several files: `Submission/{pid}/Name.lean` is
+   the module `Submission.{pid}.Name`, imported with
+   `import Submission.{pid}.Name`.  Rules 1 and 2 apply to every file; the
+   main theorem stays in `{submission}`.  Only files the main file imports,
+   directly or indirectly, count.
+4. Compile with:  cd {project_dir} && lake build Submission.{pid}
+   (a file without helper files also compiles with `lake env lean {submission}`).
    For experiments you also have Python (sympy, networkx, python-sat),
    SageMath with GAP and nauty (`sage`, `gap`), and the SAT solver `cadical`.
    The Lean language-server tools (goal state, diagnostics, search) are
    available when present; the file path for them is `{submission_rel}`.
 """
+
+
+def strip_comments(text: str) -> str:
+    text = re.sub(r"/-.*?-/", "", text, flags=re.S)
+    return re.sub(r"--[^\n]*", "", text)
 
 
 def qualified_theorem(text: str, pid: str) -> str:
@@ -107,8 +118,9 @@ def load_samples(
     for pid in pids:
         src = root / "ProofBench/PROBLEMS" / pid / f"{pid}.lean"
         reference = src.read_text(encoding="utf-8")
-        if reference.count("sorry") != 1:
-            raise ValueError(f"{pid}: expected exactly one sorry, found {reference.count('sorry')}")
+        n_sorry = len(re.findall(r"\bsorry\b", strip_comments(reference)))
+        if n_sorry == 0:
+            raise ValueError(f"{pid}: the statement file has no sorry to replace")
         theorem = qualified_theorem(reference, pid)
         entry = db.get(pid[1:], {})
         submission_rel = f"Submission/{pid}.lean"
@@ -117,6 +129,7 @@ def load_samples(
             Sample(
                 id=pid,
                 input=INSTRUCTIONS.format(
+                    pid=pid,
                     submission=submission,
                     submission_rel=submission_rel,
                     theorem=theorem,
@@ -131,6 +144,7 @@ def load_samples(
                     "submission": submission,
                     "project_dir": project_dir,
                     "reference": reference,
+                    "sorries": n_sorry,
                     "statements_commit": commit,
                     "proofbench_commit": pb_commit,
                     "comparator": comparator,

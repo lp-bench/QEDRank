@@ -2,9 +2,8 @@ Keep every item short: not much explanations.
 When an item is done, delete it. When part of it is done, delete only that part.
 
 # Roadmap
-- Pilot running: `qwen3.8-27b` on P109–P111 (new easy problems), 40k output tokens/session, Comparator off. Then: review results; decide next model/problems.
+- Decide the next pilot (model, problems). Last: `qwen3.8-27b` solved P109–P111 3/3 (sessions 4, 3, 3; 40k output tokens/session; Comparator off).
 - Copy paste and use interesting parts of lean-eval and epoch-research/LeanOpenProblems in proofbench-eval-docker and proofbench-eval-apptainer, for free and quality improvements.
-- Allow the agent to write multiple files; session prompt then lists files, agent reads what it needs.
 - When websearch is on, we must (?) allow the agent install Lean libraries and incorporate them in their proof. Checker must be adjusted accordingly because currently checker does not allow it. We should have this as a swtichable option. --libraries-on --libraries-off
 (Claude: a library's code runs at compile time inside the same containers as the agent's own code, so no new way to reach the host, but unaudited third-party code. Belongs to the search-on configuration: finding and using a library is a capability we measure; fair because every model gets the same switch.)
 
@@ -22,6 +21,7 @@ WAITING for DECISION/HPC ACCESS/OTHER REASON
 - push `proofbench-statements` to private GitHub repo.
 
 ## CHANGES for me NOW
+- P015 (4 `sorry`s), P017 (2), P070 (3): decide whether the agent must prove every `sorry` (current rule) or some are given facts.
 - Ask ZIH: is rootless Podman available on Capella? (then use inspect-podman)
 (Claude: Podman = a Docker-compatible container tool that can run without root. A ready-made Inspect sandbox for it exists (VectorInstitute/inspect-podman). If Capella offers it, we could use that instead of our own inspect-apptainer. One question in the ZIH email.)
 - Paper: allowed imports also include Matroid, `Archive.Sensitivity`, imported statements.
