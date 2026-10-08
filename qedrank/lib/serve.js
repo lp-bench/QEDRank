@@ -42,6 +42,9 @@ export function createServer({ runsDir, jobs = null, allowOrigins = [] }) {
     const url = new URL(req.url, 'http://localhost');
     const isJobs = url.pathname === '/jobs' || url.pathname.startsWith('/jobs/');
     res.setHeader('Cache-Control', 'no-store');
+    // The page may be served from https://…vercel.app while this server is on the loopback
+    // address: browsers treat that as a private-network request and require this header.
+    res.setHeader('Access-Control-Allow-Private-Network', 'true');
     if (isJobs) {
       // Jobs: only the app's origins, and a header that forces a preflight.
       if (originAllowed(origin, allowOrigins)) {

@@ -139,7 +139,7 @@ export function RunLauncher({ manifest, selectedModels = [], onLoaded = null }) 
       timer.current = setInterval(() => poll(r.data.job.id), 2000)
     } catch (err) {
       const msg = err.response?.data?.error || err.message
-      setError(err.response ? msg : `Could not reach ${base}. Start the run server in PowerShell from C:\\QEDRank-QEDRank:  npm run qedrank:serve   (${msg})`)
+      setError(err.response ? msg : `Could not reach ${base}. The run server must be running on this computer: in PowerShell, cd C:\\QEDRank-QEDRank, then git pull, then npm run qedrank:serve — and leave that window open. If it is running and your browser asked whether this site may access your local network, allow it; otherwise open the app locally (npm run dev → http://localhost:3000), where no such permission is needed. (${msg})`)
     }
   }
 

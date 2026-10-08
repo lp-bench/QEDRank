@@ -87,6 +87,12 @@ test('job endpoints answer only to the app origins with the client header; run f
     req.on('error', reject);
     req.end(body ? JSON.stringify(body) : undefined);
   });
+  // Preflight from the deployed (https) page to the loopback server: private-network access granted.
+  const pre = await call('OPTIONS', '/jobs', { origin: 'https://qedrank.vercel.app' });
+  assert.equal(pre.status, 204);
+  assert.equal(pre.headers['access-control-allow-private-network'], 'true');
+  assert.equal(pre.headers['access-control-allow-origin'], 'https://qedrank.vercel.app');
+  assert.match(pre.headers['access-control-allow-headers'], /X-QEDRank-Client/);
   const good = { command: 'run', repo: REPO, models: 'kimi', runId: 'web-1' };
   assert.equal((await call('POST', '/jobs', { origin: 'https://evil.example', body: good })).status, 403);
   assert.equal((await call('POST', '/jobs', { origin: 'http://localhost:3000', client: false, body: good })).status, 403);
