@@ -67,8 +67,7 @@ COPY context/lean-toolchain context/lakefile.toml context/lake-manifest.json /op
 # Mathlib's cache extracts owner-only files; the verifier user must read them (same layer: no copy-up).
 RUN lake exe cache get && chmod -R a+rX /opt/proofbench/.lake
 COPY context/ /opt/proofbench/
-RUN lake build ProofBench.Visible && mkdir -p Submission \
-    && lake env lean ProofBench/Visible.lean
+RUN xargs lake build < modules.txt && mkdir -p Submission
 
 # Verifier binaries; the scorer runs comparator in a fresh container from this image.
 COPY --from=landrun_build /out/landrun /opt/verifier/bin/landrun

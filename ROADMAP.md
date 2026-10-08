@@ -20,6 +20,7 @@ WAITING for DECISION/HPC ACCESS/OTHER REASON
 - push `proofbench-statements` to private GitHub repo.
 
 ## CHANGES for me NOW
+- ProofBench's `Hypergraph` (Mathlib_Problems/Combinatorics/Hypergraph/Basic.lean, used by P008, P029–P036, P043) clashes with Mathlib's new `Hypergraph` (v4.33): both in one file fails. Rename ours (e.g. namespace `ProofBench`) so agents can `import Mathlib`.
 - P015 (4 `sorry`s), P017 (2), P070 (3): decide whether the agent must prove every `sorry` (current rule) or some are given facts.
 - Ask ZIH: is rootless Podman available on Capella? (then use inspect-podman)
 (Claude: Podman = a Docker-compatible container tool that can run without root. A ready-made Inspect sandbox for it exists (VectorInstitute/inspect-podman). If Capella offers it, we could use that instead of our own inspect-apptainer. One question in the ZIH email.)

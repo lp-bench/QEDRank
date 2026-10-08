@@ -35,8 +35,7 @@ From: ubuntu:24.04
     pip install --no-cache-dir --timeout 120 --retries 10 lean-lsp-mcp==0.31.0 inspect-ai==0.3.276 inspect-tool-support \
         sympy networkx python-sat numpy scipy
     inspect-tool-support post-install --no-web-browser
-    cd /opt/proofbench && lake exe cache get && lake build ProofBench.Visible && mkdir -p Submission
-    lake env lean ProofBench/Visible.lean
+    cd /opt/proofbench && lake exe cache get && xargs lake build < modules.txt && mkdir -p Submission
 
     # ---- Verifier (second grading layer): Comparator, the Lean FRO's adversarial
     # proof checker, with lean4export and landrun.  Same pins as image/Dockerfile.

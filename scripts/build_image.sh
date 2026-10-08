@@ -45,9 +45,12 @@ while todo:
     staged.add(m)
     seen.update(imports(pb / rel))
     todo += [i for i in imports(pb / rel) if i.startswith("ProofBench.")]
-# Aggregator module so one `lake build` compiles everything the problems import
-# (statement layer, Matroid, Archive.Sensitivity, imported challenge statements).
-(ctx / "ProofBench" / "Visible.lean").write_text("".join(f"import {m}\n" for m in top))
+# Build targets: every staged module, one per line (each pulls in its own
+# imports: statement layer, Matroid, Archive.Sensitivity).  They are built as
+# separate targets, not through one aggregator module: statement libraries may
+# clash with each other in a single environment (ProofBench's `Hypergraph`
+# against Mathlib's) while each problem file is fine on its own.
+(ctx / "modules.txt").write_text("".join(f"{m}\n" for m in sorted(staged)))
 print(f"staged {len(staged)} statement modules for {len(ids)} problems")
 # Drop the Matroid dependency when nothing imports it (saves a long source build).
 if not any(m.split(".")[0] == "Matroid" for m in seen):
