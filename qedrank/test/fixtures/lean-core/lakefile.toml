@@ -1,0 +1,6 @@
+# A Lean project without dependencies, for grader tests that need core Lean only.
+name = "qedrank-grade-fixture"
+defaultTargets = []
+
+[leanOptions]
+relaxedAutoImplicit = false

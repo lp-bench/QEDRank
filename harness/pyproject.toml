@@ -1,0 +1,22 @@
+[project]
+name = "proofbench-harness"
+version = "0.1.0"
+description = "Inspect AI harness for ProofBench: tool-using agents, fresh sessions with a fixed handoff note, and an independent Lean check after every session."
+requires-python = ">=3.10"
+dependencies = ["inspect-ai>=0.3.276"]
+
+[project.optional-dependencies]
+dev = ["pytest>=8"]
+
+[project.scripts]
+proofbench-export = "proofbench_harness.export:main"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["proofbench_harness*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

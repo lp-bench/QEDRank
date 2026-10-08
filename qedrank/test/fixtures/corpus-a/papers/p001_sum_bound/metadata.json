@@ -1,0 +1,7 @@
+{
+  "title": "A Bound on the Sum of the First n Naturals",
+  "authors": ["A. Fixture", "B. Example"],
+  "year": 2026,
+  "citation": "A. Fixture and B. Example. A Bound on the Sum of the First n Naturals. Fixture Journal 1 (2026).",
+  "mathematical_status": { "main_theorem": "established", "upper_bound": "established", "lower_bound": "established" }
+}

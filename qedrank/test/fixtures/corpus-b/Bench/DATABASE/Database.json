@@ -1,0 +1,66 @@
+[
+  {
+    "id": "001",
+    "name": "Hadwiger-type Conjecture (fixture)",
+    "msc": "05C15 Coloring of graphs and hypergraphs",
+    "difficulty": "Open",
+    "references": [
+      "key1"
+    ],
+    "formal_statement": [
+      "theorem P001 : SECRET_GROUND_TRUTH_STATEMENT"
+    ],
+    "formal_proof": [
+      "SECRET_GROUND_TRUTH_PROOF"
+    ]
+  },
+  {
+    "id": "014",
+    "name": "Essentially tight bounds for rainbow cycles in proper edge-colourings",
+    "msc": "05C38 Paths and cycles",
+    "difficulty": "Research",
+    "references": [],
+    "formal_statement": [
+      "SECRET_GROUND_TRUTH_STATEMENT_2"
+    ]
+  },
+  {
+    "id": "020",
+    "name": "Wrong entry if joined by folder number",
+    "msc": "11B",
+    "difficulty": "Open",
+    "formal_statement": [
+      "theorem P020 : SECRET_GROUND_TRUTH_STATEMENT_3"
+    ]
+  },
+  {
+    "id": "021",
+    "name": "Renumbered problem (fixture)",
+    "msc": "05D10 Ramsey theory",
+    "difficulty": "Research theorem (proved in literature; Lean proof pending)",
+    "formal_statement": [
+      "theorem P021 (n : ℕ) : n = n := SECRET_GROUND_TRUTH_PROOF_4"
+    ]
+  },
+  {
+    "id": "050",
+    "name": "An index entry without a folder",
+    "msc": "05C",
+    "difficulty": "Calibration (elementary; full Lean reference proof)"
+  },
+  {
+    "id": "030",
+    "name": "The Collatz Conjecture (fixture, stale numbering)",
+    "msc": "11B83",
+    "difficulty": "Open",
+    "formal_statement": [
+      "theorem P030 : SECRET_GROUND_TRUTH_STATEMENT_5"
+    ]
+  },
+  {
+    "id": "031",
+    "name": "Polychromatic colorings of geometric hypergraphs via shallow hitting sets",
+    "msc": "05C15",
+    "difficulty": "Research"
+  }
+]
