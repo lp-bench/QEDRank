@@ -65,7 +65,10 @@ Rules, checked automatically after you submit:
    `ProofBench.Mathlib_Problems.*`, `Matroid.*`, `Archive.Sensitivity`, the
    imports the file already has, and your own files under `Submission/`.
 2. No `sorry`, no `axiom`, no `native_decide`.  The proof must depend only on
-   the axioms `propext`, `Classical.choice` and `Quot.sound`.
+   the axioms `propext`, `Classical.choice` and `Quot.sound`.  Do not try Lean
+   loopholes (meta code, `initialize`, `#` commands, new notation or macros,
+   options that skip kernel checks): the verifier replays the proof through
+   the kernel and rejects them.
 3. You may split the work over several files: `Submission/{pid}/Name.lean` is
    the module `Submission.{pid}.Name`, imported with
    `import Submission.{pid}.Name`.  Rules 1 and 2 apply to every file; the

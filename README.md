@@ -85,7 +85,10 @@ epochs, token/time/working limits.  Change any of these and it is a new run.
 
 * Grading runs in a second container the agent never touched; only the
   submission's source text crosses over.  Layer 1 is the textual and compile
-  check of `check_proof.py`; layer 2 is Comparator, which rebuilds statement
+  check of `check_proof.py` (it also refuses meta-level tricks: `#` commands,
+  `initialize`/`run_cmd`, kernel-skipping options, and notation, macro or
+  scope changes ahead of the statement, which only matter when layer 2 is
+  off); layer 2 is Comparator, which rebuilds statement
   and submission in a Landlock sandbox, requires identical statements and
   dependencies, replays the proof through the Lean kernel and checks the
   axioms.  Comparator needs Landlock in the host kernel (check `landrun`

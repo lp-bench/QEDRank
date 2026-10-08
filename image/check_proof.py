@@ -19,14 +19,35 @@ from pathlib import Path
 ALLOWED_IMPORT = re.compile(
     r"^import (Mathlib(\.\S+)?|ProofBench\.Mathlib_Problems\.\S+|Matroid(\.\S+)?|Archive\.Sensitivity|Submission\.\S+)\s*$"
 )
-SUBMISSION_IMPORT = re.compile(r"^import (Submission\.\S+)", re.M)
+SUBMISSION_IMPORT = re.compile(r"^import (Submission(?:\.[A-Za-z0-9_']+)+)\s*$", re.M)
 ALLOWED_AXIOMS = {"propext", "Classical.choice", "Quot.sound"}
+# Anywhere in any file.  Beyond sorry/axiom/native_decide: meta-level ways to
+# add declarations without the kernel or to fake compiler output.  Comparator
+# (layer 2) catches all of these by kernel replay; these guards matter when it
+# is off.
 FORBIDDEN = [
     (re.compile(r"\bsorry\b"), "contains sorry"),
     (re.compile(r"^\s*axiom\b", re.M), "declares an axiom"),
     (re.compile(r"\bnative_decide\b"), "uses native_decide"),
     (re.compile(r"\bimplemented_by\b|\bextern\b"), "uses implemented_by/extern"),
+    (re.compile(r"\bskipKernelTC\b|\bofReduceBool\b|\bofReduceNat\b|\baddDecl\b"), "bypasses the kernel"),
+    (re.compile(r"^\s*(?:builtin_)?initialize\b|^\s*run_(?:cmd|tac|elab)\b", re.M), "runs code at elaboration time"),
+    (re.compile(r"^\s*#[A-Za-z_]", re.M), "uses a # command"),
 ]
+# Commands that change how later text parses or resolves: not in helper files,
+# and not among the lines added before the main theorem (the statement must
+# mean what the reference means).  Such lines of the reference itself are fine.
+SYNTAX_COMMANDS = re.compile(
+    r"^\s*(?:(?:local|scoped)\s+)?(?:notation|infix|infixl|infixr|prefix|postfix|macro|macro_rules|syntax|"
+    r"declare_syntax_cat|elab|elab_rules|export|unif_hint)\b"
+)
+SCOPE_COMMANDS = re.compile(
+    r"^\s*(?:open|namespace|(?:noncomputable\s+)?section|end|variable|include|omit|attribute|set_option)\b"
+)
+SET_OPTION_OK = re.compile(
+    r"^\s*set_option\s+(?:maxHeartbeats|maxRecDepth|synthInstance\.\S+|maxSynthPendingDepth|linter\.\S+|"
+    r"pp\.\S+|trace\.\S+|diagnostics|autoImplicit)\s+\S+\s+in\s*$"
+)
 MAX_FILES = 100
 
 
@@ -96,9 +117,14 @@ def main() -> None:
     # 2. forbidden constructs (comments stripped so a mention in a comment is fine)
     code = strip_comments(sub_text)
     for f, text in files.items():
+        stripped = strip_comments(text)
         for rx, msg in FORBIDDEN:
-            if rx.search(strip_comments(text)):
+            if rx.search(stripped):
                 errors.append(msg if f == main_p else f"{msg} ({rel(f)})")
+        if f != main_p:
+            for l in stripped.splitlines():
+                if SYNTAX_COMMANDS.match(l):
+                    errors.append(f"syntax/notation command in helper file {rel(f)}: {l.strip()[:60]}")
 
     # 3. statement and definitions unchanged: with comments stripped, every
     #    non-empty reference line up to the `:=` of the main theorem must appear,
@@ -122,6 +148,8 @@ def main() -> None:
         for h in have:
             if k < len(needed) and h == needed[k]:
                 k += 1
+            elif (SYNTAX_COMMANDS.match(h) or SCOPE_COMMANDS.match(h)) and not SET_OPTION_OK.match(h):
+                errors.append(f"line added before the theorem changes its scope or syntax: {h[:60]!r}")
         if k < len(needed):
             errors.append(f"reference line missing or altered before the theorem: {needed[k]!r}")
         after = sub_code[sspan[1]].split(":=", 1)[1].strip()
@@ -158,10 +186,12 @@ def main() -> None:
                 errors.append("compile error: " + out.strip()[-1500:])
             if "declaration uses 'sorry'" in out or "declaration uses `sorry`" in out:
                 errors.append("declaration uses sorry")
-            m = re.search(r"depends on axioms: \[(.*?)\]", out)
-            if m:
-                axioms = [a.strip() for a in m.group(1).split(",") if a.strip()]
-            elif r is not None and "does not depend on any axioms" not in out and not errors:
+            # The last report for our theorem: `#print axioms` is the file's last
+            # command, so nothing in the submission can print after it.
+            found = re.findall(rf"^'{re.escape(theorem)}' depends on axioms: \[(.*?)\]", out, re.M)
+            if found:
+                axioms = [a.strip() for a in found[-1].split(",") if a.strip()]
+            elif r is not None and f"'{theorem}' does not depend on any axioms" not in out and not errors:
                 errors.append("could not read axioms")
             bad = sorted(set(axioms) - ALLOWED_AXIOMS)
             if bad:

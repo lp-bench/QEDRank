@@ -163,7 +163,10 @@ def handoff_sessions(
                 ended_by = exceeded.type if exceeded else "submit"
             except Exception as ex:
                 ended_by = f"error: {type(ex).__name__}: {str(ex)[:200]}"
-            report = await check_submission(sandbox(), md, state.sample_id)  # layer 1 only, to decide whether to stop
+            try:  # layer 1 only, to decide whether to stop
+                report = await check_submission(sandbox(), md, state.sample_id)
+            except Exception as ex:
+                report = {"ok": False, "errors": [f"check failed: {type(ex).__name__}: {str(ex)[:200]}"]}
             record = {
                 "session": k,
                 "ended_by": ended_by,

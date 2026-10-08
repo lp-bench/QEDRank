@@ -36,7 +36,7 @@ CHECK_SCRIPT = (Path(__file__).resolve().parent.parent / "image" / "check_proof.
 PERMITTED_AXIOMS = ["propext", "Classical.choice", "Quot.sound"]
 COMPARATOR = "/opt/verifier/bin/comparator"
 COMPARATOR_LIB = "/opt/verifier/lib"
-SUBMISSION_IMPORT = re.compile(r"^import (Submission\.\S+)", re.M)
+SUBMISSION_IMPORT = re.compile(r"^import (Submission(?:\.[A-Za-z0-9_']+)+)\s*$", re.M)
 MAX_FILES = 100
 
 
@@ -87,11 +87,14 @@ async def check_submission(
     }
     if md["submission"] not in files:
         return {"ok": False, "errors": ["cannot read submission"], **extra}
-    result = await sb.exec(
-        ["python3", "-", md["project_dir"], md["submission"], ref_path, md["theorem"]],
-        input=CHECK_SCRIPT,
-        timeout=1200,
-    )
+    try:  # a timeout or oversized output is a failed verdict, not an infrastructure error
+        result = await sb.exec(
+            ["python3", "-", md["project_dir"], md["submission"], ref_path, md["theorem"]],
+            input=CHECK_SCRIPT,
+            timeout=1200,
+        )
+    except Exception as e:
+        return {"ok": False, "errors": [f"checker did not finish: {type(e).__name__}: {str(e)[:200]}"], **extra}
     try:
         report = json.loads(result.stdout.strip().splitlines()[-1])
     except Exception:
@@ -121,11 +124,15 @@ async def run_comparator(sb: SandboxEnvironment, md: dict[str, Any], sample_id: 
         "sh", md["project_dir"], config_path,
     ]
     try:
-        result = await sb.exec(cmd, user="verifier", timeout=3600)
-        ran_as = "verifier"
-    except SandboxUserUnsupportedError:  # Apptainer: already the invoking, unprivileged user
-        result = await sb.exec(cmd, timeout=3600)
-        ran_as = "invoking user"
+        try:
+            result = await sb.exec(cmd, user="verifier", timeout=3600)
+            ran_as = "verifier"
+        except SandboxUserUnsupportedError:  # Apptainer: already the invoking, unprivileged user
+            result = await sb.exec(cmd, timeout=3600)
+            ran_as = "invoking user"
+    except Exception as e:  # timeout etc.: rejected, as any non-zero exit
+        return {"ok": False, "returncode": None, "ran_as": "", "config": config, "stdout": "",
+                "stderr": f"comparator did not finish: {type(e).__name__}: {str(e)[:200]}"}
     return {
         "ok": result.success,
         "returncode": result.returncode,
