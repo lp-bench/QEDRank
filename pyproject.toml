@@ -5,6 +5,17 @@ description = "Apptainer sandbox environment for Inspect AI (HPC clusters withou
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = ["inspect-ai>=0.3.276", "pydantic>=2", "pyyaml>=6"]
+keywords = ["inspect-ai", "apptainer", "singularity", "sandbox", "hpc", "evaluation"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "Programming Language :: Python :: 3",
+    "Operating System :: POSIX :: Linux",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+
+[project.urls]
+Homepage = "https://github.com/utkuokur/inspect-apptainer"
 
 [project.optional-dependencies]
 test = ["pytest>=8", "pytest-asyncio>=0.24"]
