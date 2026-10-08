@@ -69,11 +69,12 @@ Rules, checked automatically after you submit:
    loopholes (meta code, `initialize`, `#` commands, new notation or macros,
    options that skip kernel checks): the verifier replays the proof through
    the kernel and rejects them.
-3. You may split the work over several files: `Submission/{pid}/Name.lean` is
-   the module `Submission.{pid}.Name`, imported with
-   `import Submission.{pid}.Name`.  Rules 1 and 2 apply to every file; the
-   main theorem stays in `{submission}`.  Only files the main file imports,
-   directly or indirectly, count.
+3. Organise the work as in any Lean project.  For a larger proof, put helper
+   lemmas and definitions in files under `Submission/{pid}/`:
+   `Submission/{pid}/Name.lean` is the module `Submission.{pid}.Name`, imported
+   with `import Submission.{pid}.Name`.  Rules 1 and 2 apply to every file; the
+   main theorem stays in `{submission}`.  Files the main file does not import,
+   directly or indirectly, are ignored.
 4. Compile with:  cd {project_dir} && lake build Submission.{pid}
    (a file without helper files also compiles with `lake env lean {submission}`).
    For experiments you also have Python (sympy, networkx, python-sat),

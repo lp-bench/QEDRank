@@ -29,6 +29,7 @@ WAITING for DECISION/HPC ACCESS/OTHER REASON
 - Paper: not only commercial APIs (Qwen via university endpoint, Kimi self-hosted).
 (Claude: yes, one sentence in the harness section.)
 - Paper: say each model gets one session chain per problem, never a restart.
+- Paper: cite lean-eval and LeanOpenProblems as the grading designs we followed (one sentence in the grading section).
 (Claude: yes. Prefer the standard term pass@1 (one attempt per problem), with "one epoch in Inspect" as a footnote; "epoch" alone usually means a training pass to readers.)
 - Paper (sessions section): every session asks the model to keep the file compiling, with `sorry` for unfinished steps replaced one at a time; only the final submission must be `sorry`-free.
 
