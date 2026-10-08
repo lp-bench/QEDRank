@@ -53,6 +53,7 @@ echo "--- 2. reference solutions through both grading layers"
 for pid in $IDS; do
   [ -f "$PB/ProofBench/PROBLEMS/$pid/${pid}_sol.lean" ] || continue
   out=$(scripts/verify_comparator.sh "$pid" "$PB" 2>&1 || true)
+  if echo "$out" | grep -q "^SKIP:"; then echo "$pid: $(echo "$out" | grep "^SKIP:")"; continue; fi
   l1=$(echo "$out" | grep -A1 "layer 1" | tail -1 | python3 -c "import sys,json; print('ok' if json.loads(sys.stdin.read())['ok'] else 'FAIL')" 2>/dev/null || echo "FAIL")
   l2=$(echo "$out" | grep -q "Your solution is okay" && echo ok || echo FAIL)
   echo "$pid: layer1=$l1 comparator=$l2"

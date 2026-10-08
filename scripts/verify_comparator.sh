@@ -1,7 +1,13 @@
 #!/usr/bin/env bash
-# End-to-end check of the verifier layer on the built image: grade a known-correct
-# proof (the reference solution of a problem, taken from the private ProofBench repo)
-# with Comparator exactly as the scorer does, in a fresh container as user `verifier`.
+# End-to-end check of the grader on the built image: grade a known-correct proof
+# (the reference solution Pxxx_sol.lean of the private ProofBench repo) with both
+# layers exactly as the scorer does, in a fresh container as user `verifier`.
+# The solution file is turned into a submission (statement file + proof):
+#   - a standalone file proving `Pxxx_sol` is used as is with the theorem renamed;
+#   - a file that imports the statement module and proves `Pxxx_sol` is inserted
+#     before the statement's theorem, whose proof becomes `apply Pxxx_sol`;
+#   - a file that needs the proctor library (ProofBench.Mathlib.*) is skipped:
+#     that library is not in the sandbox.
 # usage: scripts/verify_comparator.sh P090 [../ProofBench]
 set -euo pipefail
 cd "$(dirname "$0")/.."
@@ -9,18 +15,7 @@ PID=${1:?problem id}; PB=${2:-../ProofBench}
 ST=proofbench-statements/ProofBench/PROBLEMS/$PID/$PID.lean
 SOL=$PB/ProofBench/PROBLEMS/$PID/${PID}_sol.lean
 TMP=$(mktemp -d); trap 'rm -rf "$TMP"' EXIT
-python3 - "$ST" "$SOL" "$TMP/$PID.lean" <<'PY'
-import re, sys
-from pathlib import Path
-st, sol = Path(sys.argv[1]).read_text(), Path(sys.argv[2]).read_text()
-proof = sol.split(":= by\n", 1)[1]                       # body of the reference proof
-imports = sorted(set(re.findall(r"^import .*$", sol, re.M)) - set(re.findall(r"^import .*$", st, re.M)))
-text = st.replace("  sorry\n", proof)
-if imports:  # extra imports the reference needs go after the statement's own
-    last = re.findall(r"^import .*$", text, re.M)[-1]
-    text = text.replace(last, last + "\n" + "\n".join(imports), 1)
-Path(sys.argv[3]).write_text(text)
-PY
+python3 scripts/solution_to_submission.py "$PID" "$ST" "$SOL" "$TMP/$PID.lean" || exit $?
 THEOREM=$(python3 -c "
 import re,sys; t=open('$ST').read(); ns=[m.group(1) for m in re.finditer(r'^namespace\s+(\S+)', t, re.M)]
 print('.'.join(ns+['$PID']))")
