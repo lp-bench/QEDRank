@@ -9,10 +9,14 @@
 //       or git@github.com:<owner>/<repo>.git (private over SSH, uses your SSH agent / deploy key)
 //       --subdir <folder> restricts discovery to one folder (a /tree/<branch>/<folder> link sets it too)
 //   node qedrank/cli.js run --repo <url> [--ref R] [--run-id ID] [--models a,b] [--papers p1,p2] [--targets main_theorem,...] [--limit N]
-//                          [--fixtures DIR] [--attempts K] [--repair-rounds R] [--config file] [--dry-run]
+//                          [--task formalize|prove] [--lean-project DIR] [--fixtures DIR] [--attempts K] [--repair-rounds R] [--config file] [--dry-run]
+//       --task formalize (default): the model writes statement and proof from the paper text; the statement is compared with the reference
+//       --task prove: the model gets the challenge file and fills in its sorry; the file is judged by the independent check (no PDF needed)
+//       --lean-project: the Lean project whose toolchain, Mathlib and libraries compile the files (default lean/; a built ProofBench checkout for its statement library)
 //   node qedrank/cli.js resume --run-id ID [--retry-failed] [--reevaluate]
 //   node qedrank/cli.js stats --run-id ID
-//   node qedrank/cli.js serve [--port 8787]
+//   node qedrank/cli.js serve [--port 8787] [--no-jobs] [--allow-origin https://host]
+//       serves runs/ to the page and, unless --no-jobs, lets the page start and watch runs (POST /jobs; localhost only)
 //   node qedrank/cli.js prompt --run-id ID --paper P --target main_theorem
 //   node qedrank/cli.js import-agent --bundle bundle.json[,more.json] --run-id ID [--force]
 //       results of the Inspect AI harness (harness/, `proofbench-export`) as a run: same statistics, same UI
@@ -41,6 +45,8 @@ import os from 'node:os';
 import { LeanRunner } from './lib/lean.js';
 import { gradeSubmission, DEFAULT_GRADE_POLICY } from './lib/grade.js';
 import { importAgentBundles } from './lib/agent.js';
+import { JobManager } from './lib/jobs.js';
+import { fileURLToPath } from 'node:url';
 
 function parseArgs(argv) {
   const args = { _: [] };
@@ -71,6 +77,8 @@ async function main() {
   if (args['lean-timeout']) overrides.lean = { ...(overrides.lean || {}), timeoutMs: Number(args['lean-timeout']) };
   if (args.concurrency) overrides.concurrency = { items: Number(args.concurrency) };
   if (args['runs-dir']) overrides.runsDir = args['runs-dir'];
+  if (typeof args.task === 'string') overrides.task = args.task;
+  if (typeof args['lean-project'] === 'string') overrides.leanDir = path.resolve(args['lean-project']);
   const config = await loadConfig({ configFile: args.config || null, overrides });
 
   switch (cmd) {
@@ -205,8 +213,10 @@ async function main() {
     }
     case 'serve': {
       const port = Number(args.port || 8787);
-      const server = createServer({ runsDir: config.runsDir });
-      server.listen(port, '127.0.0.1', () => log(`serving ${config.runsDir} at http://127.0.0.1:${port}/runs`));
+      const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+      const jobs = args['no-jobs'] ? null : new JobManager({ cwd: repoRoot, cliPath: fileURLToPath(import.meta.url), logDir: path.join(config.runsDir, '.jobs') });
+      const server = createServer({ runsDir: config.runsDir, jobs, allowOrigins: list(args['allow-origin']) });
+      server.listen(port, '127.0.0.1', () => log(`serving ${config.runsDir} at http://127.0.0.1:${port}/runs${jobs ? ' (the page can start runs here; --no-jobs disables that)' : ''}`));
       return;
     }
     default:

@@ -160,6 +160,32 @@ all attempts), tokens and cost (only when the provider reports usage and
 Apparent proofs of `open` claims are listed under `coverage.open_claim_escalations`
 for independent review and never counted as successes.
 
+## Tasks: formalize or prove
+
+`--task` (and the "Task" selector on the Benchmark page) chooses what the model is asked to do
+with each challenge. Both tasks use the same roster, budgets and statistics.
+
+| | `formalize` (default) | `prove` |
+|---|---|---|
+| The model receives | the paper text (PDF excerpt) and a definitions-only prelude | the challenge file as it is: statement, definitions and the one intended `sorry` |
+| The model returns | a Lean statement and a proof file | the same file with the `sorry` replaced |
+| Success means | compiles ∧ standard axioms ∧ the model's statement is an accepted match to the audited reference ∧ the proof proves that statement | the independent check of [`grade`](#independent-check-grade) passes: compiles ∧ no `sorry` anywhere ∧ standard axioms ∧ statement and definitions unchanged as compiled ∧ kernel replay |
+| Needs | the paper PDF and a reference that compiles in the runner's Lean project | a Lean project that resolves the challenge's imports (`--lean-project`; the repository's `lean/` for Mathlib-only challenges, a built ProofBench checkout for its statement library) |
+| What ProofBench is built for | the autoformalisation baseline | **this one** (challenge files are statements with a `sorry`) |
+
+`prove` records carry `task: "prove"`, the full grade record under `grade`, and the completeness
+score of unsolved files; the matrix, intervals and tests are the same as for `formalize`.
+`--repair-rounds r` sends the check's compiler output back to the model, same budget for every model.
+
+## Starting a run from the page
+
+`npm run qedrank:serve` also lets the Benchmark page start and watch runs (step 2 under the
+corpus preview): it posts the validated request to `POST /jobs` on the local server, which runs
+`node qedrank/cli.js run …` with the GitHub token from `gh auth token` (never typed into the page),
+streams the log, and loads the finished run into the Evaluation page. The server binds to
+127.0.0.1, accepts job requests only from the app's own origins with a custom header, and runs
+only allow-listed commands with validated arguments — never a shell. `--no-jobs` turns this off.
+
 ## Independent check: grade
 
 ```bash

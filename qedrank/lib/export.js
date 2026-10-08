@@ -5,7 +5,7 @@ import { toCsv, writeJson, writeText, round } from './util.js';
 import { matrixRows } from './metrics.js';
 
 export const ITEM_COLUMNS = [
-  'run_id', 'harness_commit', 'source_commit', 'item_key', 'paper_id', 'target_kind', 'provider', 'model', 'model_id', 'api_host', 'response_model', 'setting', 'attempt', 'repair_round',
+  'run_id', 'harness_commit', 'source_commit', 'item_key', 'paper_id', 'target_kind', 'provider', 'model', 'model_id', 'api_host', 'response_model', 'task', 'setting', 'attempt', 'repair_round',
   'difficulty', 'model_released', 'model_training_cutoff', 'model_parameters_b', 'problem_publication_date', 'published_before_cutoff',
   'mathematical_status', 'reference_proof_status', 'reference_statement_available', 'eligible_statement_track', 'eligible_proof_track', 'eligibility_reasons',
   'infrastructure_failure', 'generation_error', 'abstained', 'statement_confidence', 'proof_confidence',
@@ -39,6 +39,7 @@ export function flattenItem(r, { runId = null, sourceCommit = null, pricing = {}
     model_id: r.model_id,
     api_host: r.api_host ?? null,
     response_model: r.response_model ?? null,
+    task: r.task ?? (r.setting === 'agent' ? 'agent' : 'formalize'),
     setting: r.setting,
     attempt: r.attempt,
     repair_round: r.repair_round,
@@ -87,7 +88,7 @@ export function flattenItem(r, { runId = null, sourceCommit = null, pricing = {}
     solved_at_session: r.agent?.solved_at_session ?? null,
     model_calls: r.agent?.totals?.model_calls ?? null,
     tool_calls: r.agent?.totals?.tool_calls ?? null,
-    completeness: r.agent?.completeness?.score ?? null,
+    completeness: r.agent?.completeness?.score ?? r.grade?.completeness?.score ?? null,
     web_search: r.agent?.web_search ?? null,
     search_queries: r.agent?.search?.queries?.length ?? null,
     urls_fetched: r.agent?.search?.urls?.length ?? null,

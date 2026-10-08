@@ -8,7 +8,7 @@ const STAGES = ['discovery', 'preparation', 'generation', 'compilation', 'audit'
 /* Corpus discovery: GitHub URL + ref -> preview manifest               */
 /* ------------------------------------------------------------------ */
 
-export function CorpusPanel({ onManifest, modelsArg = '' }) {
+export function CorpusPanel({ onManifest, modelsArg = '', selectedModels = [], onLoaded = null }) {
   const [repoUrl, setRepoUrl] = useState('')
   const [ref, setRef] = useState('')
   const [subdir, setSubdir] = useState('')
@@ -68,7 +68,138 @@ export function CorpusPanel({ onManifest, modelsArg = '' }) {
       </form>
       {error && <div className="error-message">{error}</div>}
       {manifest && <ManifestView manifest={manifest} modelsArg={modelsArg} />}
+      {manifest && manifest.counts?.papers > 0 && <RunLauncher manifest={manifest} selectedModels={selectedModels} onLoaded={onLoaded} />}
     </section>
+  )
+}
+
+/* ------------------------------------------------------------------ */
+/* Start a run from the page through the local run server               */
+/* ------------------------------------------------------------------ */
+
+const TASKS = [
+  { id: 'prove', label: 'Prove the given statement (fill the sorry)', note: 'The challenge file is sent as it is; the completed file is checked for compilation, no sorry, standard axioms, unchanged statement and definitions as compiled, and kernel replay. Needs no PDF. The task ProofBench is built for.' },
+  { id: 'formalize', label: 'Formalize statement and proof from the paper', note: 'The model writes the Lean statement from the paper text and proves it; its statement is compared with the audited reference. Needs the paper PDF.' },
+]
+
+export function RunLauncher({ manifest, selectedModels = [], onLoaded = null }) {
+  const src = manifest.source || {}
+  const papers = manifest.papers || []
+  const ids = papers.map((p) => p.paper_id)
+  const withPdf = papers.filter((p) => p.pdf).map((p) => p.paper_id)
+  const [base, setBase] = useState('http://127.0.0.1:8787')
+  const [task, setTask] = useState('prove')
+  const [targets, setTargets] = useState(['main_theorem'])
+  const [papersText, setPapersText] = useState(ids.slice(0, 5).join(','))
+  const [runId, setRunId] = useState(() => `${new Date().toISOString().slice(0, 10)}-${(src.commit || 'run').slice(0, 7)}`)
+  const [leanProject, setLeanProject] = useState('')
+  const [dryRun, setDryRun] = useState(false)
+  const [job, setJob] = useState(null)
+  const [log, setLog] = useState('')
+  const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
+  const offset = useRef(0)
+  const timer = useRef(null)
+  const client = { headers: { 'X-QEDRank-Client': 'web' } }
+
+  const request = {
+    command: 'run', repo: src.url, ref: src.commit, subdir: src.subdir || undefined,
+    models: selectedModels, targets, papers: papersText.split(',').map((s) => s.trim()).filter(Boolean),
+    runId: runId.trim(), task, leanProject: leanProject.trim() || undefined, dryRun,
+  }
+  const commandLine = ['node qedrank/cli.js run', `--repo ${src.url}`, `--ref ${src.commit}`, src.subdir ? `--subdir "${src.subdir}"` : '', `--models ${selectedModels.join(',') || '<models>'}`, targets.length ? `--targets ${targets.join(',')}` : '', request.papers.length ? `--papers ${request.papers.join(',')}` : '', task !== 'formalize' ? `--task ${task}` : '', leanProject.trim() ? `--lean-project "${leanProject.trim()}"` : '', dryRun ? '--dry-run' : '', `--run-id ${runId.trim() || '<id>'}`].filter(Boolean).join(' ')
+
+  const stopPolling = () => { if (timer.current) { clearInterval(timer.current); timer.current = null } }
+  useEffect(() => () => stopPolling(), [])
+
+  const poll = async (id) => {
+    try {
+      const r = await axios.get(`${base}/jobs/${id}?from=${offset.current}`, client)
+      const j = r.data.job
+      if (j.log) setLog((l) => (l + j.log).slice(-200000))
+      offset.current = j.next
+      setJob(j)
+      if (j.status !== 'running' && j.status !== 'stopping') stopPolling()
+    } catch (err) {
+      setError(`Lost the run server: ${err.message}`)
+      stopPolling()
+    }
+  }
+
+  const start = async () => {
+    setError('')
+    if (!selectedModels.length) { setError('Select at least one model in step 0.'); return }
+    if (!runId.trim()) { setError('Give the run an id.'); return }
+    setLog('')
+    offset.current = 0
+    try {
+      const r = await axios.post(`${base}/jobs`, request, client)
+      setJob(r.data.job)
+      stopPolling()
+      timer.current = setInterval(() => poll(r.data.job.id), 2000)
+    } catch (err) {
+      const msg = err.response?.data?.error || err.message
+      setError(err.response ? msg : `Could not reach ${base}. Start the run server in PowerShell from C:\\QEDRank-QEDRank:  npm run qedrank:serve   (${msg})`)
+    }
+  }
+
+  const stop = async () => { if (job) { try { await axios.post(`${base}/jobs/${job.id}/stop`, {}, client) } catch (err) { setError(err.message) } } }
+
+  const loadRun = async () => {
+    if (!onLoaded || !job) return
+    setLoading(true)
+    try {
+      const [run, summary, items] = await Promise.all([
+        axios.get(`${base}/runs/${job.run_id}/run.json`).then((r) => r.data),
+        axios.get(`${base}/runs/${job.run_id}/summary.json`).then((r) => r.data).catch(() => null),
+        axios.get(`${base}/runs/${job.run_id}/exports/items.json`).then((r) => r.data.items).catch(() => null),
+      ])
+      onLoaded({ run, summary, items })
+      if (!summary) setError('The run has no summary yet (it is still in progress or stopped before the statistics stage); progress only.')
+    } catch (err) { setError(`Could not load the run: ${err.message}`) } finally { setLoading(false) }
+  }
+
+  const running = job && (job.status === 'running' || job.status === 'stopping')
+  return (
+    <div className="qr-launch">
+      <h3>2. Run the benchmark from here</h3>
+      <p className="qr-muted">Starts the same command PowerShell would run, through the local run server (<code>npm run qedrank:serve</code>, listening on this machine only). The GitHub token comes from your <code>gh</code> login on that machine; it is never typed here. Model calls and Lean compilation run locally; the page follows the log.</p>
+      <div className="qr-form">
+        <label>Task
+          <select value={task} onChange={(e) => setTask(e.target.value)}>{TASKS.map((t) => <option key={t.id} value={t.id}>{t.label}</option>)}</select>
+        </label>
+        <div className="qr-small">{TASKS.find((t) => t.id === task)?.note}</div>
+        <div className="qr-form-row">
+          {TARGET_KINDS.map((k) => <label key={k} className="qr-check"><input type="checkbox" checked={targets.includes(k)} onChange={(e) => setTargets(e.target.checked ? [...targets, k] : targets.filter((x) => x !== k))} /> {TARGET_LABELS[k]}</label>)}
+        </div>
+        <label>Problems (comma-separated ids; empty = all {ids.length})
+          <input value={papersText} onChange={(e) => setPapersText(e.target.value)} />
+        </label>
+        <div className="qr-form-row">
+          <button type="button" className="qr-btn qr-btn-secondary" onClick={() => setPapersText(ids.slice(0, 5).join(','))}>First 5</button>
+          <button type="button" className="qr-btn qr-btn-secondary" onClick={() => setPapersText(withPdf.join(','))}>With PDF ({withPdf.length})</button>
+          <button type="button" className="qr-btn qr-btn-secondary" onClick={() => setPapersText('')}>All ({ids.length})</button>
+        </div>
+        <label>Run id<input value={runId} onChange={(e) => setRunId(e.target.value)} /></label>
+        <label>Lean project on this machine (optional)<input value={leanProject} onChange={(e) => setLeanProject(e.target.value)} placeholder="default: this repository's lean/ (Mathlib only); for ProofBench.Mathlib_Problems imports give a built ProofBench checkout, e.g. C:\ProofBench" /></label>
+        <label>Run server<input value={base} onChange={(e) => setBase(e.target.value)} /></label>
+        <label className="qr-check"><input type="checkbox" checked={dryRun} onChange={(e) => setDryRun(e.target.checked)} /> Dry run: discovery and preparation only, no model calls</label>
+        <div className="qr-small">Models: <code>{selectedModels.join(', ') || 'none selected (step 0)'}</code></div>
+        <pre className="qr-cmd">{commandLine}</pre>
+        <div className="qr-form-row">
+          <button type="button" className="qr-btn" onClick={start} disabled={running}>{running ? 'Running…' : 'Start run'}</button>
+          {running && <button type="button" className="qr-btn qr-btn-secondary" onClick={stop}>Stop</button>}
+          {job && !running && <button type="button" className="qr-btn qr-btn-secondary" onClick={loadRun} disabled={loading}>{loading ? 'Loading…' : 'Load into Evaluation'}</button>}
+        </div>
+      </div>
+      {error && <div className="error-message">{error}</div>}
+      {job && (
+        <div className="qr-note">
+          <b>{job.status}</b> · job <code>{job.id}</code> · run <code>{job.run_id}</code>{job.exit_code !== null && job.exit_code !== undefined ? ` · exit code ${job.exit_code}` : ''} · token: {job.token_source || 'none'}
+          <pre className="qr-log">{log || '(waiting for output…)'}</pre>
+        </div>
+      )}
+    </div>
   )
 }
 

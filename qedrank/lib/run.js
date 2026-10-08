@@ -21,6 +21,7 @@ import { sanitizeConfig } from './config.js';
 import { harnessRevision } from './provenance.js';
 import { modelFacts } from '../../lib/model-facts.js';
 import { applyManualAudit } from './agent.js';
+import { renderProvePrompt, evaluateProveAttempt, PROVE_TEMPLATE_VERSION, PROVE_ENDPOINT } from './prove.js';
 
 export class RunContext {
   constructor({ runDir, config, log }) {
@@ -68,8 +69,10 @@ export async function createRun({ config, runId = newRunId(), sourceOpts, models
     models,
     model_ids: null,
     protocol: 'single_call',
+    task: config.task || 'formalize',
     harness: await harnessRevision(),
-    prompt_template_version: PROMPT_TEMPLATE_VERSION,
+    prompt_template_version: config.task === 'prove' ? PROVE_TEMPLATE_VERSION : PROMPT_TEMPLATE_VERSION,
+    primary_endpoint: config.task === 'prove' ? PROVE_ENDPOINT : config.primaryEndpoint,
     system_prompt: SYSTEM_PROMPT,
     settings: {
       temperature: config.generation.temperature,
@@ -181,6 +184,7 @@ async function readReview(ctx) {
 }
 
 export async function stagePreparation(ctx, { selection = null, force = false } = {}) {
+  if ((ctx.run.task || ctx.config.task) === 'prove') return stagePreparationProve(ctx, { selection, force });
   await initLean(ctx);
   const manifest = ctx.manifest || (await stageDiscovery(ctx));
   const source = await ctx.getSource();
@@ -284,6 +288,7 @@ function leakCheck(prompt, refRecord) {
 }
 
 export async function stageGeneration(ctx, { selection = null, retryFailed = false, reevaluate = false, fixtureDir = null } = {}) {
+  if ((ctx.run.task || ctx.config.task) === 'prove') return stageGenerationProve(ctx, { selection, retryFailed, reevaluate, fixtureDir });
   await initLean(ctx);
   const manifest = ctx.manifest || (await stageDiscovery(ctx));
   const papers = selectPapers(manifest, selection);
@@ -386,6 +391,158 @@ ${repairPrompt}`);
                   await writeJson(path.join(itemDir, `generation-a1r${r}.json`), rg);
                   last = await evaluateAttempt({ runner: ctx.runner, toolchain: ctx.toolchain, paper, target, reference, prelude, generation: rg, itemDir, config: ctx.config, expertDecision: decision, setting: 'repair', attempt: 1, repairRound: r, log: ctx.log });
                   lastGen = rg;
+                }
+              }
+            } catch (err) {
+              counters.errors.push({ item: key, attempt, error: err.message });
+              ctx.log(`item ${key} attempt ${attempt} failed: ${err.message}`);
+            } finally {
+              counters.done += 1;
+              await ctx.updateProgress({ items: { ...counters, elapsed_ms: nowMono() - t0 } });
+            }
+          }));
+        }
+      }
+    }
+  }
+  await Promise.all(tasks);
+  const status = counters.errors.length ? 'failed' : 'done';
+  await ctx.setStage('generation', status, { generated: counters.generated, failed: counters.gen_failed, skipped: counters.skipped });
+  await ctx.setStage('compilation', status, { compiled: counters.compiled });
+  await ctx.setStage('audit', status);
+  await ctx.setStage('comparison', status);
+  ctx.run.batch_wall_clock_ms = (ctx.run.batch_wall_clock_ms || 0) + (nowMono() - t0);
+  await ctx.saveRun();
+  return counters;
+}
+
+// ---------------------------------------------------------------------------
+// Task "prove": the challenge file is the prompt, the completed file is graded.
+// No PDF, no prelude and no reference statement module are needed.
+// ---------------------------------------------------------------------------
+
+export async function stagePreparationProve(ctx, { selection = null, force = false } = {}) {
+  const manifest = ctx.manifest || (await stageDiscovery(ctx));
+  const source = await ctx.getSource();
+  const papers = selectPapers(manifest, selection);
+  await ctx.setStage('preparation', 'running', { papers: papers.length, task: 'prove' });
+  ctx.review = ctx.review || (await readReview(ctx));
+  ctx.prepared = ctx.prepared || {};
+  let done = 0;
+  const errors = [];
+  const kinds = selection?.targets?.length ? TARGET_KINDS.filter((k) => selection.targets.includes(k)) : TARGET_KINDS;
+  for (const paper of papers) {
+    const pdir = ctx.p('prepared', slug(paper.paper_id));
+    const doneFile = path.join(pdir, 'done.json');
+    if (!force && (await exists(doneFile))) { ctx.prepared[paper.paper_id] = await readJson(doneFile); done += 1; continue; }
+    const t0 = nowMono();
+    const prep = { paper_id: paper.paper_id, prepared_at: isoNow(), task: 'prove', title: paper.title, challenges: {}, flags: [], timing: {} };
+    try {
+      await ensureDir(pdir);
+      for (const kind of kinds) {
+        const target = paper.targets[kind];
+        if (!target?.lean_path) continue;
+        const buf = await source.readFile(target.lean_path);
+        const text = buf.toString('utf8');
+        await writeText(path.join(pdir, `challenge__${kind}.lean`), text);
+        const sorries = (text.match(/(^|[^A-Za-z0-9_.'])sorry(?![A-Za-z0-9_'])/g) || []).length;
+        if (sorries !== 1) prep.flags.push(`challenge_${kind}_has_${sorries}_sorries`);
+        prep.challenges[kind] = { lean_path: target.lean_path, sha256: sha256(buf), declaration_name: target.declaration_name, sorries, lines: text.split(/\r?\n/).length };
+      }
+      prep.timing.total_ms = nowMono() - t0;
+      await writeJson(doneFile, prep);
+      ctx.prepared[paper.paper_id] = prep;
+      done += 1;
+      ctx.log(`prepared ${paper.paper_id} (${done}/${papers.length}): ${Object.keys(prep.challenges).join(', ') || 'no challenge file'}`);
+    } catch (err) {
+      errors.push({ paper_id: paper.paper_id, error: err.message });
+      ctx.log(`preparation failed for ${paper.paper_id}: ${err.message}`);
+    }
+    await ctx.updateProgress({ preparation: { done, total: papers.length, errors } });
+  }
+  await ctx.setStage('preparation', errors.length ? 'failed' : 'done', { done, errors });
+  return { done, errors };
+}
+
+export async function stageGenerationProve(ctx, { selection = null, retryFailed = false, reevaluate = false, fixtureDir = null } = {}) {
+  await initLean(ctx);
+  const manifest = ctx.manifest || (await stageDiscovery(ctx));
+  const papers = selectPapers(manifest, selection);
+  const models = selection?.models?.length ? selection.models : ctx.run.models;
+  const kinds = selection?.targets?.length ? selection.targets : TARGET_KINDS;
+  const mode = ctx.run.mode;
+  const fixture = mode === 'fixture' ? await loadFixtureProvider(fixtureDir || ctx.run.fixture_dir) : null;
+  if (mode === 'fixture') ctx.run.fixture_dir = fixture.dir;
+  const described = listModels(process.env, models);
+  ctx.run.model_ids = Object.fromEntries(described.map((m) => [m.id, mode === 'fixture' ? `fixture:${m.id}` : m.model_id]));
+  ctx.run.model_hosts = Object.fromEntries(described.map((m) => [m.id, mode === 'fixture' ? null : m.host]));
+  ctx.run.model_facts = Object.fromEntries(described.map((m) => [m.id, modelFacts(m.model_id, ctx.config.modelFacts || {})]));
+  const genOpts = { system: SYSTEM_PROMPT, temperature: ctx.config.generation.temperature, effort: ctx.config.generation.effort ?? null, maxTokens: ctx.config.generation.maxTokens, timeoutMs: ctx.config.generation.timeoutMs, retries: ctx.config.generation.retries ?? 4, baseDelayMs: ctx.config.generation.retryBaseDelayMs ?? 2000, maxDelayMs: ctx.config.generation.retryMaxDelayMs ?? 60000, providerConcurrency: ctx.config.generation.providerConcurrency ?? 1 };
+  ctx.run.selection = { papers: papers.map((p) => p.paper_id), models, targets: kinds };
+  for (const s of ['generation', 'compilation', 'audit', 'comparison']) await ctx.setStage(s, 'running');
+  const allowedImports = `Mathlib or the statement library (${(ctx.config.grade?.libraryPrefixes || ['ProofBench.Mathlib_Problems']).join(', ')})`;
+  const k = ctx.config.generation.attempts;
+  const repairRounds = ctx.config.generation.repairRounds;
+  const limit = pLimit(ctx.config.concurrency.items || 1);
+  const counters = { total: 0, done: 0, skipped: 0, generated: 0, gen_failed: 0, compiled: 0, verified: 0, infra: 0, errors: [] };
+  const tasks = [];
+  const t0 = nowMono();
+  const stamp = (gen, prompt) => {
+    gen.facts = ctx.run.model_facts?.[gen.provider] ?? null;
+    gen.prompt_hash = prompt.hash;
+    gen.prompt_template_version = prompt.templateVersion;
+    gen.temperature = gen.sampling ? gen.sampling.temperature : ctx.config.generation.temperature;
+    gen.effort = gen.sampling?.effort ?? null;
+    gen.max_tokens = ctx.config.generation.maxTokens;
+    gen.timeout_ms = ctx.config.generation.timeoutMs;
+    return gen;
+  };
+
+  for (const paper of papers) {
+    const prep = ctx.prepared?.[paper.paper_id] || (await readJson(ctx.p('prepared', slug(paper.paper_id), 'done.json'), null));
+    if (!prep) { counters.errors.push({ paper_id: paper.paper_id, error: 'not prepared' }); continue; }
+    for (const kind of kinds) {
+      const target = paper.targets[kind];
+      if (!target?.lean_path || !prep.challenges?.[kind]) continue;
+      const challengeSrc = await fs.readFile(ctx.p('prepared', slug(paper.paper_id), `challenge__${kind}.lean`), 'utf8');
+      const prompt = renderProvePrompt({ paper_id: paper.paper_id, target: target.declaration_name || paper.paper_id, challenge: challengeSrc, lean_toolchain: ctx.toolchain.toolchain || 'unknown', mathlib_version: ctx.toolchain.mathlib?.rev || 'unknown', allowed_imports: allowedImports });
+      for (const provider of models) {
+        const key = itemKey(paper.paper_id, kind, provider);
+        const itemDir = ctx.p('items', key);
+        for (let attempt = 1; attempt <= k; attempt += 1) {
+          counters.total += 1;
+          tasks.push(limit(async () => {
+            try {
+              const existing = await readJson(path.join(itemDir, `attempt-a${attempt}r0.json`), null);
+              const infraFailed = existing?.outcomes?.infrastructure_failure;
+              if (existing?.evaluation_complete && !reevaluate && !(retryFailed && infraFailed)) { counters.skipped += 1; return; }
+              await ensureDir(itemDir);
+              const genFile = path.join(itemDir, `generation-a${attempt}.json`);
+              const prior = await readJson(genFile, null);
+              let gen;
+              if (prior && !prior.error && (reevaluate || !retryFailed)) gen = prior;
+              else {
+                await writeText(path.join(itemDir, `prompt-a${attempt}.txt`), prompt.text);
+                gen = stamp(await generateOnce({ provider, prompt: prompt.text, ...genOpts, mode, fixture, meta: { paper_id: paper.paper_id, target_kind: kind, attempt } }), prompt);
+                await writeJson(genFile, gen);
+                if (gen.error) counters.gen_failed += 1; else counters.generated += 1;
+              }
+              const evalOpts = { runner: ctx.runner, toolchain: ctx.toolchain, paper, target, challengeSrc, itemDir, config: ctx.config, log: ctx.log };
+              const rec = await evaluateProveAttempt({ ...evalOpts, generation: gen, setting: 'pass@1', attempt, repairRound: 0 });
+              if (rec.compile?.status === 'compiler_success') counters.compiled += 1;
+              if (rec.outcomes.verified === 1) counters.verified += 1;
+              if (rec.outcomes.infrastructure_failure) counters.infra += 1;
+              // Repair setting: the compiler output of the independent check goes back to the model.
+              if (repairRounds > 0 && attempt === 1 && !rec.outcomes.infrastructure_failure && !rec.abstained) {
+                let last = rec;
+                for (let r = 1; r <= repairRounds; r += 1) {
+                  if (last.grade?.verdict === 'solved') break;
+                  const previous = await fs.readFile(path.join(itemDir, `proof-a1r${r - 1}.lean`), 'utf8').catch(() => '');
+                  const repairPrompt = `${prompt.text}\n\n=== REPAIR ROUND ${r} of ${repairRounds} ===\nYour previous file was:\n\`\`\`lean\n${previous.slice(0, 20000)}\n\`\`\`\nThe independent check reported: ${(last.grade?.reasons || []).join(', ') || 'not solved'}\n${(last.compiler_output || '').slice(0, 6000)}\nReturn the whole corrected file in one \`\`\`lean block. Do not change the statement or the definitions.`;
+                  await writeText(path.join(itemDir, `prompt-a1r${r}.txt`), repairPrompt);
+                  const rg = stamp(await generateOnce({ provider, prompt: repairPrompt, ...genOpts, mode, fixture, meta: { paper_id: paper.paper_id, target_kind: kind, attempt: 1, repair: r } }), { hash: sha256(`${SYSTEM_PROMPT}\n\n${repairPrompt}`), templateVersion: `${prompt.templateVersion}+repair` });
+                  await writeJson(path.join(itemDir, `generation-a1r${r}.json`), rg);
+                  last = await evaluateProveAttempt({ ...evalOpts, generation: rg, setting: 'repair', attempt: 1, repairRound: r });
                 }
               }
             } catch (err) {

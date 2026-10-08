@@ -9,6 +9,14 @@ export const DEFAULT_CONFIG = Object.freeze({
   runsDir: 'runs',
   leanDir: 'lean',
   expectedPaperCount: 108,
+  // What the model is asked to do with each challenge:
+  //   formalize - write the Lean statement from the paper text and prove it; the statement is
+  //               compared with the audited reference (needs the paper PDF)
+  //   prove     - receive the challenge file as it is and fill in the one `sorry`; the completed
+  //               file is judged by the independent check of grade.js (no PDF needed)
+  task: 'formalize',
+  // Policy of the independent check used by the prove task (see grade.js DEFAULT_GRADE_POLICY).
+  grade: { libraryPrefixes: ['ProofBench.Mathlib_Problems'], allowExtraImports: false, allowUnusedSorry: false, kernelReplay: true },
   models: getRoster(), // the eleven default slots, or QEDRANK_MODELS
   generation: {
     temperature: 0,       // not sent to reasoning models (Claude, GPT-5.x/6); each record stores what was sent
@@ -66,6 +74,7 @@ export async function loadConfig({ configFile = null, cwd = process.cwd(), overr
   cfg.leanDir = path.resolve(cwd, cfg.leanDir);
   cfg.configFile = loaded ? file : null;
   for (const m of cfg.models) if (!PROVIDER_IDS.includes(m)) throw new Error(`Unknown model id in config: ${m}`);
+  if (!['formalize', 'prove'].includes(cfg.task)) throw new Error(`Unknown task: ${cfg.task} (formalize | prove)`);
   return cfg;
 }
 

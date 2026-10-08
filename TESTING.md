@@ -154,7 +154,22 @@ available (`statement_available`). A reference that does not compile under the r
 is a corpus/toolchain mismatch, not a model failure: fix it before the live run, because those
 items would be ineligible and silently absent from every rate.
 
+## 5b. The prove task without model calls
+
+```powershell
+node qedrank/cli.js run --path qedrank/test/fixtures/corpus-prove --fixtures qedrank/test/fixtures/corpus-prove/responses --task prove --lean-project qedrank/test/fixtures/lean-core --models qwen,kimi,llama --targets main_theorem --run-id prove-fixture
+```
+
+Canned answers (one solved, one partial, one abstention) go through the whole prove pipeline
+with real Lean on the dependency-free project: expect `verified 1/1` for `qwen`, `0/1` with
+`contains_sorry` and completeness 2/3 for `kimi`, and an abstention for `llama`. A few minutes.
+Load `prove-fixture` on the Evaluation page afterwards to see a prove run rendered.
+
 ## 6. Small live run
+
+The Benchmark page can start this run for you (step 2 under the corpus preview) when
+`npm run qedrank:serve` is running; it posts the same command to the local run server and follows
+the log. The checks below are the same either way.
 
 ```powershell
 node qedrank/cli.js run --repo <link> --ref <commit> --models qwen,llama --targets main_theorem --limit 2 --run-id smoke-1
