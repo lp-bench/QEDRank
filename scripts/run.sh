@@ -23,6 +23,7 @@ MAX_TOKENS=${MAX_TOKENS:-16000}           # cap per model reply
 REQUEST_TIMEOUT=${REQUEST_TIMEOUT:-1800}  # total seconds per model request, retries included
 ATTEMPT_TIMEOUT=${ATTEMPT_TIMEOUT:-600}   # seconds per single attempt of a request
 MAX_SAMPLES=${MAX_SAMPLES:-4}             # problems in parallel
+TAGS=${TAGS:-proofbench}                  # Inspect log tags, e.g. TAGS=proofbench,pilot
 # INSPECT_DISPLAY=conversation makes Inspect run one sample at a time; use `inspect view` to follow runs.
 export INSPECT_DISPLAY=${INSPECT_DISPLAY:-plain}
 [ "$INSPECT_DISPLAY" = conversation ] && echo "note: conversation display runs one sample at a time" >&2
@@ -47,6 +48,6 @@ inspect eval proofbench_eval/task.py@proofbench \
   -T note_tokens="$NOTE_TOKENS" -T comparator=$([ "$COMPARATOR" = on ] && echo true || echo false) \
   --epochs "$EPOCHS" --max-tokens "$MAX_TOKENS" --timeout "$REQUEST_TIMEOUT" --attempt-timeout "$ATTEMPT_TIMEOUT" --time-limit "$TIME_LIMIT" \
   --max-samples "$MAX_SAMPLES" --max-connections 4 --max-sandboxes 4 \
-  --log-dir "$LOG_DIR" --tags "proofbench,pilot" --metadata run_id="$RUN_ID"
+  --log-dir "$LOG_DIR" --tags "$TAGS" --metadata run_id="$RUN_ID"
 
 python3 scripts/analyze.py "$LOG_DIR"
