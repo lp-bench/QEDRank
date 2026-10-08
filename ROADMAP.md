@@ -3,6 +3,12 @@ When an item is done, delete it. When part of it is done, delete only that part.
 
 # Roadmap
 - Decide the next pilot (model, problems). Last: `qwen3.8-27b` solved P109–P111 3/3 (sessions 4, 3, 3; 40k output tokens/session; Comparator off).
+- Prove-or-disprove for the 32 open problems: both files in the sandbox, "prove either", grade whichever passes, record the polarity. (needs your yes: changes the format)
+- Handoff note: add a DRAFT section for Lean code not yet saved to a file; drop the 400-word limit.
+- HPC pre-flight script: Apptainer version, network namespaces, binds, tmpfs size, Landlock, Python, GPU. Tested here, run on Capella on day one.
+- Check which candidate models (2025–2026 list) are still served, and prices.
+- inspect-apptainer: CI tests and packaging metadata, ready for the license decision.
+- Wider local run of free Qwen on more problems, exercising Matroid (P002/P015). (needs your yes: more problems go to the university endpoint)
 - When websearch is on, we must (?) allow the agent install Lean libraries and incorporate them in their proof. Checker must be adjusted accordingly because currently checker does not allow it. We should have this as a swtichable option. --libraries-on --libraries-off
 (Claude: a library's code runs at compile time inside the same containers as the agent's own code, so no new way to reach the host, but unaudited third-party code. Belongs to the search-on configuration: finding and using a library is a capability we measure; fair because every model gets the same switch.)
 
