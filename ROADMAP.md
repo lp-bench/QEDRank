@@ -21,7 +21,6 @@ WAITING for DECISION/HPC ACCESS/OTHER REASON
 - push `proofbench-statements` to private GitHub repo.
 
 ## CHANGES for me NOW
-- OpenAI's 6 Oct 2026 release (github.com/openai/math) claims, with Lean proofs checked by Comparator, resolutions of four ProofBench open problems: P001 Hadwiger (disproved), P004 Sidorenko (disproved), P008 Ryser (disproved), P027 Seymour second neighbourhood (proved). Their statements: lean/ComparatorChallenges/{HadwigerCounterexample,SidorenkoCounterexample,RyserCovering,SeymourSecondNeighborhood}.lean. Decide: reclassify from Open; compare their statements with ours; the paper must say this.
 - Model choice: see notes/model_availability_2026-10-08.md. Closed 2025 models are retired; o3 and GPT-5 shut down 11 Dec 2026.
 - Reference solutions (only used by scripts/check_statements.sh): P011_sol is incomplete (sorry) and its statement differs from P011; P098_sol no longer compiles (Mathlib API). 8 pass both layers, 7 need the proctor library.
 - ProofBench's `Hypergraph` (Mathlib_Problems/Combinatorics/Hypergraph/Basic.lean, used by P008, P029–P036, P043) clashes with Mathlib's new `Hypergraph` (v4.33): both in one file fails. Rename ours (e.g. namespace `ProofBench`) so agents can `import Mathlib`.
