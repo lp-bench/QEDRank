@@ -7,8 +7,8 @@ previous session; it ends when the agent submits
 or its output-token budget (reasoning included) runs out, with total tokens
 and working time as safety caps.  After every session the Lean check of
 scorer.py runs; the first session that passes ends the chain.  When a session
-ends without a proof, the model writes a handoff note in a fixed format,
-outside the session's budget.  Per-session records go to the sample store
+ends without a proof, the model writes a handoff note in a fixed format
+(proved, open, failed, unsaved draft), outside the session's budget.  Per-session records go to the sample store
 under "sessions".
 """
 
@@ -67,16 +67,19 @@ Handoff note from session {prev}:
 
 HANDOFF_REQUEST = """\
 Your session has ended without a complete proof.  Write the handoff note for
-the next session.  It starts from the current file and its Lean output, but
-sees nothing of this conversation.  Use exactly this format, at most 400 words,
-and do not call tools:
+the next session.  It starts from the current files and their Lean output, but
+sees nothing of this conversation.  Use exactly this format and do not call
+tools:
 
 PROVED:
-- lemmas in the file that compile without sorry, by name
+- lemmas in the files that compile without sorry, by name
 OPEN GOALS:
 - what remains to be proved, as precisely as possible
 FAILED APPROACHES:
 - what you tried that did not work, and why
+DRAFT:
+- Lean code you wrote in this conversation but did not save to a file, verbatim
+  (empty if everything is in the files)
 """
 
 
