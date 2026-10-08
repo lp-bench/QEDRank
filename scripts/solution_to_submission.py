@@ -45,8 +45,17 @@ def main() -> None:
             while j > 0 and "/--" not in st_lines[j - 1]:
                 j -= 1
             j -= 1
-        # The solution's own `variable`/`open` lines must not reach the theorem.
-        helpers = ["section ReferenceSolution"] + helpers + ["end ReferenceSolution"]
+        # The solution's own `variable`/`open` lines must not reach the theorem;
+        # its unclosed sections/namespaces are closed first.
+        stack: list[str] = []
+        for l in helpers:
+            m = re.match(r"^(?:noncomputable\s+)?(section|namespace)\b\s*(\S*)", l)
+            if m:
+                stack.append(m.group(2))
+            elif re.match(r"^end\b", l) and stack:
+                stack.pop()
+        closers = [f"end {name}".rstrip() for name in reversed(stack)]
+        helpers = ["section ReferenceSolution"] + helpers + closers + ["end ReferenceSolution"]
         thm = st_lines[j:]
         k = max(i for i, l in enumerate(thm) if re.search(r"\bsorry\b", l))
         if thm[k].strip() == "sorry":

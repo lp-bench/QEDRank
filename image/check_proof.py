@@ -31,24 +31,21 @@ FORBIDDEN = [
     (re.compile(r"\bnative_decide\b"), "uses native_decide"),
     (re.compile(r"\bimplemented_by\b|\bextern\b"), "uses implemented_by/extern"),
     (re.compile(r"\bskipKernelTC\b|\bofReduceBool\b|\bofReduceNat\b|\baddDecl\b"), "bypasses the kernel"),
-    (re.compile(r"^\s*(?:builtin_)?initialize\b|^\s*run_(?:cmd|tac|elab)\b", re.M), "runs code at elaboration time"),
-    (re.compile(r"^\s*#[A-Za-z_]", re.M), "uses a # command"),
+    # elaboration-time code execution (IO is reachable from elaborators)
+    (re.compile(r"^\s*(?:builtin_)?initialize\b|\brun_(?:cmd|tac|elab)\b|^\s*(?:(?:local|scoped)\s+)?elab(?:_rules)?\b", re.M),
+     "runs code at elaboration time (initialize, run_cmd/run_tac/run_elab, elab)"),
+    (re.compile(r"(?:^|\s)#(?:eval!?|guard|guard_expr|test|exit|print|time|html|widget)\b", re.M), "uses a # command"),
 ]
-# Commands with a global effect on how later text parses: never in helper
-# files, never among the lines added before the main theorem (the statement
-# must mean what the reference means; such lines of the reference are fine).
-GLOBAL_SYNTAX = re.compile(
-    r"^\s*(?:notation|infix|infixl|infixr|prefix|postfix|macro|macro_rules|syntax|declare_syntax_cat|"
-    r"elab|elab_rules|export|unif_hint)\b"
-)
+# Commands that can silently change what existing text means (rules for
+# existing syntax are tried first; export aliases names): never in helper
+# files, never among the lines added before the main theorem.  New notation,
+# `macro`, `syntax`, `open`, `variable`, `set_option` are allowed: a clash with
+# existing syntax or names makes Lean report an ambiguity rather than pick the
+# new reading, and Comparator compares the elaborated statement anyway.
+GLOBAL_SYNTAX = re.compile(r"^\s*(?:macro_rules|export|unif_hint)\b")
 # Scoped to the enclosing section: fine in helper files (file-local), and
-# before the main theorem only inside a section closed before it.  `open`,
-# `variable`, `set_option`, `attribute` are allowed: a changed name resolution
-# makes Lean report an ambiguity, and Comparator compares the elaborated statement.
-SCOPED_SYNTAX = re.compile(
-    r"^\s*(?:local|scoped)\s+(?:notation|infix|infixl|infixr|prefix|postfix|macro|macro_rules|syntax|"
-    r"elab|elab_rules|unif_hint)\b|^\s*include\b"
-)
+# before the main theorem only inside a section closed before it.
+SCOPED_SYNTAX = re.compile(r"^\s*(?:local|scoped)\s+(?:macro_rules|unif_hint)\b|^\s*include\b")
 OPENS = re.compile(r"^\s*(?:noncomputable\s+)?(?:section|namespace)\b")
 CLOSES = re.compile(r"^\s*end\b")
 MAX_FILES = 100
