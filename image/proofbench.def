@@ -1,5 +1,8 @@
-# Apptainer definition mirroring image/Dockerfile, for machines without Docker.
-# Build with scripts/build_image.sh --apptainer /path/to/ProofBench
+# Apptainer definition mirroring image/Dockerfile, for machines without Docker
+# (needs `apptainer build --fakeroot`).  Build with
+#   IDS="..." scripts/build_image.sh --apptainer [proofbench-statements]
+# On a machine with Docker, `scripts/build_image.sh --sif` converts the Docker
+# image instead; both give the same content.
 Bootstrap: docker
 From: ubuntu:24.04
 
@@ -11,26 +14,60 @@ From: ubuntu:24.04
     export ELAN_HOME=/opt/elan
     export MAMBA_ROOT_PREFIX=/opt/micromamba
     export PATH=/opt/elan/bin:/opt/venv/bin:/opt/sage/bin:$PATH
+    export COMPARATOR_LANDRUN=/opt/verifier/bin/landrun
+    export COMPARATOR_LEAN4EXPORT=/opt/verifier/bin/lean4export
 
 %post
     set -e
     export DEBIAN_FRONTEND=noninteractive
     apt-get update && apt-get install -y --no-install-recommends \
-        curl git ca-certificates python3 python3-venv build-essential bzip2 cadical nauty ripgrep \
+        curl git ca-certificates python3 python3-venv build-essential libgmp-dev bzip2 cadical nauty ripgrep \
         && rm -rf /var/lib/apt/lists/*
     export ELAN_HOME=/opt/elan MAMBA_ROOT_PREFIX=/opt/micromamba
     export PATH=/opt/elan/bin:/opt/venv/bin:$PATH
     curl -sSf https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh \
         | sh -s -- -y --no-modify-path --default-toolchain "$(cat /opt/context/lean-toolchain)"
+    # SageMath (bundles GAP, PARI and nauty) from conda-forge via micromamba.
     curl -Ls https://micro.mamba.pm/api/micromamba/linux-64/latest | tar -xj -C /usr/local bin/micromamba
     micromamba create -y -q -p /opt/sage -c conda-forge sage python=3.12 && micromamba clean -y -a
     ln -s /opt/sage/bin/sage /usr/local/bin/sage; ln -s /opt/sage/bin/gap /usr/local/bin/gap
     python3 -m venv /opt/venv
-    pip install --no-cache-dir --timeout 120 --retries 10 lean-lsp-mcp==0.31.0 inspect-ai==0.3.276 inspect-tool-support mcp \
+    pip install --no-cache-dir --timeout 120 --retries 10 lean-lsp-mcp==0.31.0 inspect-ai==0.3.276 inspect-tool-support \
         sympy networkx python-sat numpy scipy
     inspect-tool-support post-install --no-web-browser
     cd /opt/proofbench && lake exe cache get && lake build ProofBench.Visible && mkdir -p Submission
     lake env lean ProofBench/Visible.lean
+
+    # ---- Verifier (second grading layer): Comparator, the Lean FRO's adversarial
+    # proof checker, with lean4export and landrun.  Same pins as image/Dockerfile.
+    # Comparator is built with its own toolchain and never loads project files;
+    # lean4export reads the project's .olean files, so it is built with the
+    # project toolchain.  No `verifier` user: Apptainer has no user switching,
+    # the scorer runs Comparator as the invoking user.
+    LANDRUN_COMMIT=811cfff51ceaf3d9843708aa6d22e9b84ccac8b4
+    COMPARATOR_COMMIT=19e111e2141cf333c7daff0f64c5f24acc91dd2e
+    LEAN4EXPORT_COMMIT=cacf989bd75f608700820f6afc595f32e7a99a4d
+    GO_VERSION=1.24.6
+    mkdir -p /opt/verifier/bin /opt/verifier/lib
+    curl -sSL "https://go.dev/dl/go${GO_VERSION}.linux-amd64.tar.gz" | tar -xz -C /usr/local
+    git clone https://github.com/Zouuup/landrun.git /tmp/landrun
+    git -C /tmp/landrun checkout --detach "$LANDRUN_COMMIT"
+    (cd /tmp/landrun && CGO_ENABLED=0 PATH=/usr/local/go/bin:$PATH GOPATH=/tmp/go GOCACHE=/tmp/gocache \
+        go build -trimpath -o /opt/verifier/bin/landrun ./cmd/landrun)
+    git clone https://github.com/leanprover/comparator.git /tmp/comparator
+    git -C /tmp/comparator checkout --detach "$COMPARATOR_COMMIT"
+    CMP_TOOLCHAIN=$(cat /tmp/comparator/lean-toolchain)
+    elan toolchain install "$CMP_TOOLCHAIN"
+    (cd /tmp/comparator && lake build comparator)
+    cp /tmp/comparator/.lake/build/bin/comparator /opt/verifier/bin/
+    cp -a "$(elan which lean --toolchain "$CMP_TOOLCHAIN" | xargs dirname)/../lib/lean/"*.so* /opt/verifier/lib/ 2>/dev/null || true
+    elan toolchain uninstall "$CMP_TOOLCHAIN"
+    git clone https://github.com/leanprover/lean4export.git /tmp/lean4export
+    git -C /tmp/lean4export checkout --detach "$LEAN4EXPORT_COMMIT"
+    cp /opt/context/lean-toolchain /tmp/lean4export/lean-toolchain
+    (cd /tmp/lean4export && lake build lean4export)
+    cp /tmp/lean4export/.lake/build/bin/lean4export /opt/verifier/bin/
+    rm -rf /tmp/landrun /tmp/comparator /tmp/lean4export /tmp/go /tmp/gocache /usr/local/go
 
 %runscript
     exec "$@"
