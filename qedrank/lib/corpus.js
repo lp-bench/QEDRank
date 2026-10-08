@@ -330,12 +330,22 @@ export async function discoverCorpus(source, {
   let budgetExhausted = false;
   const descriptor = await source.resolve();
   const { files: allFiles, truncated, totalBlobs } = await source.listTree();
-  const root = (subdir === undefined ? source.subdir : subdir) || '';
+  let root = (subdir === undefined ? source.subdir : subdir) || '';
   const globalFlags = [];
   if (truncated) globalFlags.push({ code: 'tree_truncated', message: 'GitHub returned a truncated tree; some files may be missing from discovery.' });
   const inRoot = (p) => (root ? p === root || p.startsWith(`${root}/`) : true);
-  const files = allFiles.filter((f) => inRoot(f.path));
-  if (root && files.length === 0) globalFlags.push({ code: 'subdir_empty', message: `No eligible files under ${root}` });
+  let files = allFiles.filter((f) => inRoot(f.path));
+  if (root && files.length === 0) {
+    // Repository paths are case-sensitive; a folder typed in the wrong case is a common slip.
+    const wanted = root.toLowerCase();
+    const matches = [...new Set(allFiles.map((f) => f.path.split('/').slice(0, root.split('/').length).join('/')).filter((p) => p.toLowerCase() === wanted))];
+    if (matches.length === 1) {
+      globalFlags.push({ code: 'subdir_case_corrected', message: `No folder "${root}"; used "${matches[0]}" (same name, different case)` });
+      root = matches[0];
+      files = allFiles.filter((f) => inRoot(f.path));
+      if (descriptor && descriptor.subdir) descriptor.subdir = root;
+    } else globalFlags.push({ code: 'subdir_empty', message: `No eligible files under ${root}` });
+  }
   const insideRootDir = (d) => (root ? d.startsWith(`${root}/`) : d !== '');
 
   const byPath = new Map(allFiles.map((f) => [f.path, f]));

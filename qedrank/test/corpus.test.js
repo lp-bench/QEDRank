@@ -54,6 +54,17 @@ test('discoverCorpus builds a reviewed manifest from the fixture corpus', async 
 
 const FIXB = path.join(here, 'fixtures', 'corpus-b');
 
+test('a sub-folder typed in the wrong case is corrected and flagged, never silently empty', async () => {
+  const m = await discoverCorpus(new LocalSource(FIXB), { subdir: 'bench/problems' });
+  assert.equal(m.counts.subdir, 'Bench/PROBLEMS');
+  assert.equal(m.source.subdir, 'Bench/PROBLEMS');
+  assert.equal(m.counts.papers, 5);
+  assert.ok(m.flags.some((f) => f.code === 'subdir_case_corrected'));
+  const none = await discoverCorpus(new LocalSource(FIXB), { subdir: 'Bench/Nowhere' });
+  assert.equal(none.counts.papers, 0);
+  assert.ok(none.flags.some((f) => f.code === 'subdir_empty'));
+});
+
 test('ProofBench-style layout: <Id>/<Id>.lean, _UB/_LB/_DISPROVE, two PDFs, central PDF, index file', async () => {
   const m = await discoverCorpus(new LocalSource(FIXB), { subdir: 'Bench/PROBLEMS' });
   assert.equal(m.counts.subdir, 'Bench/PROBLEMS');
