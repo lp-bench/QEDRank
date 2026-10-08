@@ -120,7 +120,7 @@ export function ManifestView({ manifest, modelsArg = '' }) {
                   return (
                     <td key={k}>
                       <code title={t.lean_path || ''}>{t.lean_path ? t.lean_path.split('/').pop() : 'ambiguous'}</code>
-                      <div className="qr-small">{t.declaration_name ? `decl: ${t.declaration_name}` : 'decl: ?'} · {t.mathematical_status} · ref: {t.reference_proof_status}</div>
+                      <div className="qr-small">{t.declaration_name ? `decl: ${t.declaration_name}` : 'decl: ?'} · {t.mathematical_status} · {t.reference_proof_status === 'contains_placeholder' && k === 'main_theorem' ? <span title="The challenge file states the theorem and leaves its proof as `sorry`: that sorry is the task, not a defect. The statement is what the models' answers are checked against.">statement + sorry (the task)</span> : `ref: ${t.reference_proof_status}`}</div>
                       {t.mapping_flags?.length > 0 && <div className="qr-small qr-warn">{t.mapping_flags.join(', ')}</div>}
                     </td>
                   )

@@ -265,7 +265,7 @@ export function ItemsView({ items, runId }) {
                       <div className="qr-kv">
                         <div><span>Model id</span><code>{r.model_id}</code>{r.response_model ? <code> ({r.response_model})</code> : null} · prompt {r.prompt_hash?.slice(0, 12)} · T={r.temperature === null || r.temperature === undefined ? 'n/a' : r.temperature} · max tokens {r.max_tokens}</div>
                         <div><span>Eligibility</span>statement {String(r.eligible_statement_track)} · proof {String(r.eligible_proof_track)} {r.eligibility_reasons && <code>{r.eligibility_reasons}</code>}</div>
-                        <div><span>Reference</span>{r.reference_proof_status} · statement available: {String(r.reference_statement_available)} · math status {r.mathematical_status}</div>
+                        <div><span>Reference</span>{r.reference_proof_status === 'contains_placeholder' ? 'statement + sorry (the task)' : r.reference_proof_status} · statement available: {String(r.reference_statement_available)} · math status {r.mathematical_status}</div>
                         {r.generation_error && <div><span>Generation error</span><code>{r.generation_error}</code></div>}
                         {r.static_screen_rejections && <div><span>Static screen</span><code>{r.static_screen_rejections}</code></div>}
                         {r.axioms && <div><span>Axioms</span><code>{r.axioms}</code></div>}
