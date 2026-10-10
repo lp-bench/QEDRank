@@ -67,7 +67,10 @@ export function modelMetrics(records, allAttempts, { pricing = {}, bootOpts, k =
   const attempted = nonInfra.filter((r) => ['compiler_success', 'compiler_failure', 'timeout', 'rejected_by_static_screen'].includes(r.compile?.status));
   const compiled = nonInfra.filter((r) => r.compile?.status === 'compiler_success');
 
-  const statementFaithful = withCI((r) => r.outcomes.statement_faithful === 1, (r) => r.eligibility.statement_track, nonInfra, null, bootOpts);
+  // In the prove task the statement can only be checked on a file that compiles; an answer that
+  // never got that far has no statement verdict and is left out rather than counted as "changed".
+  const statementChecked = (r) => r.eligibility.statement_track && (r.task !== 'prove' || r.outcomes.statement_faithful !== null);
+  const statementFaithful = withCI((r) => r.outcomes.statement_faithful === 1, statementChecked, nonInfra, null, bootOpts);
   const compileRate = withCI((r) => r.compile?.status === 'compiler_success', (r) => ['compiler_success', 'compiler_failure', 'timeout', 'rejected_by_static_screen'].includes(r.compile?.status), nonInfra, null, bootOpts);
   const auditClean = rate(compiled.filter((r) => r.audit?.status === 'clean').length, compiled.length);
   const verified = withCI((r) => r.outcomes.verified === 1, (r) => r.eligibility.proof_track, nonInfra, null, bootOpts);

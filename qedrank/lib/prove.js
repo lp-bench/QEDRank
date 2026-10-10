@@ -64,6 +64,13 @@ export function parseProveResponse(text) {
     if (blocks.length > 1) notes.push('multiple_blocks_largest_used');
     return { file: sorted[0].code, abstained: false, notes };
   }
+  // A block that was opened but never closed: the answer was cut off (usually at the output
+  // limit). Keep what follows the fence, so the file is judged as written, not by its fence line.
+  const open = /```(?:lean4?|)[^\n]*\n([\s\S]*)$/.exec(text);
+  if (open && LEAN_START.test(open[1])) {
+    notes.push('unterminated_code_block');
+    return { file: open[1].replace(/\s+$/, ''), abstained: false, notes };
+  }
   if (LEAN_START.test(text) && /:=/.test(text)) { notes.push('unfenced_file'); return { file: text.trim(), abstained: false, notes }; }
   return { file: null, abstained: true, notes: ['no_lean_file_in_response'] };
 }
@@ -158,6 +165,7 @@ export async function evaluateProveAttempt({ runner, toolchain, paper, target, c
   const parsed = parseProveResponse(generation.text);
   rec.parse = { has_file: Boolean(parsed.file), notes: parsed.notes };
   rec.abstained = parsed.abstained;
+  if (generation.truncated) rec.notes.push('output_truncated: the answer reached the output-token limit before it ended');
   if (!parsed.file) {
     rec.compile = { status: 'not_attempted', reason: 'abstained' };
     rec.audit = { status: 'not_audited' };

@@ -29,4 +29,9 @@ test('prove response: the largest lean block is the file; prose alone is an abst
   assert.equal(parseProveResponse('').abstained, true);
   // a fenced block in another language is not a Lean file
   assert.equal(parseProveResponse('```python\nprint(1)\n```').abstained, true);
+  // an answer cut off at the output limit: the opening fence is dropped, the file keeps its imports
+  const cut = parseProveResponse('```lean\n/- Paper: x -/\nimport Mathlib.Data.Real.Basic\n\ntheorem P047 : True := by\n  have h : True := trivial\n  have h\'');
+  assert.equal(cut.file.startsWith('/- Paper: x -/\nimport Mathlib.Data.Real.Basic'), true);
+  assert.deepEqual(cut.notes, ['unterminated_code_block']);
+  assert.equal(cut.abstained, false);
 });
