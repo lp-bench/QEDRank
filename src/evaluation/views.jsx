@@ -3,7 +3,7 @@
 
 import { Fragment, useMemo, useState } from 'react'
 import { TARGET_KINDS, TARGET_LABELS, fmtRate, fmtCI, fmtMs, fmtNum, fmtInt, download, toCsv, rateOf } from '../qedrank/helpers.js'
-import { pct1 } from '../charts/primitives.jsx'
+import { Enlargeable, pct1 } from '../charts/primitives.jsx'
 import { shortLabel, slotColor } from '../components/vendor.js'
 
 export function Unavail({ note }) {
@@ -52,7 +52,7 @@ export function MatrixTable({ summary, scope }) {
   return (
     <div className="table-wrap">
       <table className="table ev-matrix">
-        <thead><tr><th>Model</th>{MATRIX_COLUMNS.map(([h]) => <th key={h}>{h}</th>)}{scope === 'all' && <th>Sandwich coverage</th>}{scope === 'all' && <th>Paper-level verified</th>}</tr></thead>
+        <thead><tr><th>Model</th>{MATRIX_COLUMNS.map(([h]) => <th key={h} className="num">{h}</th>)}{scope === 'all' && <th className="num">Sandwich coverage</th>}{scope === 'all' && <th className="num">Paper-level verified</th>}</tr></thead>
         <tbody>
           {summary.models.map((m) => {
             const mm = rows[m.id]
@@ -61,9 +61,9 @@ export function MatrixTable({ summary, scope }) {
             return (
               <tr key={m.id}>
                 <td className="ev-model-cell" style={{ '--mc': slotColor(m.id) }}><i className="chip-dot" /><b>{shortLabel(m)}</b><div className="small mono">{m.model_id}{m.host ? ` @ ${m.host}` : ''}</div></td>
-                {MATRIX_COLUMNS.map(([h, fn]) => <td key={h}>{fn(mm)}</td>)}
-                {scope === 'all' && <td>{pl ? <Rate r={pl.sandwich_coverage} color="var(--s3)" /> : <Unavail />}</td>}
-                {scope === 'all' && <td>{pl ? <Rate r={pl.paper_verified_all_eligible_bounds} color="var(--s1)" /> : <Unavail />}</td>}
+                {MATRIX_COLUMNS.map(([h, fn]) => <td key={h} className="num">{fn(mm)}</td>)}
+                {scope === 'all' && <td className="num">{pl ? <Rate r={pl.sandwich_coverage} color="var(--s3)" /> : <Unavail />}</td>}
+                {scope === 'all' && <td className="num">{pl ? <Rate r={pl.paper_verified_all_eligible_bounds} color="var(--s1)" /> : <Unavail />}</td>}
               </tr>
             )
           })}
@@ -85,9 +85,10 @@ export function AgentView({ summary }) {
     <section id="agent" className="ev-section">
       <h2 className="ev-h2"><span className="ev-num">0</span>Agent protocol</h2>
       <p className="small">At most {a.sessions_max} fresh session{a.sessions_max === 1 ? '' : 's'} per problem, joined by a handoff note; the independent Lean check after every session decides. "Solved within k" counts a problem when the check passed in one of its first k sessions (95% paper-cluster intervals). Web search {a.web_search ? 'on' : 'off'}. Unaudited solves are counted and listed; a hand audit (<code>review/audit.json</code>) can withdraw them.</p>
+      <Enlargeable title="Agent protocol">
       <div className="table-wrap">
         <table className="table ev-matrix">
-          <thead><tr><th>Model</th>{a.tiers.map((k) => <th key={k}>Solved within {k}</th>)}<th>Sessions to success (median)</th><th>Sessions ended by budget</th><th>Output tokens (total)</th><th>Working time (total)</th><th>Tool calls (total)</th><th>Completeness, unsolved (mean)</th><th>Awaiting audit</th><th>Open-claim escalations</th></tr></thead>
+          <thead><tr><th>Model</th>{a.tiers.map((k) => <th key={k} className="num">Solved within {k}</th>)}<th className="num">Sessions to success (median)</th><th className="num">Sessions ended by budget</th><th className="num">Output tokens (total)</th><th className="num">Working time (total)</th><th className="num">Tool calls (total)</th><th className="num">Completeness, unsolved (mean)</th><th className="num">Awaiting audit</th><th>Open-claim escalations</th></tr></thead>
           <tbody>
             {models.map((m) => {
               const r = a.by_model?.[m.id]
@@ -95,14 +96,14 @@ export function AgentView({ summary }) {
               return (
                 <tr key={m.id}>
                   <td className="ev-model-cell" style={{ '--mc': slotColor(m.id) }}><i className="chip-dot" /><b>{shortLabel(m)}</b><div className="small mono">{m.model_id}</div></td>
-                  {a.tiers.map((k) => <td key={k}><Rate r={r.solved_within[k]} color="var(--s1)" /></td>)}
-                  <td>{r.sessions_to_success.median ?? 'n/a'}</td>
-                  <td>{fmtRate(r.sessions_ended_by_output_budget)}</td>
-                  <td>{fmtInt(r.totals.output_tokens)}</td>
-                  <td>{ms(r.totals.working_ms)}</td>
-                  <td>{fmtInt(r.totals.tool_calls)}{r.totals.tool_calls_by_tool && Object.keys(r.totals.tool_calls_by_tool).length ? <div className="small">{Object.entries(r.totals.tool_calls_by_tool).map(([t, n]) => `${t} ${n}`).join(' · ')}</div> : null}</td>
-                  <td>{r.completeness_unsolved.n ? `${fmtNum(r.completeness_unsolved.mean, 2)} (n = ${r.completeness_unsolved.n})` : 'n/a'}</td>
-                  <td>{r.awaiting_manual_audit.length}</td>
+                  {a.tiers.map((k) => <td key={k} className="num"><Rate r={r.solved_within[k]} color="var(--s1)" /></td>)}
+                  <td className="num">{r.sessions_to_success.median ?? 'n/a'}</td>
+                  <td className="num">{fmtRate(r.sessions_ended_by_output_budget)}</td>
+                  <td className="num">{fmtInt(r.totals.output_tokens)}</td>
+                  <td className="num">{ms(r.totals.working_ms)}</td>
+                  <td className="num">{fmtInt(r.totals.tool_calls)}{r.totals.tool_calls_by_tool && Object.keys(r.totals.tool_calls_by_tool).length ? <div className="small">{Object.entries(r.totals.tool_calls_by_tool).map(([t, n]) => `${t} ${n}`).join(' · ')}</div> : null}</td>
+                  <td className="num">{r.completeness_unsolved.n ? `${fmtNum(r.completeness_unsolved.mean, 2)} (n = ${r.completeness_unsolved.n})` : 'n/a'}</td>
+                  <td className="num">{r.awaiting_manual_audit.length}</td>
                   <td>{r.open_claim_escalations.length ? r.open_claim_escalations.join(', ') : '—'}</td>
                 </tr>
               )
@@ -110,6 +111,7 @@ export function AgentView({ summary }) {
           </tbody>
         </table>
       </div>
+      </Enlargeable>
       {summary.run?.protocol_mismatches?.length > 0 && <p className="small"><b>Warning:</b> the imported models did not run under one protocol — {[...new Set(summary.run.protocol_mismatches.map((x) => x.field))].join(', ')} differ. Their rows are not comparable.</p>}
     </section>
   )
@@ -151,8 +153,8 @@ export function ComparisonTable({ comparison, models }) {
   const name = (id) => shortLabel(models.find((m) => m.id === id) || { id })
   return (
     <div className="table-wrap">
-      <table className="table">
-        <thead><tr><th>Pair</th><th>Successes A / B</th><th>Diff (pp)</th><th>95% CI</th><th>Discordant A-only / B-only</th><th>McNemar p</th><th>Holm p</th></tr></thead>
+      <table className="table ev-pairs">
+        <thead><tr><th>Pair</th><th className="num">Successes A / B</th><th className="num">Diff (pp)</th><th className="num">95% CI</th><th className="num">Discordant A-only / B-only</th><th className="num">McNemar p</th><th className="num">Holm p</th></tr></thead>
         <tbody>
           {comparison.pairwise.map((p) => {
             const sig = p.p_holm !== null && p.p_holm < 0.05
@@ -197,8 +199,8 @@ export function CoverageView({ summary }) {
       <h3 className="ev-h3">Subsets</h3>
       <div className="table-wrap">
         <table className="table">
-          <thead><tr><th>Model</th><th>Common input set: verified pass@1</th><th>Common input set: GT-faithful</th><th>Text-only subset: verified pass@1</th></tr></thead>
-          <tbody>{summary.models.map((m) => { const s = summary.subsets?.[m.id]; return s ? <tr key={m.id}><td>{m.display_name}</td><td><Rate r={s.common_input_set.verified_pass1} /></td><td><Rate r={s.common_input_set.statement_faithful} color="var(--s2)" /></td><td>{s.text_only_subset.note ? <Unavail note={s.text_only_subset.note} /> : <Rate r={s.text_only_subset.verified_pass1} />}</td></tr> : null })}</tbody>
+          <thead><tr><th>Model</th><th className="num">Common input set: verified pass@1</th><th className="num">Common input set: GT-faithful</th><th className="num">Text-only subset: verified pass@1</th></tr></thead>
+          <tbody>{summary.models.map((m) => { const s = summary.subsets?.[m.id]; return s ? <tr key={m.id}><td>{m.display_name}</td><td className="num"><Rate r={s.common_input_set.verified_pass1} /></td><td className="num"><Rate r={s.common_input_set.statement_faithful} color="var(--s2)" /></td><td className="num">{s.text_only_subset.note ? <Unavail note={s.text_only_subset.note} /> : <Rate r={s.text_only_subset.verified_pass1} />}</td></tr> : null })}</tbody>
         </table>
       </div>
       <details className="small"><summary>Caveats</summary><ul>{(summary.caveats || []).map((x, i) => <li key={i}>{x}</li>)}</ul></details>
@@ -241,13 +243,15 @@ export function ItemsView({ items, runId }) {
         <label className="field">Search<input value={search} onChange={(e) => { setSearch(e.target.value); setPage(0) }} placeholder="paper, note, error…" /></label>
       </div>
       <p className="small">{filtered.length} records match. Filtered pass@1 rates (no CI): GT-faithful {fmtRate(rStmt)} · compile {fmtRate(rComp)} · verified {fmtRate(rVer)}. Infrastructure failures excluded: {filtered.filter((r) => r.infrastructure_failure).length}.</p>
-      <div className="row">
-        <button className="btn btn-secondary btn-sm" onClick={() => download(`${runId || 'qedrank'}-items-filtered.csv`, toCsv(filtered), 'text/csv')}>Download filtered CSV</button>
-        <button className="btn btn-secondary btn-sm" onClick={() => download(`${runId || 'qedrank'}-items-filtered.json`, JSON.stringify({ schema: 'qedrank-items-v1', run_id: runId, count: filtered.length, items: filtered }, null, 2), 'application/json')}>Download filtered JSON</button>
-      </div>
+      <Enlargeable title="Item-level results" toolbar={(
+        <div className="row">
+          <button className="btn btn-secondary btn-sm" onClick={() => download(`${runId || 'qedrank'}-items-filtered.csv`, toCsv(filtered), 'text/csv')}>Download filtered CSV</button>
+          <button className="btn btn-secondary btn-sm" onClick={() => download(`${runId || 'qedrank'}-items-filtered.json`, JSON.stringify({ schema: 'qedrank-items-v1', run_id: runId, count: filtered.length, items: filtered }, null, 2), 'application/json')}>Download filtered JSON</button>
+        </div>
+      )}>
       <div className="table-wrap">
         <table className="table ev-items">
-          <thead><tr><th>Paper</th><th>Target</th><th>Model</th><th>Setting</th><th>Compile</th><th>Audit</th><th>Statement match</th><th>Verified</th><th>Conf (stmt/proof)</th><th>Latency</th><th>Lean</th><th /></tr></thead>
+          <thead><tr><th>Paper</th><th>Target</th><th>Model</th><th>Setting</th><th>Compile</th><th>Audit</th><th>Statement match</th><th>Verified</th><th className="num">Conf (stmt/proof)</th><th className="num">Latency</th><th className="num">Lean</th><th /></tr></thead>
           <tbody>
             {shown.map((r) => {
               const key = `${r.item_key}-${r.setting}-${r.attempt}-${r.repair_round}`
@@ -257,7 +261,7 @@ export function ItemsView({ items, runId }) {
                     <td><code>{r.paper_id}</code></td><td>{TARGET_LABELS[r.target_kind] || r.target_kind}</td><td>{r.model}</td><td>{r.setting} a{r.attempt}{r.repair_round ? ` r${r.repair_round}` : ''}</td>
                     <td><Status v={r.compile_status} /></td><td><Status v={r.audit_status} /></td><td><Status v={r.statement_match} />{r.statement_match_source === 'expert_review' && <span className="badge">expert</span>}</td>
                     <td>{r.infrastructure_failure ? <span className="muted">infra</span> : r.verified === 1 ? <b className="good">yes</b> : r.verified === 0 ? 'no' : <span className="muted">n/e</span>}</td>
-                    <td>{r.statement_confidence ?? '–'} / {r.proof_confidence ?? '–'}</td><td>{fmtMs(r.observed_latency_ms)}</td><td>{fmtMs(r.lean_total_ms)}</td>
+                    <td className="num">{r.statement_confidence ?? '–'} / {r.proof_confidence ?? '–'}</td><td className="num">{fmtMs(r.observed_latency_ms)}</td><td className="num">{fmtMs(r.lean_total_ms)}</td>
                     <td><button className="link-btn" onClick={() => setOpen(open === key ? null : key)}>{open === key ? 'hide' : 'details'}</button></td>
                   </tr>
                   {open === key && (
@@ -290,6 +294,7 @@ export function ItemsView({ items, runId }) {
         <span className="small">page {page + 1} of {Math.max(1, Math.ceil(filtered.length / pageSize))}</span>
         <button className="btn btn-secondary btn-sm" disabled={(page + 1) * pageSize >= filtered.length} onClick={() => setPage(page + 1)}>Next</button>
       </div>
+      </Enlargeable>
     </div>
   )
 }

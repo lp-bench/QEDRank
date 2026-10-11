@@ -6,7 +6,7 @@ import { Link } from 'react-router-dom'
 import { useAppState } from '../state/AppState.jsx'
 import { RunPanel } from '../qedrank/panels.jsx'
 import { TARGET_KINDS, TARGET_LABELS, fmtRate, fmtCI, fmtMs, fmtNum, fmtInt, download, toCsv } from '../qedrank/helpers.js'
-import { Figure, HBars, GroupedBars, Heatmap, RangeDots, StackedBars, Reliability, PairMatrix, pct1 } from '../charts/primitives.jsx'
+import { ChartSizing, Enlargeable, Figure, HBars, GroupedBars, Heatmap, RangeDots, StackedBars, Reliability, PairMatrix, pct1 } from '../charts/primitives.jsx'
 import { shortLabel, slotColor } from '../components/vendor.js'
 import { MatrixTable, ComparisonTable, CoverageView, ItemsView, AgentView, Rate, matrixCsvRows } from './views.jsx'
 import '../qedrank/qedrank.css'
@@ -25,15 +25,18 @@ const SECTIONS = [
   ['subgroups', 'Subgroups'], ['coverage', 'Coverage & audit'], ['items', 'Items'],
 ]
 const MATCH_PARTS = [
-  { key: 'definitionally_identical', label: 'definitionally identical', color: 'var(--seq-5)' },
-  { key: 'equivalent', label: 'equivalent', color: 'var(--seq-4)' },
-  { key: 'expert_confirmed_equivalent', label: 'expert-confirmed equivalent', color: 'var(--seq-3)' },
+  { key: 'definitionally_identical', label: 'definitionally identical', color: 'var(--seq-5)', ink: 'var(--seq-ink-5)' },
+  { key: 'equivalent', label: 'equivalent', color: 'var(--seq-4)', ink: 'var(--seq-ink-4)' },
+  { key: 'expert_confirmed_equivalent', label: 'expert-confirmed equivalent', color: 'var(--seq-3)', ink: 'var(--seq-ink-3)' },
   { key: 'stronger', label: 'stronger', color: 'var(--s4)' },
   { key: 'weaker', label: 'weaker', color: 'var(--s2)' },
   { key: 'different', label: 'different', color: 'var(--s8)' },
-  { key: 'unresolved', label: 'unresolved', color: 'var(--axis)' },
-  { key: 'not_evaluated', label: 'not evaluated', color: 'var(--surface-3)' },
+  { key: 'unresolved', label: 'unresolved', color: 'var(--axis)', ink: 'var(--text)' },
+  { key: 'not_evaluated', label: 'not evaluated', color: 'var(--surface-3)', ink: 'var(--text)' },
 ]
+// Charts on this page are drawn at full pixel size: target heights in px for a figure and for a
+// small multiple (charts grow beyond these when they hold many rows; 3/4 of this on phones).
+const CHART_SIZING = { height: 420, compactHeight: 300 }
 
 const rateText = (r) => (r && r.den > 0 ? `${r.num}/${r.den} · ${pct1(r.value)}` : 'n/a')
 const rateTitle = (label, r, what) => <span><b>{label}</b><br />{what}: <b>{fmtRate(r)}</b>{r && r.ci_lo !== null && r.ci_lo !== undefined ? <><br />{fmtCI(r)}</> : null}</span>
@@ -70,9 +73,11 @@ export default function EvaluationPage() {
         </div>
       </div>
 
-      {summary ? <SummaryAnalysis summary={summary} run={run} /> : <div className="note">Only item records are loaded (no <code>summary.json</code>). Run <code>node qedrank/cli.js stats --run-id …</code> to compute the matrix, or load the summary on the <Link to="/benchmark">Benchmark</Link> page.</div>}
+      <ChartSizing.Provider value={CHART_SIZING}>
+        {summary ? <SummaryAnalysis summary={summary} run={run} /> : <div className="note">Only item records are loaded (no <code>summary.json</code>). Run <code>node qedrank/cli.js stats --run-id …</code> to compute the matrix, or load the summary on the <Link to="/benchmark">Benchmark</Link> page.</div>}
 
-      {items && <section id="items" className="ev-section"><h2 className="ev-h2"><span className="ev-num">{summary ? 11 : 1}</span>Item-level results</h2><ItemsView items={items} runId={run?.run_id || summary?.run?.run_id} /></section>}
+        {items && <section id="items" className="ev-section"><h2 className="ev-h2"><span className="ev-num">{summary ? 11 : 1}</span>Item-level results</h2><ItemsView items={items} runId={run?.run_id || summary?.run?.run_id} /></section>}
+      </ChartSizing.Provider>
     </main>
   )
 }
@@ -174,7 +179,7 @@ function SummaryAnalysis({ summary, run }) {
           </Figure>
         </div>
         <div className="ev-grid-4">
-          {TARGET_KINDS.map((k) => <Figure key={k} title={`Verified pass@1 — ${TARGET_LABELS[k]}`} table={rateTable(summary, k, METRICS[0])} className="ch-compact"><HBars series={rateSeries(summary, k, METRICS[0])} color="var(--s1)" ariaLabel={`Verified pass@1 on ${TARGET_LABELS[k]}`} /></Figure>)}
+          {TARGET_KINDS.map((k) => <Figure key={k} title={`Verified pass@1 — ${TARGET_LABELS[k]}`} table={rateTable(summary, k, METRICS[0])} compact><HBars series={rateSeries(summary, k, METRICS[0])} color="var(--s1)" ariaLabel={`Verified pass@1 on ${TARGET_LABELS[k]}`} /></Figure>)}
         </div>
       </section>
 
@@ -189,8 +194,9 @@ function SummaryAnalysis({ summary, run }) {
       <section id="matrix" className="ev-section">
         <h2 className="ev-h2"><span className="ev-num">3</span>Complete evaluation matrix</h2>
         <p className="small">Every rate shows numerator / eligible denominator with its 95% interval. No weighted composite is computed. Scope selects a target kind.</p>
-        <div className="tabs">{SCOPES.map((s) => <button key={s} className={`tab ${matrixScope === s ? 'active' : ''}`} onClick={() => setMatrixScope(s)}>{TARGET_LABELS[s]}</button>)}</div>
-        <MatrixTable summary={summary} scope={matrixScope} />
+        <Enlargeable title={`Complete evaluation matrix — ${TARGET_LABELS[matrixScope]}`} toolbar={<div className="tabs">{SCOPES.map((s) => <button key={s} className={`tab ${matrixScope === s ? 'active' : ''}`} onClick={() => setMatrixScope(s)}>{TARGET_LABELS[s]}</button>)}</div>}>
+          <MatrixTable summary={summary} scope={matrixScope} />
+        </Enlargeable>
         <details className="small"><summary>Eligibility rules and denominators</summary><ul>{Object.entries(summary.eligibility_rules || {}).map(([k, v]) => <li key={k}><b>{k}</b>: {v}</li>)}</ul></details>
       </section>
 
@@ -205,7 +211,7 @@ function SummaryAnalysis({ summary, run }) {
         <h2 className="ev-h2"><span className="ev-num">5</span>Time per item (all attempts)</h2>
         <p className="small">Dot = median, band = interquartile range, tick = p90. Observed latency includes network and provider queueing; timing is reported regardless of success.</p>
         <div className="ev-grid-3">
-          {timeKeys.map(([key, label, color]) => <Figure key={key} title={label} table={timeTable(key)} className="ch-compact"><RangeDots series={timeSeries(key)} color={color} fmt={fmtMs} ariaLabel={label} /></Figure>)}
+          {timeKeys.map(([key, label, color]) => <Figure key={key} title={label} table={timeTable(key)} compact><RangeDots series={timeSeries(key)} color={color} fmt={fmtMs} ariaLabel={label} /></Figure>)}
         </div>
       </section>
 
@@ -227,7 +233,7 @@ function SummaryAnalysis({ summary, run }) {
         <div className="ch-legend"><span><i style={{ background: 'var(--s1)' }} />statement fidelity (●)</span><span><i style={{ background: 'var(--s2)' }} />proof audit (■)</span></div>
         <div className="ev-grid-4">
           {models.map((m) => { const cal = summary.by_target.all?.[m.id]?.calibration; return (
-            <Figure key={m.id} title={shortLabel(m)} subtitle={`RMS ${fmtNum(cal?.statement?.rms_calibration_error, 3)} (statement, n=${cal?.statement?.n ?? 0}) · ${fmtNum(cal?.proof_audit?.rms_calibration_error, 3)} (proof, n=${cal?.proof_audit?.n ?? 0}) · abstention ${fmtRate(cal?.abstention_coverage)}`} className="ch-compact" table={{ columns: ['Bin', 'Stmt n', 'Stmt conf', 'Stmt faithful', 'Proof n', 'Proof conf', 'Audit clean'], rows: (cal?.statement?.reliability || []).map((b, i) => { const p = cal?.proof_audit?.reliability?.[i] || {}; return [`${b.lo}–${b.hi}%`, b.n, b.n ? pct1(b.mean_confidence) : '—', b.n ? pct1(b.accuracy) : '—', p.n ?? 0, p.n ? pct1(p.mean_confidence) : '—', p.n ? pct1(p.accuracy) : '—'] }) }}>
+            <Figure key={m.id} title={shortLabel(m)} subtitle={`RMS ${fmtNum(cal?.statement?.rms_calibration_error, 3)} (statement, n=${cal?.statement?.n ?? 0}) · ${fmtNum(cal?.proof_audit?.rms_calibration_error, 3)} (proof, n=${cal?.proof_audit?.n ?? 0}) · abstention ${fmtRate(cal?.abstention_coverage)}`} table={{ columns: ['Bin', 'Stmt n', 'Stmt conf', 'Stmt faithful', 'Proof n', 'Proof conf', 'Audit clean'], rows: (cal?.statement?.reliability || []).map((b, i) => { const p = cal?.proof_audit?.reliability?.[i] || {}; return [`${b.lo}–${b.hi}%`, b.n, b.n ? pct1(b.mean_confidence) : '—', b.n ? pct1(b.accuracy) : '—', p.n ?? 0, p.n ? pct1(p.mean_confidence) : '—', p.n ? pct1(p.accuracy) : '—'] }) }}>
               <Reliability statement={cal?.statement} proof={cal?.proof_audit} ariaLabel={`Reliability diagram for ${m.display_name}`} />
             </Figure>) })}
         </div>
@@ -243,11 +249,11 @@ function SummaryAnalysis({ summary, run }) {
               {cmp.descriptive_ranking.map((r, i) => <span key={r.model} className="pill model-chip" style={{ '--mc': slotColor(r.model) }}><i className="chip-dot" />{i + 1}. {shortLabel(models.find((m) => m.id === r.model) || { id: r.model })} <b>{r.successes}/{r.n}</b></span>)}
             </div>
             <p className="small"><b>Statistically supported differences</b> (Holm-adjusted p &lt; 0.05): {cmp.statistically_supported_pairs.length ? cmp.statistically_supported_pairs.map((s) => s.replace(/ vs /, ' vs ')).join('; ') : 'none'}.</p>
-            <div className="ev-grid-2">
+            <div className="ev-grid-1">
               <Figure title="Paired difference in verified pass@1 (row − column, percentage points)" subtitle="Blue: the row model solved more common papers; red: fewer. ● marks a pair that stays significant after Holm correction. Hover or focus a cell for the interval, discordant counts and p-values." legend={[{ label: 'row better', color: 'var(--dv-p3)' }, { label: 'no difference', color: 'var(--div-mid)' }, { label: 'column better', color: 'var(--dv-n3)' }]} table={{ columns: ['Pair', 'A / B successes', 'Diff (pp)', '95% CI', 'Discordant A-only / B-only', 'McNemar p', 'Holm p'], rows: cmp.pairwise.map((p) => [`${shortLabel(models.find((m) => m.id === p.model_a) || { id: p.model_a })} vs ${shortLabel(models.find((m) => m.id === p.model_b) || { id: p.model_b })}`, `${p.a_successes} / ${p.b_successes} of ${p.n}`, fmtNum(p.diff_pp, 1), p.diff_ci_lo === null ? 'unavailable' : `[${fmtNum(p.diff_ci_lo, 1)}, ${fmtNum(p.diff_ci_hi, 1)}]`, `${p.discordant_a_only} / ${p.discordant_b_only}`, fmtNum(p.p, 4), fmtNum(p.p_holm, 4)]) }}>
                 <PairMatrix models={models.map((m) => ({ id: m.id, label: shortLabel(m) }))} pairs={cmp.pairwise} ariaLabel="Pairwise comparison matrix" />
               </Figure>
-              <div className="ch-figure"><div className="ch-head"><div className="ch-head-text"><div className="ch-title">All pairs</div><div className="ch-sub">Exact two-sided McNemar on discordant papers; paired percentage-point difference with a paper-cluster bootstrap interval.</div></div></div><ComparisonTable comparison={cmp} models={models} /></div>
+              <Figure title="All pairs" subtitle="Exact two-sided McNemar on discordant papers; paired percentage-point difference with a paper-cluster bootstrap interval."><ComparisonTable comparison={cmp} models={models} /></Figure>
             </div>
           </>
         ) : <p className="muted">No comparison was computed (fewer than two models or no common eligible papers).</p>}
@@ -267,7 +273,7 @@ function SummaryAnalysis({ summary, run }) {
                     const anyExploratory = models.some((m) => rows[m.id]?.exploratory)
                     const series = models.map((m) => { const r = rows[m.id]?.verified_pass1; const has = r && r.den > 0; return { id: m.id, label: shortLabel(m), value: has ? r.value : null, lo: has ? r.ci_lo ?? undefined : undefined, hi: has ? r.ci_hi ?? undefined : undefined, text: rateText(r), title: rateTitle(m.display_name, r, `Verified pass@1 · ${key}`) } })
                     return (
-                      <Figure key={key} title={`${key} · ${Object.values(rows)[0]?.papers ?? 0} papers`} subtitle={anyExploratory ? 'exploratory: fewer papers than the threshold' : undefined} className="ch-compact" table={{ columns: ['Model', 'Papers', 'GT-faithful statement', 'Verified pass@1'], rows: models.map((m) => [m.display_name, rows[m.id]?.papers ?? 0, fmtRate(rows[m.id]?.statement_faithful), fmtRate(rows[m.id]?.verified_pass1)]) }}>
+                      <Figure key={key} title={`${key} · ${Object.values(rows)[0]?.papers ?? 0} papers`} subtitle={anyExploratory ? 'exploratory: fewer papers than the threshold' : undefined} compact table={{ columns: ['Model', 'Papers', 'GT-faithful statement', 'Verified pass@1'], rows: models.map((m) => [m.display_name, rows[m.id]?.papers ?? 0, fmtRate(rows[m.id]?.statement_faithful), fmtRate(rows[m.id]?.verified_pass1)]) }}>
                         <HBars series={series} color="var(--s1)" ariaLabel={`Verified pass@1 in ${key}`} />
                       </Figure>)
                   })}
