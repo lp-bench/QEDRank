@@ -86,6 +86,11 @@ test('a challenge that does not compile in the grader is a grader error, decided
   assert.deepEqual([c1.verdict, c1.reasons, c2.verdict, c2.reasons], ['not_solved', ['compile_error'], 'not_solved', ['compile_error']]);
   assert.deepEqual(fine.calls, ['challenge', 'solution', 'solution']);
   assert.equal(c2.checks.challenge.cached, true);
+  // Two gradings of the same challenge at the same time share one compilation.
+  const parallel = fakeRunner({ challenge: ['compiler_success'], solution: ['compiler_success'] });
+  const other = challengeSrc.replace('True', '1 = 1');
+  await Promise.all([1, 2, 3].map((i) => gradeSubmission({ runner: parallel, toolchain, challengeSrc: other, solutionSrc: other, scratchDir: path.join(scratch, `p${i}`), cacheDir: path.join(scratch, 'cache') }).catch(() => null)));
+  assert.equal(parallel.calls.filter((c) => c === 'challenge').length, 1);
   await fs.rm(scratch, { recursive: true, force: true });
 });
 

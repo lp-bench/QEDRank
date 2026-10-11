@@ -208,6 +208,17 @@ export function proofLength(challengeSrc, solutionSrc, target) {
   };
 }
 
+// Gradings running in parallel in one process share a compilation that is already under way
+// instead of starting the same one again; the result is then on disk for everyone after.
+const inFlight = new Map();
+async function shared(key, build) {
+  const running = inFlight.get(key);
+  if (running) return { ...(await running), cached: true, duration_ms: 0 };
+  const p = build().finally(() => inFlight.delete(key));
+  inFlight.set(key, p);
+  return p;
+}
+
 /**
  * Compile the evaluator commands once per toolchain and source version. Returns the root that
  * holds QEDRank/Audit.olean; it goes first on the search path so a stale project build cannot shadow it.
@@ -218,19 +229,21 @@ export async function ensureAudit({ runner, toolchain, cacheDir, auditSource = A
   const root = path.join(cacheDir, `audit-${key}`);
   const olean = path.join(root, 'QEDRank', 'Audit.olean');
   if (await exists(olean)) return { root, status: 'compiler_success', cached: true };
-  // Build in a private directory and rename it into place, so an interrupted or concurrent
-  // build can never leave a truncated object file behind the cache key.
-  const tmp = `${root}.tmp-${process.pid}-${Date.now()}`;
-  const file = path.join(tmp, 'QEDRank', 'Audit.lean');
-  await writeText(file, src);
-  const tmpOlean = path.join(tmp, 'QEDRank', 'Audit.olean');
-  const r = await runner.runLean({ file, cwd: tmp, olean: tmpOlean, ilean: tmpOlean.replace(/\.olean$/, '.ilean'), label: 'audit' });
-  if (r.status === 'compiler_success') {
-    try { await fs.rename(tmp, root); } catch { /* another process finished first */ }
-  }
-  await fs.rm(tmp, { recursive: true, force: true }).catch(() => {});
-  const ok = r.status === 'compiler_success' && (await exists(olean));
-  return { root, status: ok ? 'compiler_success' : r.status === 'compiler_success' ? 'infrastructure_failure' : r.status, cached: false, messages: r.messages.filter((m) => m.severity === 'error').slice(0, 5), infra_reason: r.infra_reason };
+  return shared(root, async () => {
+    // Build in a private directory and rename it into place, so an interrupted or concurrent
+    // build can never leave a truncated object file behind the cache key.
+    const tmp = `${root}.tmp-${process.pid}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    const file = path.join(tmp, 'QEDRank', 'Audit.lean');
+    await writeText(file, src);
+    const tmpOlean = path.join(tmp, 'QEDRank', 'Audit.olean');
+    const r = await runner.runLean({ file, cwd: tmp, olean: tmpOlean, ilean: tmpOlean.replace(/\.olean$/, '.ilean'), label: 'audit' });
+    if (r.status === 'compiler_success') {
+      try { await fs.rename(tmp, root); } catch { /* another process finished first */ }
+    }
+    await fs.rm(tmp, { recursive: true, force: true }).catch(() => {});
+    const ok = r.status === 'compiler_success' && (await exists(olean));
+    return { root, status: ok ? 'compiler_success' : r.status === 'compiler_success' ? 'infrastructure_failure' : r.status, cached: false, messages: r.messages.filter((m) => m.severity === 'error').slice(0, 5), infra_reason: r.infra_reason };
+  });
 }
 
 // A compile error that means Lean cannot find a module, not that the code is wrong.
@@ -248,24 +261,26 @@ export async function compileChallenge({ runner, toolchain, challengeSrc, cacheD
   const root = path.join(cacheDir, `challenge-${key}`);
   const olean = path.join(root, `${SUBMISSION_MODULE}.olean`);
   if (await exists(olean)) return { status: 'compiler_success', olean, cached: true, duration_ms: 0, errors: '', infra_reason: null, missing_module: false };
-  // Build in a private directory and rename it into place, as ensureAudit does.
-  const tmp = `${root}.tmp-${process.pid}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-  const r = await runner.compileModule({ src: challengeSrc, moduleName: SUBMISSION_MODULE, scratchDir: tmp, label: 'challenge', extraArgs: leanArgs });
-  if (r.status === 'compiler_success') {
-    try { await fs.rename(tmp, root); } catch { /* another grading finished first */ }
-  }
-  await fs.rm(tmp, { recursive: true, force: true }).catch(() => {});
-  const ok = r.status === 'compiler_success' && (await exists(olean));
-  const errors = formatCompilerOutput(r.messages, { maxMessages: 5 });
-  return {
-    status: ok ? 'compiler_success' : r.status === 'compiler_success' ? 'infrastructure_failure' : r.status,
-    olean: ok ? olean : null,
-    cached: false,
-    duration_ms: r.duration_ms,
-    errors,
-    infra_reason: r.infra_reason ?? null,
-    missing_module: MISSING_MODULE.test(errors),
-  };
+  return shared(root, async () => {
+    // Build in a private directory and rename it into place, as ensureAudit does.
+    const tmp = `${root}.tmp-${process.pid}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    const r = await runner.compileModule({ src: challengeSrc, moduleName: SUBMISSION_MODULE, scratchDir: tmp, label: 'challenge', extraArgs: leanArgs });
+    if (r.status === 'compiler_success') {
+      try { await fs.rename(tmp, root); } catch { /* another grading finished first */ }
+    }
+    await fs.rm(tmp, { recursive: true, force: true }).catch(() => {});
+    const ok = r.status === 'compiler_success' && (await exists(olean));
+    const errors = formatCompilerOutput(r.messages, { maxMessages: 5 });
+    return {
+      status: ok ? 'compiler_success' : r.status === 'compiler_success' ? 'infrastructure_failure' : r.status,
+      olean: ok ? olean : null,
+      cached: false,
+      duration_ms: r.duration_ms,
+      errors,
+      infra_reason: r.infra_reason ?? null,
+      missing_module: MISSING_MODULE.test(errors),
+    };
+  });
 }
 
 const leanPathString = (p) => p.split(path.sep).join('/');

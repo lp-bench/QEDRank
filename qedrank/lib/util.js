@@ -43,12 +43,31 @@ export async function readJson(file, fallback = undefined) {
   }
 }
 
-/** Atomic JSON write (tmp file + rename) so interrupted runs never leave half-written artifacts. */
+let tmpCounter = 0;
+
+/**
+ * Atomic JSON write (tmp file + rename) so interrupted runs never leave half-written artifacts.
+ * Every call has its own tmp file, so concurrent writes of the same file (progress updates of
+ * parallel items) cannot rename each other's tmp away; the last rename wins. On Windows a rename
+ * onto a file that another rename is replacing at that moment can fail briefly and is retried.
+ */
 export async function writeJson(file, value) {
   await ensureDir(path.dirname(file));
-  const tmp = `${file}.${process.pid}.tmp`;
+  tmpCounter += 1;
+  const tmp = `${file}.${process.pid}.${tmpCounter}.tmp`;
   await fs.writeFile(tmp, JSON.stringify(value, null, 2), 'utf8');
-  await fs.rename(tmp, file);
+  for (let attempt = 1; ; attempt += 1) {
+    try {
+      await fs.rename(tmp, file);
+      return;
+    } catch (err) {
+      if (attempt >= 8 || !['EPERM', 'EACCES', 'EBUSY'].includes(err.code)) {
+        await fs.rm(tmp, { force: true }).catch(() => {});
+        throw err;
+      }
+      await new Promise((r) => setTimeout(r, 10 * attempt));
+    }
+  }
 }
 
 export async function writeText(file, text) {
