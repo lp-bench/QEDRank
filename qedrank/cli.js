@@ -13,7 +13,9 @@
 //       --task formalize (default): the model writes statement and proof from the paper text; the statement is compared with the reference
 //       --task prove: the model gets the challenge file and fills in its sorry; the file is judged by the independent check (no PDF needed)
 //       --lean-project: the Lean project whose toolchain, Mathlib and libraries compile the files (default lean/; a built ProofBench checkout for its statement library)
-//   node qedrank/cli.js resume --run-id ID [--retry-failed] [--reevaluate]
+//   node qedrank/cli.js resume --run-id ID [--retry-failed] [--reevaluate [--no-generate]] [--lean-project DIR]
+//       --reevaluate grades the stored answers again (e.g. in another --lean-project); --no-generate never calls a
+//       model, so items whose answer is missing or a provider error keep their record
 //   node qedrank/cli.js stats --run-id ID
 //   node qedrank/cli.js serve [--port 8787] [--no-jobs] [--allow-origin https://host]
 //       serves runs/ to the page and, unless --no-jobs, lets the page start and watch runs (POST /jobs; localhost only)
@@ -152,7 +154,7 @@ async function main() {
       const selection = { papers: list(args.papers).length ? list(args.papers) : sel.papers || [], models: sel.models || ctx.run.models, targets: sel.targets || [], limit: null };
       await stageDiscovery(ctx);
       await stagePreparation(ctx, { selection: { ...selection, papers: selection.papers } });
-      await stageGeneration(ctx, { selection, retryFailed: Boolean(args['retry-failed']), reevaluate: Boolean(args.reevaluate), fixtureDir: ctx.run.fixture_dir || null });
+      await stageGeneration(ctx, { selection, retryFailed: Boolean(args['retry-failed']), reevaluate: Boolean(args.reevaluate), noGenerate: Boolean(args['no-generate']), fixtureDir: ctx.run.fixture_dir || null });
       const { summary } = await stageStatistics(ctx);
       printMatrix(summary);
       return;

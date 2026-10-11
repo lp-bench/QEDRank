@@ -22,6 +22,7 @@ import { harnessRevision } from './provenance.js';
 import { modelFacts } from '../../lib/model-facts.js';
 import { applyManualAudit } from './agent.js';
 import { renderProvePrompt, evaluateProveAttempt, PROVE_TEMPLATE_VERSION, PROVE_ENDPOINT } from './prove.js';
+import { compileChallenge } from './grade.js';
 
 export class RunContext {
   constructor({ runDir, config, log }) {
@@ -155,6 +156,8 @@ export async function initLean(ctx) {
   ctx.run.toolchain = {
     available: ctx.toolchain.available,
     reason: ctx.toolchain.reason,
+    lean_project: ctx.toolchain.lean_dir,
+    lean_options: ctx.toolchain.lean_options || [],
     toolchain: ctx.toolchain.toolchain,
     lean_version: ctx.toolchain.lean_version,
     mathlib: ctx.toolchain.mathlib,
@@ -287,8 +290,23 @@ function leakCheck(prompt, refRecord) {
   }
 }
 
-export async function stageGeneration(ctx, { selection = null, retryFailed = false, reevaluate = false, fixtureDir = null } = {}) {
-  if ((ctx.run.task || ctx.config.task) === 'prove') return stageGenerationProve(ctx, { selection, retryFailed, reevaluate, fixtureDir });
+/** A re-grade changes the evaluation, not the answers: record when, with which code and which Lean project. */
+async function recordReevaluation(ctx, { noGenerate }) {
+  await initLean(ctx);
+  ctx.run.reevaluations = [...(ctx.run.reevaluations || []), {
+    at: isoNow(),
+    harness: await harnessRevision(),
+    lean_project: ctx.toolchain.lean_dir,
+    toolchain: ctx.toolchain.toolchain,
+    lean_options: ctx.toolchain.lean_options || [],
+    model_calls: noGenerate ? 'none' : 'only for items without a stored answer',
+  }];
+  await ctx.saveRun();
+}
+
+export async function stageGeneration(ctx, { selection = null, retryFailed = false, reevaluate = false, noGenerate = false, fixtureDir = null } = {}) {
+  if (reevaluate) await recordReevaluation(ctx, { noGenerate });
+  if ((ctx.run.task || ctx.config.task) === 'prove') return stageGenerationProve(ctx, { selection, retryFailed, reevaluate, noGenerate, fixtureDir });
   await initLean(ctx);
   const manifest = ctx.manifest || (await stageDiscovery(ctx));
   const papers = selectPapers(manifest, selection);
@@ -353,6 +371,7 @@ export async function stageGeneration(ctx, { selection = null, retryFailed = fal
               let gen;
               const genFile = path.join(itemDir, `generation-a${attempt}.json`);
               const prior = await readJson(genFile, null);
+              if (noGenerate && (!prior || prior.error)) { counters.skipped += 1; return; }
               if (prior && !prior.error && (reevaluate || (!retryFailed))) gen = prior;
               else {
                 await writeText(path.join(itemDir, `prompt-a${attempt}.txt`), prompt.text);
@@ -464,7 +483,7 @@ export async function stagePreparationProve(ctx, { selection = null, force = fal
   return { done, errors };
 }
 
-export async function stageGenerationProve(ctx, { selection = null, retryFailed = false, reevaluate = false, fixtureDir = null } = {}) {
+export async function stageGenerationProve(ctx, { selection = null, retryFailed = false, reevaluate = false, noGenerate = false, fixtureDir = null } = {}) {
   await initLean(ctx);
   const manifest = ctx.manifest || (await stageDiscovery(ctx));
   const papers = selectPapers(manifest, selection);
@@ -487,6 +506,18 @@ export async function stageGenerationProve(ctx, { selection = null, retryFailed 
   const counters = { total: 0, done: 0, skipped: 0, generated: 0, gen_failed: 0, compiled: 0, verified: 0, infra: 0, errors: [] };
   const tasks = [];
   const t0 = nowMono();
+  // A live model call is only worth paying for when the grader can compile the challenge it answers.
+  const challengeChecks = new Map();
+  const challengeUnusable = (paperId, kind, src) => {
+    if (mode !== 'live' || !ctx.toolchain.available) return Promise.resolve(null);
+    const id = `${paperId}__${kind}`;
+    if (!challengeChecks.has(id)) {
+      challengeChecks.set(id, compileChallenge({ runner: ctx.runner, toolchain: ctx.toolchain, challengeSrc: src, cacheDir: path.join(ctx.config.runsDir, '.grade-cache'), leanArgs: ctx.toolchain.lean_options || [] })
+        .then((r) => (r.status === 'compiler_success' ? null
+          : `${r.missing_module ? 'a module the challenge imports is missing from the grader\'s Lean project' : 'the challenge does not compile in the grader\'s Lean project'} (${ctx.toolchain.lean_dir}): ${r.errors.split('\n')[0] || r.status}`)));
+    }
+    return challengeChecks.get(id);
+  };
   const stamp = (gen, prompt) => {
     gen.facts = ctx.run.model_facts?.[gen.provider] ?? null;
     gen.prompt_hash = prompt.hash;
@@ -519,15 +550,26 @@ export async function stageGenerationProve(ctx, { selection = null, retryFailed 
               await ensureDir(itemDir);
               const genFile = path.join(itemDir, `generation-a${attempt}.json`);
               const prior = await readJson(genFile, null);
+              if (noGenerate && (!prior || prior.error)) { counters.skipped += 1; return; }
+              const evalOpts = { runner: ctx.runner, toolchain: ctx.toolchain, paper, target, challengeSrc, itemDir, config: ctx.config, log: ctx.log };
               let gen;
               if (prior && !prior.error && (reevaluate || !retryFailed)) gen = prior;
               else {
+                const unusable = await challengeUnusable(paper.paper_id, kind, challengeSrc);
+                if (unusable) {
+                  // Recorded as an infrastructure failure and not saved as a generation, so a later
+                  // run with a working Lean project asks the model.
+                  const d = described.find((m) => m.id === provider);
+                  const skipped = { provider, display_name: d?.display_name ?? d?.label ?? provider, model_id: ctx.run.model_ids[provider], label: d?.label ?? null, api_host: d?.host ?? null, mode, error: { kind: 'challenge_does_not_compile', message: unusable } };
+                  await evaluateProveAttempt({ ...evalOpts, generation: skipped, setting: 'pass@1', attempt, repairRound: 0 });
+                  counters.infra += 1;
+                  return;
+                }
                 await writeText(path.join(itemDir, `prompt-a${attempt}.txt`), prompt.text);
                 gen = stamp(await generateOnce({ provider, prompt: prompt.text, ...genOpts, mode, fixture, meta: { paper_id: paper.paper_id, target_kind: kind, attempt } }), prompt);
                 await writeJson(genFile, gen);
                 if (gen.error) counters.gen_failed += 1; else counters.generated += 1;
               }
-              const evalOpts = { runner: ctx.runner, toolchain: ctx.toolchain, paper, target, challengeSrc, itemDir, config: ctx.config, log: ctx.log };
               const rec = await evaluateProveAttempt({ ...evalOpts, generation: gen, setting: 'pass@1', attempt, repairRound: 0 });
               if (rec.compile?.status === 'compiler_success') counters.compiled += 1;
               if (rec.outcomes.verified === 1) counters.verified += 1;

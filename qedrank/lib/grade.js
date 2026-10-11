@@ -56,14 +56,18 @@ export function screenSolution(challengeSrc, solutionSrc, policy = DEFAULT_GRADE
   const challengeImports = parseImports(challengeSrc);
   const solutionImports = parseImports(solutionSrc);
   const allowedPrefixes = [...DEFAULT_ALLOWED_IMPORT_PREFIXES, ...policy.libraryPrefixes];
+  // An import the challenge file itself contains belongs to the problem, whatever its prefix (another
+  // library such as Matroid or Archive, or another problem's module); only the imports a solution adds
+  // are judged by the policy.
+  const added = solutionImports.filter((m) => !challengeImports.includes(m));
   // With extra imports allowed every import passes the screen's own allowlist; the hidden library is checked below.
   const screen = staticScreen(solutionSrc, {
     allowedImportPrefixes: allowedPrefixes,
-    allowedImports: policy.allowExtraImports ? solutionImports : [],
+    allowedImports: policy.allowExtraImports ? solutionImports : challengeImports,
     maxHeartbeats,
   });
-  const hidden = solutionImports.filter((m) => hasPrefix(m, policy.hiddenPrefixes) && !hasPrefix(m, policy.libraryPrefixes));
-  const disallowed = policy.allowExtraImports ? hidden : solutionImports.filter((m) => !hasPrefix(m, allowedPrefixes) || hidden.includes(m));
+  const hidden = added.filter((m) => hasPrefix(m, policy.hiddenPrefixes) && !hasPrefix(m, policy.libraryPrefixes));
+  const disallowed = policy.allowExtraImports ? hidden : added.filter((m) => !hasPrefix(m, allowedPrefixes) || hidden.includes(m));
   const libraryRemoved = removedImports(challengeImports, solutionImports);
   // Imports are judged below, by the policy; the screen reports everything else.
   const rejections = screen.rejections.filter((r) => r.code !== 'disallowed_import');
@@ -76,7 +80,7 @@ export function screenSolution(challengeSrc, solutionSrc, policy = DEFAULT_GRADE
       disallowed,
       hidden_library: hidden,
       removed_challenge_imports: libraryRemoved,
-      extra: solutionImports.filter((m) => !challengeImports.includes(m)),
+      extra: added,
       extra_allowed: Boolean(policy.allowExtraImports),
     },
   };
@@ -229,6 +233,41 @@ export async function ensureAudit({ runner, toolchain, cacheDir, auditSource = A
   return { root, status: ok ? 'compiler_success' : r.status === 'compiler_success' ? 'infrastructure_failure' : r.status, cached: false, messages: r.messages.filter((m) => m.severity === 'error').slice(0, 5), infra_reason: r.infra_reason };
 }
 
+// A compile error that means Lean cannot find a module, not that the code is wrong.
+const MISSING_MODULE = /unknown module prefix|unknown package|object file .* does not exist|No directory '.*' or file/;
+
+/**
+ * Compile the unmodified challenge in the grader's own environment, once per challenge, Lean project,
+ * toolchain and options. Every verdict about a solution presumes that this succeeds: when the challenge
+ * itself does not compile (a library missing from the project, another Lean or Mathlib version), a
+ * failing solution says nothing about the model. Only successes are cached, so a project that is built
+ * or fixed later is picked up by the next grading.
+ */
+export async function compileChallenge({ runner, toolchain, challengeSrc, cacheDir, leanArgs = [] }) {
+  const key = sha256([toolchain.lean_version, toolchain.lean_dir, toolchain.mathlib?.rev ?? '', JSON.stringify(leanArgs), challengeSrc].join('\n')).slice(0, 16);
+  const root = path.join(cacheDir, `challenge-${key}`);
+  const olean = path.join(root, `${SUBMISSION_MODULE}.olean`);
+  if (await exists(olean)) return { status: 'compiler_success', olean, cached: true, duration_ms: 0, errors: '', infra_reason: null, missing_module: false };
+  // Build in a private directory and rename it into place, as ensureAudit does.
+  const tmp = `${root}.tmp-${process.pid}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  const r = await runner.compileModule({ src: challengeSrc, moduleName: SUBMISSION_MODULE, scratchDir: tmp, label: 'challenge', extraArgs: leanArgs });
+  if (r.status === 'compiler_success') {
+    try { await fs.rename(tmp, root); } catch { /* another grading finished first */ }
+  }
+  await fs.rm(tmp, { recursive: true, force: true }).catch(() => {});
+  const ok = r.status === 'compiler_success' && (await exists(olean));
+  const errors = formatCompilerOutput(r.messages, { maxMessages: 5 });
+  return {
+    status: ok ? 'compiler_success' : r.status === 'compiler_success' ? 'infrastructure_failure' : r.status,
+    olean: ok ? olean : null,
+    cached: false,
+    duration_ms: r.duration_ms,
+    errors,
+    infra_reason: r.infra_reason ?? null,
+    missing_module: MISSING_MODULE.test(errors),
+  };
+}
+
 const leanPathString = (p) => p.split(path.sep).join('/');
 
 /**
@@ -260,7 +299,7 @@ export async function gradeSubmission({ runner, toolchain, challengeSrc, solutio
     policy: pol,
     challenge_sha256: sha256(challengeSrc),
     solution_sha256: solutionSrc == null ? null : sha256(solutionSrc),
-    checks: { static_screen: null, imports: null, compile: null, sorry: null, axioms: null, statement: null, kernel_replay: null },
+    checks: { static_screen: null, imports: null, challenge: null, compile: null, sorry: null, axioms: null, statement: null, kernel_replay: null },
     completeness: { available: false, reason: 'not_computed', definition: COMPLETENESS_DEFINITION },
     proof: null,
     compiler_output: '',
@@ -300,12 +339,17 @@ export async function gradeSubmission({ runner, toolchain, challengeSrc, solutio
   const audit = await ensureAudit({ runner, toolchain, cacheDir });
   if (audit.status !== 'compiler_success') return graderError('evaluator_commands_failed_to_compile', audit);
   const leanArgs = toolchain.lean_options || [];
-  const refDir = path.join(scratchDir, 'challenge');
   const solDir = path.join(scratchDir, 'solution');
-  await ensureDir(refDir);
   await ensureDir(solDir);
 
-  // ---- 2. compile the solution, then the challenge, under the same module name ----
+  // ---- 2. the challenge must compile in the grader's environment; then the solution, under the same module name ----
+  const ref = await compileChallenge({ runner, toolchain, challengeSrc, cacheDir, leanArgs });
+  rec.timing.challenge_compile_ms = ref.duration_ms;
+  rec.checks.challenge = { status: ref.status, cached: ref.cached, missing_module: ref.missing_module };
+  if (ref.status !== 'compiler_success') {
+    rec.checks.compile = { status: 'not_attempted', reason: 'challenge_does_not_compile' };
+    return graderError(ref.missing_module ? 'challenge_import_unavailable' : 'challenge_does_not_compile', { status: ref.status, infra_reason: ref.infra_reason, errors: ref.errors });
+  }
   const sol = await runner.compileModule({ src: solutionSrc, moduleName: SUBMISSION_MODULE, scratchDir: solDir, extraLeanPath, label: 'solution', extraArgs: leanArgs });
   rec.timing.compile_ms = sol.duration_ms;
   rec.checks.compile = { status: sol.status, error_count: sol.error_count, warning_count: sol.warning_count, duration_ms: sol.duration_ms, infra_reason: sol.infra_reason ?? null, resource_limit: sol.resource_limit ?? null };
@@ -313,10 +357,6 @@ export async function gradeSubmission({ runner, toolchain, challengeSrc, solutio
   if (sol.status === 'infrastructure_failure') return graderError('solution_compile_infrastructure_failure', sol.infra_reason);
   if (sol.status === 'timeout') { fail('compile_timeout'); rec.completeness = { available: false, reason: 'file_does_not_compile', definition: COMPLETENESS_DEFINITION }; return finish(); }
   if (sol.status !== 'compiler_success') { fail('compile_error'); rec.completeness = { available: false, reason: 'file_does_not_compile', definition: COMPLETENESS_DEFINITION }; return finish(); }
-
-  const ref = await runner.compileModule({ src: challengeSrc, moduleName: SUBMISSION_MODULE, scratchDir: refDir, label: 'challenge', extraArgs: leanArgs });
-  rec.timing.challenge_compile_ms = ref.duration_ms;
-  if (ref.status !== 'compiler_success') return graderError('challenge_does_not_compile', { status: ref.status, infra_reason: ref.infra_reason ?? null, errors: formatCompilerOutput(ref.messages, { maxMessages: 5 }) });
 
   // ---- 3. statement and definitions unchanged (compiled declarations, read as data) ----
   const diffScript = `import QEDRank.Audit\n#qr_olean_diff "${leanPathString(ref.olean)}" "${leanPathString(sol.olean)}"\n`;

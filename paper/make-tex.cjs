@@ -66,15 +66,17 @@ function firstError(r) {
 }
 
 function classify(r) {
+  // The grader itself could not judge the answer (its environment cannot compile the challenge).
+  if (r.grade?.verdict === 'grader_error') return (r.grade.reasons || []).includes('challenge_import_unavailable') ? 'grader_env' : 'grader_other';
   if (r.outcomes?.infrastructure_failure) {
     const e = r.generation?.error || {};
     const kind = typeof e === 'string' ? e.split(':')[0] : e.kind;
     if (kind === 'timeout') return 'timeout';
     if (kind === 'rate_limited' || e.http_status === 429) return 'rate_limit';
+    if (kind === 'challenge_does_not_compile') return 'grader_env';   // not sent to the model
     return 'provider_other';
   }
   if (r.abstained) return 'abstained';
-  if (r.grade?.verdict === 'grader_error') return 'grader_other';
   const status = r.compile?.status;
   if (status === 'rejected_by_static_screen') {
     const imp = r.grade?.checks?.imports || {};

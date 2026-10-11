@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import path from 'node:path';
+import os from 'node:os';
 import { promises as fs } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { classifyStatementDiff, completenessFrom, formatCompilerOutput, proofLength, removedImports, screenSolution, gradeSubmission } from '../lib/grade.js';
@@ -31,6 +32,61 @@ test('import policy: only Mathlib and the statement library; the challenge impor
   assert.deepEqual(extra.imports.extra, ['SomeGitHubLibrary.Main']);
   assert.deepEqual(removedImports(['Mathlib.Data.Nat.Basic', 'Foo.Bar'], ['Mathlib', 'Foo.Bar']), []);
   assert.deepEqual(removedImports(['Mathlib.Data.Nat.Basic', 'Foo.Bar'], ['Mathlib.Data.Nat.Basic']), ['Foo.Bar']);
+});
+
+test('import policy: an import the challenge itself has is allowed whatever its prefix; added ones are judged', () => {
+  const challenge = 'import Matroid.Representation.Basic\nimport Archive.Sensitivity\nimport ProofBench.PROBLEMS.P020.P020\nimport Mathlib.Data.Complex.Basic\n\ntheorem P002 : True := sorry\n';
+  const kept = screenSolution(challenge, challenge.replace('sorry', 'trivial'));
+  assert.equal(kept.imports.ok, true);
+  assert.equal(kept.static_screen.ok, true);
+  assert.deepEqual(kept.imports.disallowed, []);
+  assert.deepEqual(kept.imports.extra, []);
+  const added = screenSolution(challenge, challenge.replace('\n\ntheorem', '\nimport Matroid.Minor.Iso\nimport ProofBench.PROBLEMS.P021.P021\n\ntheorem').replace('sorry', 'trivial'));
+  assert.deepEqual(added.imports.disallowed, ['Matroid.Minor.Iso', 'ProofBench.PROBLEMS.P021.P021']);
+  assert.deepEqual(added.imports.hidden_library, ['ProofBench.PROBLEMS.P021.P021']);
+});
+
+/** A LeanRunner stand-in: `challenge` and `solution` say what compiling each does. */
+function fakeRunner({ challenge, solution }) {
+  const calls = [];
+  const result = (status, text) => ({ status, duration_ms: 1, error_count: status === 'compiler_success' ? 0 : 1, warning_count: 0, messages: text ? [{ severity: 'error', line: 1, column: 0, text }] : [] });
+  return {
+    calls,
+    maxHeartbeats: 400000,
+    limits: () => ({}),
+    async runLean({ olean }) { if (olean) await fs.writeFile(olean, ''); return result('compiler_success'); },
+    async compileModule({ label, scratchDir, moduleName }) {
+      calls.push(label);
+      const [status, text] = label === 'challenge' ? challenge : solution;
+      await fs.mkdir(scratchDir, { recursive: true });
+      const olean = path.join(scratchDir, `${moduleName}.olean`);
+      if (status === 'compiler_success') await fs.writeFile(olean, '');
+      return { ...result(status, text), olean: status === 'compiler_success' ? olean : null };
+    },
+  };
+}
+
+test('a challenge that does not compile in the grader is a grader error, decided before the solution is compiled', async () => {
+  const scratch = await fs.mkdtemp(path.join(os.tmpdir(), 'qr-grade-'));
+  const toolchain = { available: true, lean_version: 'fake', toolchain: 'fake', lean_dir: scratch, lean_options: [] };
+  const challengeSrc = 'import ProofBench.Mathlib_Problems.Foo\n\ntheorem P001 : True := sorry\n';
+  const solutionSrc = challengeSrc.replace('sorry', 'trivial');
+  const missing = fakeRunner({ challenge: ['compiler_failure', "unknown module prefix 'ProofBench'"], solution: ['compiler_success'] });
+  const g = await gradeSubmission({ runner: missing, toolchain, challengeSrc, solutionSrc, scratchDir: path.join(scratch, 'a'), cacheDir: path.join(scratch, 'cache') });
+  assert.equal(g.verdict, 'grader_error');
+  assert.deepEqual(g.reasons, ['challenge_import_unavailable']);
+  assert.deepEqual(missing.calls, ['challenge'], 'the solution is never compiled');
+  const broken = fakeRunner({ challenge: ['compiler_failure', 'type mismatch'], solution: ['compiler_success'] });
+  const b = await gradeSubmission({ runner: broken, toolchain, challengeSrc, solutionSrc, scratchDir: path.join(scratch, 'b'), cacheDir: path.join(scratch, 'cache') });
+  assert.deepEqual(b.reasons, ['challenge_does_not_compile']);
+  // A compiling challenge is cached: the second grading compiles only the solution.
+  const fine = fakeRunner({ challenge: ['compiler_success'], solution: ['compiler_failure', 'unsolved goals'] });
+  const c1 = await gradeSubmission({ runner: fine, toolchain, challengeSrc, solutionSrc, scratchDir: path.join(scratch, 'c1'), cacheDir: path.join(scratch, 'cache') });
+  const c2 = await gradeSubmission({ runner: fine, toolchain, challengeSrc, solutionSrc, scratchDir: path.join(scratch, 'c2'), cacheDir: path.join(scratch, 'cache') });
+  assert.deepEqual([c1.verdict, c1.reasons, c2.verdict, c2.reasons], ['not_solved', ['compile_error'], 'not_solved', ['compile_error']]);
+  assert.deepEqual(fine.calls, ['challenge', 'solution', 'solution']);
+  assert.equal(c2.checks.challenge.cached, true);
+  await fs.rm(scratch, { recursive: true, force: true });
 });
 
 test('static screen: code execution, kernel-skipping options and module headers are rejected', () => {

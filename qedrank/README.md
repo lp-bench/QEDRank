@@ -204,7 +204,8 @@ the list of `reasons` otherwise, and `grader_error` when the check itself could 
 | Check | How |
 |---|---|
 | static screen | the solution is rejected before compilation when it contains `#eval`, `run_cmd`, `elab`, `macro`, `syntax`, `initialize`, `implemented_by`, `extern`, `unsafe`, `set_option debug.skipKernelTC`, a `module` header, or a `maxHeartbeats` above the cap |
-| imports | only `Mathlib` and the statement library (`--library-prefix`, default `ProofBench.Mathlib_Problems`); the proctor library (`ProofBench.Mathlib`) never; every import of the challenge must still be there (`import Mathlib` covers Mathlib modules). `--allow-extra-imports` is the web-search configuration, where the agent may add libraries (their object files on `--extra-lean-path`) |
+| imports | an import the challenge itself has is always allowed, whatever its prefix (another library such as Matroid or Mathlib's `Archive`, or another problem's module). An import the solution *adds* may only be `Mathlib` or the statement library (`--library-prefix`, default `ProofBench.Mathlib_Problems`), never the proctor library (`ProofBench.Mathlib`, `ProofBench.PROBLEMS`). Every import of the challenge must still be there (`import Mathlib` covers Mathlib modules). `--allow-extra-imports` is the web-search configuration, where the agent may add libraries (their object files on `--extra-lean-path`) |
+| challenge compiles | before the solution is compiled, the unmodified challenge is compiled in the same project with the same options, once per challenge (cached under `runs/.grade-cache`). If it does not compile — a library missing from the project, another Lean or Mathlib version — the verdict is `grader_error` (`challenge_import_unavailable` or `challenge_does_not_compile`): a failing solution would say nothing about the model. In a live `run`, a challenge that does not compile is not sent to the model at all |
 | compiles | the solution compiles without errors under the project's toolchain and options; `compile_ms` is recorded |
 | no `sorry` | the target does not depend on `sorryAx`, and no declaration of the file does (`--allow-unused-sorry` relaxes the second part) |
 | standard axioms | the target depends only on `propext`, `Classical.choice` and `Quot.sound`; `native_decide` and declared axioms fail |
@@ -361,9 +362,14 @@ runs/<run_id>/
 
 `resume` skips papers with `prepared/<paper>/done.json` and items whose
 `attempt-*.json` has `evaluation_complete: true`; `--retry-failed` re-runs
-infrastructure failures, `--reevaluate` re-runs Lean evaluation on stored
-responses without calling models again. The source commit is re-resolved and
-must match the run.
+infrastructure failures, `--reevaluate` re-runs the Lean evaluation of every
+stored response (an item whose stored response is a provider error is generated
+again). `--reevaluate --no-generate` never calls a model: items without a usable
+stored response keep their record. Combined with `--lean-project` this re-grades a
+run in another Lean project; each re-grade is recorded in `run.json`
+(`reevaluations`: time, harness commit, Lean project, toolchain, options). To keep
+the original grading, copy the run directory under a new id first. The source
+commit is re-resolved and must match the run.
 
 ## Configuration
 
