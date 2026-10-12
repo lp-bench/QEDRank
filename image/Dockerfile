@@ -22,8 +22,8 @@ RUN git clone https://github.com/leanprover/comparator.git /opt/comparator \
     && git -C /opt/comparator checkout --detach "${COMPARATOR_COMMIT}" \
     && elan toolchain install "$(cat /opt/comparator/lean-toolchain)" \
     && cd /opt/comparator && lake build comparator \
-    && mkdir -p /out/lib && cp .lake/build/bin/comparator /out/ \
-    && cp -a "$(elan which lean --toolchain "$(cat lean-toolchain)" | xargs dirname)/../lib/lean/"*.so* /out/lib/ 2>/dev/null || true
+    && mkdir -p /out/lib && cp .lake/build/bin/comparator /out/
+# (/out/lib stays empty: the comparator binary needs no Lean shared libraries.)
 
 FROM lean_builder AS lean4export_build
 ARG LEAN4EXPORT_COMMIT=cacf989bd75f608700820f6afc595f32e7a99a4d

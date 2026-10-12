@@ -20,6 +20,8 @@ From: ubuntu:24.04
 %post
     set -e
     export DEBIAN_FRONTEND=noninteractive
+    # apt downloads as user _apt by default; a no-root (root-mapped) build cannot switch users
+    echo 'APT::Sandbox::User "root";' > /etc/apt/apt.conf.d/99no-sandbox
     apt-get update && apt-get install -y --no-install-recommends \
         curl git ca-certificates python3 python3-venv build-essential libgmp-dev bzip2 cadical nauty ripgrep \
         && rm -rf /var/lib/apt/lists/*
@@ -59,7 +61,7 @@ From: ubuntu:24.04
     elan toolchain install "$CMP_TOOLCHAIN"
     (cd /tmp/comparator && lake build comparator)
     cp /tmp/comparator/.lake/build/bin/comparator /opt/verifier/bin/
-    cp -a "$(elan which lean --toolchain "$CMP_TOOLCHAIN" | xargs dirname)/../lib/lean/"*.so* /opt/verifier/lib/ 2>/dev/null || true
+    # /opt/verifier/lib stays empty: the comparator binary needs no Lean shared libraries
     elan toolchain uninstall "$CMP_TOOLCHAIN"
     git clone https://github.com/leanprover/lean4export.git /tmp/lean4export
     git -C /tmp/lean4export checkout --detach "$LEAN4EXPORT_COMMIT"
