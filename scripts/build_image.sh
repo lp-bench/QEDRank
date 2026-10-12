@@ -1,15 +1,19 @@
 #!/usr/bin/env bash
 # Stage what the selected problems import and build the sandbox image.
-# usage: IDS="P083 P088 P090" scripts/build_image.sh [--sif|--apptainer] [proofbench-statements]
+# usage: IDS="P083 P088 P090" scripts/build_image.sh [--sif|--apptainer|--update BASE.sif] [proofbench-statements]
 #   default: docker build -> proofbench-sandbox:latest
 #   --sif: the docker build, then convert that image to proofbench-sandbox.sif (same content)
 #   --apptainer: apptainer build --fakeroot from image/proofbench.def (no Docker needed)
+#   --update BASE.sif: new proofbench-sandbox.sif = BASE.sif with the freshly staged statement
+#     modules copied in and rebuilt (no Docker, no network; toolchain, Mathlib and tools
+#     come from BASE). For new or changed problems on a machine without Docker.
 # Only the statement-layer modules (and challenge statements) the selected problems
 # import, transitively, enter the image; anything else is an error.
 set -euo pipefail
 MODE=docker
 if [ "${1:-}" = "--apptainer" ]; then MODE=apptainer; shift; fi
 if [ "${1:-}" = "--sif" ]; then MODE=sif; shift; fi
+if [ "${1:-}" = "--update" ]; then MODE=update; BASE=$(realpath "${2:?--update needs the base .sif}"); shift 2; fi
 HERE=$(cd "$(dirname "$0")/.." && pwd)
 PB=${1:-$HERE/proofbench-statements}
 IDS=${IDS:?problems to build for, e.g. IDS="P083 P088 P090"}
@@ -70,6 +74,28 @@ if [ "$MODE" = docker ] || [ "$MODE" = sif ]; then
     apptainer build --force "$HERE/proofbench-sandbox.sif" docker-daemon://proofbench-sandbox:latest
     echo "built $HERE/proofbench-sandbox.sif ($(sha256sum "$HERE/proofbench-sandbox.sif" | cut -c1-16))"
   fi
+elif [ "$MODE" = update ]; then
+  OUT="$HERE/proofbench-sandbox.sif"
+  [ "$BASE" != "$OUT" ] || { echo "--update: move the base image away from $OUT first" >&2; exit 1; }
+  cat > "$CTX/update.def" <<DEF
+Bootstrap: localimage
+From: $BASE
+
+%files
+    $CTX /opt/context-update
+
+%post
+    set -e
+    export ELAN_HOME=/opt/elan PATH=/opt/elan/bin:\$PATH
+    cp -a /opt/context-update/. /opt/proofbench/
+    rm -rf /opt/context-update
+    cd /opt/proofbench && xargs lake build < modules.txt
+DEF
+  # the base image is unpacked to APPTAINER_TMPDIR: about twice its size on disk
+  export APPTAINER_TMPDIR=${APPTAINER_TMPDIR:-$HERE/.apptainer-tmp}; mkdir -p "$APPTAINER_TMPDIR"
+  # --ignore-subuid: plain root-mapped fakeroot, no newuidmap/subuid helpers needed (no-root installs)
+  apptainer build --fakeroot --ignore-subuid "$OUT" "$CTX/update.def"
+  echo "built $OUT ($(sha256sum "$OUT" | cut -c1-16)) from $(basename "$BASE")"
 else
   (cd "$HERE/image" && apptainer build --fakeroot "$HERE/proofbench-sandbox.sif" proofbench.def)
   echo "built $HERE/proofbench-sandbox.sif ($(sha256sum "$HERE/proofbench-sandbox.sif" | cut -c1-16))"

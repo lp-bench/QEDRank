@@ -51,7 +51,10 @@ copied in.  Build the image where Docker exists and convert it:
     SANDBOX=apptainer MODEL=openai-api/qwen/qwen3.8-27b scripts/run.sh
 
 Without Docker anywhere, `scripts/build_image.sh --apptainer` builds the
-`.sif` from `image/proofbench.def` with `--fakeroot` instead.
+`.sif` from `image/proofbench.def` with `--fakeroot` instead.  When problems
+change, `scripts/build_image.sh --update OLD.sif` builds the new `.sif` on top
+of an existing one (copies the staged statement modules in and rebuilds them;
+no Docker, no network, and it works with a no-root Apptainer install).
 
 Any OpenAI-compatible endpoint works with `openai-api/<name>/<model>` and the
 variables `<NAME>_API_KEY`, `<NAME>_BASE_URL` in `.env`, e.g.
