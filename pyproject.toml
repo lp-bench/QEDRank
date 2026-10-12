@@ -15,7 +15,7 @@ classifiers = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/utkuokur/inspect-apptainer"
+Homepage = "https://github.com/proof-bench/inspect-apptainer"
 
 [project.optional-dependencies]
 test = ["pytest>=8", "pytest-asyncio>=0.24"]
