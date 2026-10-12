@@ -1,8 +1,10 @@
 [project]
 name = "inspect-apptainer"
-version = "0.0.1"
+version = "0.1.0"
 description = "Apptainer sandbox environment for Inspect AI (HPC clusters without Docker)"
 readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
 requires-python = ">=3.11"
 dependencies = ["inspect-ai>=0.3.276", "pydantic>=2", "pyyaml>=6"]
 keywords = ["inspect-ai", "apptainer", "singularity", "sandbox", "hpc", "evaluation"]
@@ -29,7 +31,7 @@ testpaths = ["tests"]
 inspect_apptainer = "inspect_apptainer._registry"
 
 [build-system]
-requires = ["setuptools>=68"]
+requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]

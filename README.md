@@ -107,4 +107,4 @@ environment, NVIDIA ProRL's `SingularityRuntime`.
 
 ## License
 
-To be decided.
+MIT; see [LICENSE](LICENSE).
