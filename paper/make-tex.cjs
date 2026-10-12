@@ -51,6 +51,7 @@ const CATS = [
   ['grader_other', 'Other grader error', 'qrImp', 'grader'],
   ['screen_rejected', 'Rejected by static screen', 'qrScreen', 'model'],
   ['compile_error', 'Lean compile error', 'qrErr', 'model'],
+  ['compile_timeout', 'Lean compile time limit reached', 'qrErr', 'model'],
   ['statement_changed', 'Compiled; target statement changed or absent', 'qrStmt', 'model'],
   ['sorry', 'Compiled; proof contains \\texttt{sorry}', 'qrSorry', 'model'],
   ['compiled_other', 'Compiled; non-standard axiom or replay failure', 'qrAx', 'model'],
@@ -86,6 +87,7 @@ function classify(r) {
     return ownImports ? 'grader_import' : 'screen_rejected';
   }
   if (status === 'compiler_failure') return MISSING_MODULE.test(firstError(r)) ? 'grader_env' : 'compile_error';
+  if (status === 'timeout') return 'compile_timeout';
   if (status === 'compiler_success') {
     if (r.grade?.verdict === 'solved') return 'verified';
     const reasons = r.grade?.reasons || [];
