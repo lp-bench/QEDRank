@@ -1,20 +1,36 @@
 # inspect-apptainer
 
-An [Inspect AI](https://inspect.aisi.org.uk/) sandbox environment backed by
-[Apptainer](https://apptainer.org/) (formerly Singularity), for running agent
-evaluations on HPC clusters where Docker is not available and users have no
-root. Each sample gets a fresh container instance with no host environment, no
-network and no host directories; everything it writes is discarded with the
-sample.
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue.svg)
 
-Status: implemented and passing Inspect's sandbox conformance suite (49 checks)
-on Apptainer 1.5; not yet tried on a cluster.
+**Run [Inspect AI](https://inspect.aisi.org.uk/) agent evaluations on HPC
+clusters, where Docker is not available and you have no root.**
 
-## Usage
+Inspect runs agents inside sandboxes, but its isolated sandboxes need Docker,
+Kubernetes or cloud machines, which university and national clusters rarely
+offer to their users. inspect-apptainer adds a sandbox backed by
+[Apptainer](https://apptainer.org/) (formerly Singularity), the container
+runtime that HPC centres do provide. Point a task at a `.sif` image, and every
+sample gets its own fresh container:
+
+- no host environment, so no API keys inside;
+- no network, unless you ask for the host network;
+- no host directories, only fresh scratch space that is deleted with the sample;
+- its own process namespace, so the agent cannot look into the Inspect process.
+
+It passes Inspect's sandbox conformance suite (49 checks) on Apptainer 1.5, and
+it runs the [ProofBench evaluation harness](https://github.com/proof-bench/proofbench-eval-apptainer).
+It has been tested on a workstation and in CI; reports from clusters are welcome.
+
+## Install
 
 ```bash
-pip install inspect-apptainer   # or: pip install -e path/to/inspect-apptainer
+pip install inspect-apptainer
+# or the latest version from GitHub:
+pip install git+https://github.com/proof-bench/inspect-apptainer
 ```
+
+## Usage
 
 ```python
 from inspect_ai import Task
@@ -38,9 +54,10 @@ per sample from the same config with the given fields overridden; the task
 reaches them as `sandbox("verifier")`, e.g. to grade in a container the
 agent never touched.
 
-Build the `.sif` where you have root or Docker and copy it to the cluster, e.g.
-`apptainer build image.sif docker-daemon://my-image:latest` or
-`apptainer pull image.sif docker://python:3.12`.
+Build the `.sif` anywhere and copy it to the cluster:
+`apptainer pull image.sif docker://python:3.12` needs no root, and
+`apptainer build image.sif docker-daemon://my-image:latest` converts a local
+Docker image.
 
 ## How it works
 
