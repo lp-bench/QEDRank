@@ -1,107 +1,142 @@
-# proofbench-eval
+# ProofBench evaluation harness
 
-Inspect AI harness for running ProofBench with the same agent loop, tools,
-sandbox and budgets for every model, and grading proofs with Lean alone.
-The private problems and the proctor library never enter this repository:
-the statements live in a clone of the private proofbench-statements repo,
-in the gitignored folder `proofbench-statements/`, and a run names its
-problems with `IDS`.
+[Website](https://proof-bench.github.io) ·
+[Problems](https://github.com/proof-bench/proofbench-statements) ·
+**Evaluation harness** (this repository) ·
+[Apptainer sandbox](https://github.com/proof-bench/inspect-apptainer)
 
-## Layout
+This harness runs AI agents on [ProofBench](https://github.com/proof-bench/proofbench-statements),
+a benchmark of 114 research-level problems stated in Lean 4, and grades their
+proofs with Lean alone. Every model gets the same agent loop, the same tools,
+the same budget and the same sandbox, so differences in the results come from
+the models and not from their tooling. It is built on
+[Inspect AI](https://inspect.aisi.org.uk/) and runs on a PC with Docker or on an
+HPC cluster with Apptainer, without root.
 
-    proofbench_eval/task.py     Inspect task: ReAct agent + bash/python + lean-lsp-mcp (+ web search)
-    proofbench_eval/scorer.py   two-layer grading in a fresh `verifier` container: check_proof.py, then Comparator
-    image/check_proof.py        layer 1: statement unchanged, allowed imports, no sorry/axiom, compiles, standard axioms
-                                (on the main file and every `Submission/` file it imports)
-    image/Dockerfile            Lean toolchain + Mathlib cache + ProofBench statement layer + lean-lsp-mcp
-                                + the verifier: Comparator (leanprover/comparator), lean4export, landrun
-                                + Python (sympy, networkx, python-sat), SageMath (GAP, nauty), CaDiCaL
-    image/compose*.yaml         docker sandbox, with and without network
-    scripts/build_image.sh      stage only the statement modules the exported problems import; build the image
-    scripts/build_apptainer.sh  convert the image to .sif for HPC
-    scripts/run.sh              one run on a Docker machine (writes manifest, runs, analyses)
-    scripts/slurm_eval.sbatch   one run on Slurm with the Apptainer sandbox
-    scripts/analyze.py          logs -> results.csv (verdict, tokens, time, tool calls, lines, axioms)
+## How an evaluation works
 
-## Setup on a machine with Docker (university server or a PC with Docker)
+1. **Sandbox.** Each problem gets its own container with Lean, Mathlib and the
+   definitions that problem needs, and nothing else: no network (unless web
+   search is on), no API keys, no other problems and no grading material.
+2. **Agent.** A ReAct agent (a loop of reasoning steps and tool calls) works on
+   the problem with a shell, Python, a file editor and the Lean language server
+   (lean-lsp-mcp: goal states, diagnostics, Mathlib search). An optional web
+   search tool uses the same search engine for every model. SageMath (with GAP
+   and nauty), sympy, networkx, python-sat and the SAT solver CaDiCaL are
+   installed. A proof may be split over several files.
+3. **Sessions with handoff.** An attempt consists of up to 10 fresh sessions,
+   each with an output-token budget (30,000 by default). At the end of a
+   session the agent writes a handoff note in a fixed format (proved lemmas,
+   open goals, failed approaches, unsaved drafts) that starts the next one.
+   Fresh sessions keep models with short and long context windows comparable.
+4. **Grading.** After every session, the source text of the submission is
+   checked in a fresh container that the agent never touched, in two layers:
+   - [`image/check_proof.py`](image/check_proof.py): the statement and its
+     definitions are unchanged, imports are allowed, there is no `sorry`, new
+     axiom, `native_decide` or meta-level trick, the files compile, and the
+     theorem uses only Lean's standard axioms;
+   - [Comparator](https://github.com/leanprover/comparator), the Lean FRO's
+     adversarial proof checker, which rebuilds statement and proof in a
+     Landlock sandbox and replays the proof through the Lean kernel.
 
-    python3 -m venv .venv && . .venv/bin/activate && pip install -e .
-    git clone <proofbench-statements> proofbench-statements   # private; gitignored here
-    export IDS="P083 P088 P090"                     # the problems of this run
-    scripts/build_image.sh                          # ~30-60 min the first time (Mathlib cache)
-    export ANTHROPIC_API_KEY=... OPENAI_API_KEY=... TAVILY_API_KEY=...
-    MODEL=anthropic/claude-opus-5 EFFORT=high SEARCH=false scripts/run.sh
-    MODEL=anthropic/claude-opus-5 EFFORT=high SEARCH=true  scripts/run.sh
-    inspect view --log-dir logs                     # browse transcripts
+   The first session that passes ends the attempt.
+5. **Records.** Each run freezes its configuration in `manifest.json` (harness
+   commit, image, Lean and Mathlib versions, problem commit, model, reasoning
+   effort, search, budgets), and [`scripts/analyze.py`](scripts/analyze.py)
+   writes one row per attempt to `results.csv`: verdict, sessions used, tokens,
+   total and working time, tool and model calls, proof length and axioms.
 
-Models are addressed as `provider/name` (`anthropic/claude-opus-5`,
-`openai/gpt-5.6`, `google/gemini-3.1-pro`, `grok/grok-4`).  Model access is
-through the providers' APIs with API keys; chat subscriptions do not work here.
+## Quick start on a PC with Docker
 
-## Setup without Docker (Apptainer, for HPC)
+```bash
+git clone https://github.com/proof-bench/proofbench-eval-apptainer
+cd proofbench-eval-apptainer
+git clone https://github.com/proof-bench/proofbench-statements   # the problems
+python3 -m venv .venv && . .venv/bin/activate && pip install -e .
 
-The same image runs under Apptainer through the
-[inspect-apptainer](../inspect-apptainer) sandbox: Inspect runs on the node
-and starts one container instance per problem with no host environment (no
-API keys), no network and no host directories inside; only the problem file is
-copied in.  Build the image where Docker exists and convert it:
+export IDS="P088 P089 P090"            # problems of this run (three calibration problems)
+scripts/build_image.sh                 # sandbox image; 30-60 min the first time
+echo "ANTHROPIC_API_KEY=..." >> .env   # keys stay on the host; the agents never see them
+MODEL=anthropic/claude-opus-5-5 scripts/run.sh
+inspect view --log-dir logs            # browse the transcripts
+```
 
-    IDS="P088 P089 P090" scripts/build_image.sh --sif      # docker build + proofbench-sandbox.sif
-    pip install -e ../inspect-apptainer
-    SANDBOX=apptainer MODEL=openai-api/qwen/qwen3.8-27b scripts/run.sh
+## On an HPC cluster with Apptainer
 
-Without Docker anywhere, `scripts/build_image.sh --apptainer` builds the
-`.sif` from `image/proofbench.def` with `--fakeroot` instead.  When problems
-change, `scripts/build_image.sh --update OLD.sif` builds the new `.sif` on top
-of an existing one (copies the staged statement modules in and rebuilds them;
-no Docker, no network, and it works with a no-root Apptainer install).
+Clusters rarely offer Docker. The same image runs under Apptainer through
+[inspect-apptainer](https://github.com/proof-bench/inspect-apptainer), and it
+can be built there without root:
 
-Any OpenAI-compatible endpoint works with `openai-api/<name>/<model>` and the
-variables `<NAME>_API_KEY`, `<NAME>_BASE_URL` in `.env`, e.g.
-`QWEN_BASE_URL=https://chat-ai.academiccloud.de/v1` (GWDG) for hosted
-open-weight models.
+```bash
+pip install -e . && pip install git+https://github.com/proof-bench/inspect-apptainer
+IDS="..." scripts/build_image.sh --apptainer          # from image/proofbench.def, about 40 min
+IDS="..." scripts/build_image.sh --update old.sif     # after problems change: rebuild on top of an image
+scripts/hpc_preflight.sh proofbench-sandbox.sif       # network namespace, binds, Landlock, tmpfs
+IDS="..." MODEL=... sbatch scripts/slurm_eval.sbatch  # one run as a Slurm job
+```
 
-## Setup on HPC
+Where Docker is available, `scripts/build_image.sh --sif` builds the Docker
+image and converts it. `scripts/hpc_preflight.sh` prints PASS, WARN or FAIL for
+everything the harness needs from the cluster; run it once on a compute node.
 
-1. Build `proofbench-sandbox.sif` as above and copy it to the cluster.
-2. Clone this repo and `proofbench-statements` (into the repo folder) on the
-   cluster; create the venv: `pip install -e . -e ../inspect-apptainer`.
-3. Put API keys in `.env` (Inspect reads it; the agents never see it).
-4. Check that a compute node can reach the provider (`curl -sI https://api.anthropic.com`);
-   otherwise set `HTTPS_PROXY` in `.env`.
-5. Check once that an unprivileged `apptainer instance start --net --network none`
-   works on a compute node; if the site disallows network namespaces, the
-   sandbox config needs `network: host`.
-6. `IDS="..." MODEL=anthropic/claude-opus-5 sbatch scripts/slurm_eval.sbatch`
+## Models
 
-For a self-hosted open-weight model (Kimi on a GPU node): start vLLM with an
-OpenAI-compatible endpoint and use `MODEL=openai-api/kimi/<served-name>` with
-`KIMI_BASE_URL=http://<gpu-node>:8000/v1` in `.env`.
+- Commercial models through Inspect's providers: `anthropic/...`, `openai/...`,
+  `google/...`, `grok/...`, with the provider's API key in `.env`. Chat
+  subscriptions do not work; access is through the providers' APIs.
+- Any OpenAI-compatible endpoint as `openai-api/<name>/<model>`, with
+  `<NAME>_API_KEY` and `<NAME>_BASE_URL` in `.env`. For example a hosted
+  open-weight model (`QWEN_BASE_URL=https://chat-ai.academiccloud.de/v1`, the
+  GWDG Chat AI service), or a model you serve yourself with vLLM on a GPU node
+  (`KIMI_BASE_URL=http://<gpu-node>:8000/v1`).
 
-## Frozen per run (manifest.json)
+## Options
 
-harness commit, image id, Lean toolchain, ProofBench commit of the exported
-problems, model, reasoning effort, search on/off and provider, network,
-epochs, token/time/working limits.  Change any of these and it is a new run.
+`scripts/run.sh` reads its settings from environment variables:
 
-## Known limits
+| Variable                | Default       | Meaning                                         |
+|-------------------------|---------------|-------------------------------------------------|
+| `IDS`                   | required      | problems to run, e.g. `"P088 P089 P090"`        |
+| `MODEL`                 | required      | model, as above                                 |
+| `EFFORT`                | model default | reasoning effort (`low` ... `max`)              |
+| `SEARCH`                | `false`       | web search tool (Tavily; `SEARCH_PROVIDER=exa`) |
+| `NETWORK`               | = `SEARCH`    | internet access in the sandbox                  |
+| `SANDBOX`               | `docker`      | `docker` or `apptainer`                         |
+| `COMPARATOR`            | `on`          | second grading layer                            |
+| `SESSIONS`              | `10`          | sessions per problem                            |
+| `SESSION_OUTPUT_TOKENS` | `30000`       | output-token budget per session                 |
+| `MAX_SAMPLES`           | `4`           | problems in parallel                            |
 
-* Grading runs in a second container the agent never touched; only the
-  submission's source text crosses over.  Layer 1 is the textual and compile
-  check of `check_proof.py` (it also refuses meta-level tricks: `#` commands,
-  `initialize`/`run_cmd`, kernel-skipping options, and notation, macro or
-  scope changes ahead of the statement, which only matter when layer 2 is
-  off); layer 2 is Comparator, which rebuilds statement
-  and submission in a Landlock sandbox, requires identical statements and
-  dependencies, replays the proof through the Lean kernel and checks the
-  axioms.  Comparator needs Landlock in the host kernel (check `landrun`
-  actually engages on a new machine).  Solves of open problems are still
-  audited by hand.
-* A submission is the main file `Submission/Pxxx.lean` plus every file under
-  `Submission/` it imports, transitively (`Submission/Pxxx/Name.lean` is the
-  module `Submission.Pxxx.Name`).  All of them cross to the verifier, obey the
-  same rules, and are built with `lake build` before the main file compiles;
-  files the main file does not import are ignored.  A statement file with
-  several `sorry`s (P015, P017, P070) requires every one to be replaced.
-* Uniformity across vendors is not perfect: reasoning-effort dials differ, and
-  Fable has always-on thinking.  Record the effort per model and report it.
+Changing any setting that `manifest.json` records makes a new run.
+
+## Repository layout
+
+```
+proofbench_eval/task.py      Inspect task: agent, tools, sandbox, instructions
+proofbench_eval/sessions.py  sessions with handoff notes
+proofbench_eval/scorer.py    two-layer grading in a fresh verifier container
+image/check_proof.py         layer 1: statement unchanged, imports, forbidden constructs, compile, axioms
+image/Dockerfile             sandbox image: Lean, Mathlib, statement library, lean-lsp-mcp,
+                             Comparator, Python tools, SageMath, CaDiCaL
+image/proofbench.def         the same image as an Apptainer recipe
+scripts/build_image.sh       stage the statements the selected problems import; build the image
+scripts/run.sh               one run: manifest, evaluation, results.csv
+scripts/slurm_eval.sbatch    one run as a Slurm job with the Apptainer sandbox
+scripts/hpc_preflight.sh     day-one checks on a cluster
+scripts/analyze.py           logs -> results.csv
+```
+
+## Good to know
+
+- A submission is the main file `Submission/Pxxx.lean` plus every file under
+  `Submission/` that it imports, transitively. All of them are checked and
+  built before the main file compiles.
+- Comparator needs Landlock in the host kernel; `scripts/hpc_preflight.sh`
+  checks that it actually engages.
+- Claimed solutions of open problems are checked by hand before any claim is
+  made.
+- Reasoning-effort settings differ between vendors, and some models always
+  think; record the effort per model and report it.
+- `scripts/check_statements.sh`, `scripts/verify_comparator.sh` and
+  `scripts/solution_to_submission.py` test the grading against our reference
+  proofs; they need the private development repository.
