@@ -1,11 +1,11 @@
 # ProofBench evaluation harness
 
 [Website](https://proof-bench.github.io) ·
-[Problems](https://github.com/proof-bench/proofbench-statements) ·
+[Problems](https://github.com/proof-bench/proofbench) ·
 **Evaluation harness** (this repository) ·
 [Apptainer sandbox](https://github.com/proof-bench/inspect-apptainer)
 
-This harness runs AI agents on [ProofBench](https://github.com/proof-bench/proofbench-statements),
+This harness runs AI agents on [ProofBench](https://github.com/proof-bench/proofbench),
 a benchmark of 114 research-level problems stated in Lean 4, and grades their
 proofs with Lean alone. Every model gets the same agent loop, the same tools,
 the same budget and the same sandbox, so differences in the results come from
@@ -51,7 +51,7 @@ HPC cluster with Apptainer, without root.
 ```bash
 git clone https://github.com/proof-bench/proofbench-eval-apptainer
 cd proofbench-eval-apptainer
-git clone https://github.com/proof-bench/proofbench-statements   # the problems
+git clone https://github.com/proof-bench/proofbench              # the problems
 python3 -m venv .venv && . .venv/bin/activate && pip install -e .
 
 export IDS="P088 P089 P090"            # problems of this run (three calibration problems)

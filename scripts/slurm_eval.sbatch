@@ -9,7 +9,7 @@
 # sandbox: no host environment (no API keys), no network, no host directories
 # inside the instances; only the one problem file is copied in.
 # Needs on the cluster: this repo with its .venv (pip install -e . -e ../inspect-apptainer),
-# the proofbench-statements clone, proofbench-sandbox.sif (built with scripts/build_image.sh,
+# the proofbench clone (problem statements), proofbench-sandbox.sif (built with scripts/build_image.sh,
 # any mode, then copied), API keys in .env, and outbound HTTPS from the node
 # (or HTTPS_PROXY in .env).  For a self-hosted model (vLLM on a GPU node) use
 # MODEL=openai-api/kimi/<served-name> with KIMI_BASE_URL=http://<node>:8000/v1 in .env.

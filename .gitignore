@@ -2,8 +2,8 @@
 __pycache__/
 *.pyc
 *.egg-info/
-# clone of the private proofbench-statements repo: never committed
-proofbench-statements/
+# clone of the proofbench repo (the problem statements): never committed
+proofbench/
 # Inspect .eval logs: keep on project storage
 logs/
 # staged copy of the ProofBench statement layer

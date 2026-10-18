@@ -30,7 +30,7 @@ def _mathlib_commit(manifest: Path) -> str:
 def main() -> None:
     run_dir = Path(sys.argv[1]); run_dir.mkdir(parents=True, exist_ok=True)
     kv = dict(a.split("=", 1) for a in sys.argv[2:])
-    statements = Path(kv.get("statements", "proofbench-statements"))
+    statements = Path(kv.get("statements", "proofbench"))
     manifest = {
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "host": platform.node(),

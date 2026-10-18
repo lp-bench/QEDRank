@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Stage what the selected problems import and build the sandbox image.
-# usage: IDS="P083 P088 P090" scripts/build_image.sh [--sif|--apptainer|--update BASE.sif] [proofbench-statements]
+# usage: IDS="P083 P088 P090" scripts/build_image.sh [--sif|--apptainer|--update BASE.sif] [proofbench]
 #   default: docker build -> proofbench-sandbox:latest
 #   --sif: the docker build, then convert that image to proofbench-sandbox.sif (same content)
 #   --apptainer: apptainer build --fakeroot from image/proofbench.def (no Docker needed)
@@ -22,7 +22,7 @@ FAKEROOT="--fakeroot"
 if ! command -v newuidmap >/dev/null && grep -q "^$(id -un):" /etc/subuid 2>/dev/null; then
   FAKEROOT="--fakeroot --ignore-subuid"
 fi
-PB=${1:-$HERE/proofbench-statements}
+PB=${1:-$HERE/proofbench}
 IDS=${IDS:?problems to build for, e.g. IDS="P083 P088 P090"}
 CTX="$HERE/image/context"
 rm -rf "$CTX"; mkdir -p "$CTX/ProofBench"

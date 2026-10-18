@@ -5,12 +5,12 @@
 #  2. Reference solutions: every problem with Pxxx_sol.lean in the private
 #     ProofBench repo is accepted by both grading layers
 #     (scripts/verify_comparator.sh, one fresh container each; ~1 min per problem).
-# usage: [IDS="P083 P088"] scripts/check_statements.sh [--static-only] [../proofbench] [proofbench-statements]
+# usage: [IDS="P083 P088"] scripts/check_statements.sh [--static-only] [../proofbench-hidden] [proofbench]
 set -euo pipefail
 cd "$(dirname "$0")/.."
 STATIC_ONLY=0
 if [ "${1:-}" = "--static-only" ]; then STATIC_ONLY=1; shift; fi
-PB=${1:-../proofbench}; ST=${2:-proofbench-statements}
+PB=${1:-../proofbench-hidden}; ST=${2:-proofbench}
 IDS=${IDS:-$(ls "$ST/ProofBench/PROBLEMS" | grep -E '^P[0-9]{3}$' | tr '\n' ' ')}
 TMP=$(mktemp -d); trap 'rm -rf "$TMP"' EXIT
 cp image/check_proof.py "$TMP/"

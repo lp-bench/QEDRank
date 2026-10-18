@@ -1,6 +1,6 @@
 # Apptainer definition mirroring image/Dockerfile, for machines without Docker
 # (needs `apptainer build --fakeroot`).  Build with
-#   IDS="..." scripts/build_image.sh --apptainer [proofbench-statements]
+#   IDS="..." scripts/build_image.sh --apptainer [proofbench]
 # On a machine with Docker, `scripts/build_image.sh --sif` converts the Docker
 # image instead; both give the same content.
 Bootstrap: docker

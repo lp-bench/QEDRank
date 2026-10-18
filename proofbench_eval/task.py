@@ -9,7 +9,7 @@ Lean check performed by the scorer (see scorer.py): statement unchanged, no
 
 Task parameters (pass with `-T name=value`):
   ids         problems to run, e.g. P083,P088,P090 (required)
-  statements  path to the proofbench-statements clone (default proofbench-statements)
+  statements  path to the clone of the proofbench repo (default proofbench)
   sandbox     "docker" (default) or "apptainer" (HPC: needs the inspect-apptainer package)
   sif         the .sif image for the apptainer sandbox (default proofbench-sandbox.sif)
   network     whether the docker sandbox has internet (default True)
@@ -161,7 +161,7 @@ def load_samples(
 @task
 def proofbench(
     ids: str = "",
-    statements: str = "proofbench-statements",
+    statements: str = "proofbench",
     sandbox: str = "docker",
     sif: str = "proofbench-sandbox.sif",
     network: bool = True,

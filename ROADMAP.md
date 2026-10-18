@@ -18,7 +18,7 @@ WAITING for DECISION/HPC ACCESS/OTHER REASON
 - Run `scripts/hpc_preflight.sh proofbench-sandbox.sif` on Capella first (network namespace, binds, Landlock, tmpfs size).
 - Set up a read-only GitHub deploy key on the HPC cluster.
 - Release the Apptainer sandbox as a package with the paper, meaning that will will publish harness on github. this is now "inspect-apptainer" repo.
-- push `proofbench-statements` to private GitHub repo.
+- push the statements repo (now `proofbench`) to private GitHub repo.
 
 ## CHANGES for me NOW
 - Model choice: see notes/model_availability_2026-10-08.md. Closed 2025 models are retired; o3 and GPT-5 shut down 11 Dec 2026.
