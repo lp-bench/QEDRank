@@ -8,10 +8,10 @@
 #     before the statement's theorem, whose proof becomes `apply Pxxx_sol`;
 #   - a file that needs the proctor library (ProofBench.Mathlib.*) is skipped:
 #     that library is not in the sandbox.
-# usage: scripts/verify_comparator.sh P090 [../ProofBench]
+# usage: scripts/verify_comparator.sh P090 [../proofbench]
 set -euo pipefail
 cd "$(dirname "$0")/.."
-PID=${1:?problem id}; PB=${2:-../ProofBench}
+PID=${1:?problem id}; PB=${2:-../proofbench}
 ST=proofbench-statements/ProofBench/PROBLEMS/$PID/$PID.lean
 SOL=$PB/ProofBench/PROBLEMS/$PID/${PID}_sol.lean
 TMP=$(mktemp -d); trap 'rm -rf "$TMP"' EXIT
