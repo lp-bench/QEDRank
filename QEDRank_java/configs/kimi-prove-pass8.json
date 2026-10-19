@@ -1,0 +1,15 @@
+{
+  "task": "prove",
+  "generation": {
+    "attempts": 8,
+    "effort": "max",
+    "maxTokens": 65536,
+    "timeoutMs": 2700000,
+    "retries": 6,
+    "retryBaseDelayMs": 15000,
+    "retryMaxDelayMs": 120000,
+    "providerConcurrency": 8
+  },
+  "concurrency": { "items": 16 },
+  "pricing": { "kimi-k3": { "input": 3, "output": 15 } }
+}
