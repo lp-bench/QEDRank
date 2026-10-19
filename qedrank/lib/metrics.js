@@ -6,10 +6,14 @@
 // Pure functions shared by the runner and the browser UI.
 
 import { TARGET_KINDS, STATEMENT_MATCH_ACCEPTED, SUMMARY_SCHEMA, ELIGIBILITY } from './schema.js';
-import { rate, bootstrapByPaper, cochranQ, pairwiseMcNemar, pairedDifferenceCI, calibration, passAtK, timeSummary } from './stats.js';
+import { rate, bootstrapByPaper, cochranQ, pairwiseMcNemar, pairedDifferenceCI, calibration, passAtK, passAtKUnbiased, passAtKLevels, PASS_K_PROMINENT, timeSummary } from './stats.js';
 import { quantile, round, groupBy } from './util.js';
 import { effortByDifficulty, difficultyProxies, capabilityByRelease, contaminationSplit, agentSummary, workingMsOf } from './analysis.js';
 import { modelFacts } from '../../lib/model-facts.js';
+import { statusOf, failureOf, ATTEMPT_STATUS, FAILURE_CLASSES } from './harness/status.js';
+
+/** Records that are attempts in the pass@k sense: first-answer settings of either protocol. */
+const isAttempt = (r) => (r.setting === 'pass@1' || r.setting === 'agent') && r.repair_round === 0;
 
 const BOUNDS = ['main_theorem', 'upper_bound', 'lower_bound'];
 
@@ -59,7 +63,7 @@ function withCI(numFn, denFn, records, papersOf, bootOpts) {
 /**
  * Per-model metrics for a set of primary records (already filtered to one target kind or all).
  */
-export function modelMetrics(records, allAttempts, { pricing = {}, bootOpts, k = 1, repairRounds = 0, references = {} } = {}) {
+export function modelMetrics(records, allAttempts, { pricing = {}, bootOpts, k = 1, repairRounds = 0, references = {}, agent = false } = {}) {
   const nonInfra = records.filter((r) => !r.outcomes.infrastructure_failure);
   const infra = records.length - nonInfra.length;
   const eligStmt = nonInfra.filter((r) => r.eligibility.statement_track);
@@ -75,31 +79,65 @@ export function modelMetrics(records, allAttempts, { pricing = {}, bootOpts, k =
   const auditClean = rate(compiled.filter((r) => r.audit?.status === 'clean').length, compiled.length);
   const verified = withCI((r) => r.outcomes.verified === 1, (r) => r.eligibility.proof_track, nonInfra, null, bootOpts);
 
-  // pass@k over attempts of the same item (repair_round 0), only where all k attempts exist.
+  // pass@k over the attempts of the same item (repair_round 0): single-call runs with k > 1 and
+  // every agent run (independent attempts). Infrastructure errors are not attempts; an item
+  // with fewer than j determinate attempts is left out of pass@j and counted in items_short.
   let passK = null;
-  if (k > 1) {
-    const byKey = groupBy(allAttempts.filter((r) => r.repair_round === 0 && r.setting === 'pass@1' && !r.outcomes.infrastructure_failure && r.eligibility.proof_track), (r) => r.item_key);
+  if (k > 1 || agent) {
+    const byKey = groupBy(allAttempts.filter((r) => isAttempt(r) && !r.outcomes.infrastructure_failure && r.eligibility.proof_track), (r) => r.item_key);
     const rows = [];
     for (const [key, atts] of byKey) {
       const sorted = atts.sort((a, b) => a.attempt - b.attempt);
-      if (sorted.length < k) continue;
-      const outs = sorted.slice(0, k).map((r) => (r.outcomes.verified === 1 ? 1 : 0));
-      rows.push({ key, paper_id: sorted[0].paper_id, pass: passAtK(outs, k), mean: outs.reduce((a, b) => a + b, 0) / outs.length, outs });
+      const outs = sorted.map((r) => (r.outcomes.verified === 1 ? 1 : 0));
+      rows.push({ key, paper_id: sorted[0].paper_id, n: outs.length, c: outs.filter((x) => x === 1).length, outs });
     }
-    const perAttemptRates = Array.from({ length: k }, (_, i) => (rows.length ? rows.reduce((s, r) => s + r.outs[i], 0) / rows.length : null));
+    const withK = rows.filter((r) => r.n >= k);
+    const perAttemptRates = Array.from({ length: k }, (_, i) => { const have = rows.filter((r) => r.outs.length > i); return have.length ? have.reduce((s, r) => s + r.outs[i], 0) / have.length : null; });
     const meanRate = perAttemptRates.filter((x) => x !== null);
     const sd = meanRate.length > 1 ? Math.sqrt(meanRate.reduce((s, x) => s + (x - meanRate.reduce((a, b) => a + b, 0) / meanRate.length) ** 2, 0) / (meanRate.length - 1)) : null;
     passK = {
       k,
-      num: rows.filter((r) => r.pass === 1).length,
-      den: rows.length,
-      value: rows.length ? rows.filter((r) => r.pass === 1).length / rows.length : null,
-      mean_success_per_attempt: rows.length ? rows.reduce((s, r) => s + r.mean, 0) / rows.length : null,
+      // Observed: solved in one of the first k attempts, over items with at least k attempts.
+      num: withK.filter((r) => passAtK(r.outs, k) === 1).length,
+      den: withK.length,
+      value: withK.length ? withK.filter((r) => passAtK(r.outs, k) === 1).length / withK.length : null,
+      mean_success_per_attempt: rows.length ? rows.reduce((s, r) => s + r.c / r.n, 0) / rows.length : null,
       per_attempt_rates: perAttemptRates,
       sd_across_attempts: sd,
-      note: 'pass@k counts an item as solved when any of its k attempts is a strict verified success; the same k and budget apply to every model.',
+      items_with_attempts: rows.length,
+      attempts_total: rows.reduce((s, r) => s + r.n, 0),
+      prominent: PASS_K_PROMINENT.filter((j) => j <= k),
+      note: 'num/den here is the observed share of items solved within their first k attempts (items with at least k determinate attempts); the curve below is the unbiased estimate. Partially solved attempts count as failures. The same k and budgets apply to every model.',
     };
+    const countsByPaper = groupBy(rows, (x) => x.paper_id);
+    passK.curve = passAtKLevels(k).map((j) => {
+      const pool = rows.filter((x) => x.n >= j);
+      const estimate = (papers) => {
+        let sum = 0;
+        let m = 0;
+        for (const p of papers) for (const x of countsByPaper.get(p) || []) if (x.n >= j) { sum += passAtKUnbiased(x.n, x.c, j); m += 1; }
+        return m ? sum / m : null;
+      };
+      const paperIds = [...new Set(pool.map((x) => x.paper_id))];
+      const ci = pool.length ? bootstrapByPaper(paperIds, estimate, bootOpts) : { lo: null, hi: null, method: null, B: 0 };
+      const observed = pool.filter((x) => passAtK(x.outs, j) === 1).length;
+      return { k: j, value: pool.length ? estimate(paperIds) : null, items: pool.length, items_short: rows.length - pool.length, attempts: pool.reduce((s, x) => s + x.n, 0), items_solved_any: pool.filter((x) => x.c > 0).length, observed_within_k: { num: observed, den: pool.length, value: pool.length ? observed / pool.length : null }, prominent: PASS_K_PROMINENT.includes(j), ci_lo: ci.lo, ci_hi: ci.hi, ci_method: ci.method, ci_B: ci.B };
+    });
+    passK.curve_note = 'Unbiased estimator 1 - C(n-c, k)/C(n, k) per item (Chen et al. 2021), averaged over proof-track items (established claims) with at least k determinate attempts; infrastructure errors are not attempts; observed_within_k is the share of those items solved in their first k attempts by attempt index. A k with no eligible item is unavailable, not 0.';
   }
+
+  // Status of every attempt and the class of every failure (all attempts, not only attempt 1).
+  const statusCounts = Object.fromEntries(ATTEMPT_STATUS.map((s) => [s, 0]));
+  const failureCounts = Object.fromEntries(FAILURE_CLASSES.map((c) => [c, 0]));
+  const attemptRecs = allAttempts.filter(isAttempt);
+  for (const r of attemptRecs) {
+    const st = statusOf(r);
+    statusCounts[st] = (statusCounts[st] || 0) + 1;
+    if (st === 'failed' || st === 'infrastructure_error') { const f = failureOf(r); const c = f?.class || 'unknown'; failureCounts[c] = (failureCounts[c] || 0) + 1; }
+  }
+  const attemptsByIndex = {};
+  for (const r of attemptRecs) { const a = r.attempt || 1; attemptsByIndex[a] = attemptsByIndex[a] || Object.fromEntries(ATTEMPT_STATUS.map((s) => [s, 0])); attemptsByIndex[a][statusOf(r)] += 1; }
+  const partialAssessed = attemptRecs.filter((r) => r.partial?.assessed).length;
 
   // Repair setting: final record of each repair chain.
   let repair = null;
@@ -153,6 +191,9 @@ export function modelMetrics(records, allAttempts, { pricing = {}, bootOpts, k =
     verified_pass1: verified,
     pass_at_k: passK,
     repair,
+    status_counts: { ...statusCounts, attempts: attemptRecs.length, partial_assessed: partialAssessed, note: 'every attempt record of this model and scope; partially solved never counts toward verified rates or pass@k' },
+    failure_counts: { ...failureCounts, note: 'failed and infrastructure-error attempts by the class of their first identifiable cause' },
+    attempts_by_index: attemptsByIndex,
     statement_match_counts: matchCounts,
     unresolved: rate(unresolved, eligStmt.length),
     abstention: rate(abstained, nonInfra.length),
@@ -301,13 +342,15 @@ function subgroupMatrices(records, models, manifestPapers, bootOpts, threshold) 
  */
 export function buildSummary({ items, manifest, references, config, models, review = {}, run = {} }) {
   const bootOpts = { B: config.bootstrap?.B ?? 1000, seed: config.bootstrap?.seed ?? 1 };
-  const k = config.generation?.attempts ?? 1;
-  const repairRounds = config.generation?.repairRounds ?? 0;
   const agentRun = run.protocol === 'agent';
+  const maxAttempt = Math.max(1, ...items.map((r) => (isAttempt(r) ? r.attempt || 1 : 1)));
+  const k = agentRun ? (run.settings?.attempts ?? maxAttempt) : (config.generation?.attempts ?? 1);
+  const repairRounds = config.generation?.repairRounds ?? 0;
   const primary = items.filter(agentRun ? isPrimaryAgent : isPrimary);
   const factsOf = (m) => run.model_facts?.[m] ?? modelFacts(primary.find((x) => x.provider === m)?.model_id, config.modelFacts || {});
   const papers = manifest.papers || [];
-  const opts = { pricing: config.pricing || {}, bootOpts, k, repairRounds, references };
+  const opts = { pricing: config.pricing || {}, bootOpts, k, repairRounds, references, agent: agentRun };
+  const harnessOf = (m) => items.find((x) => x.provider === m)?.harness ?? (agentRun ? run.harness_protocol?.id ?? 'agent' : 'qedrank-single');
 
   const byTarget = {};
   for (const kind of [...TARGET_KINDS, 'all']) {
@@ -355,7 +398,13 @@ export function buildSummary({ items, manifest, references, config, models, revi
     items_total: primary.length,
     items_infrastructure_failed: primary.filter((r) => r.outcomes.infrastructure_failure).length,
     open_claim_escalations: primary.filter((r) => r.notes?.some((n) => n.startsWith('ESCALATE')) || (r.mathematical_status === 'open' && r.outcomes.compiled === 1 && r.outcomes.audit_clean === 1 && r.outcomes.statement_faithful === 1)).map((r) => r.item_key),
+    attempts_total: items.filter(isAttempt).length,
+    // Problems each model has at least one determinate attempt on, and where models differ.
+    problems_by_model: Object.fromEntries(models.map((m) => [m, [...new Set(items.filter((r) => isAttempt(r) && r.provider === m && !r.outcomes.infrastructure_failure).map((r) => r.paper_id))].sort()])),
   };
+  const union = [...new Set(Object.values(coverage.problems_by_model).flat())].sort();
+  coverage.coverage_differences = models.map((m) => ({ model: m, covered: coverage.problems_by_model[m].length, of: union.length, missing: union.filter((p) => !coverage.problems_by_model[m].includes(p)) })).filter((x) => x.missing.length);
+  coverage.common_problems = union.filter((p) => models.every((m) => coverage.problems_by_model[m].includes(p)));
   const defects = review.reference_defects || [];
   const referenceDefects = {
     references_total: refList.length,
@@ -375,11 +424,13 @@ export function buildSummary({ items, manifest, references, config, models, revi
   return {
     schema: SUMMARY_SCHEMA,
     generated_at: new Date().toISOString(),
-    run: { run_id: run.run_id ?? null, protocol: run.protocol ?? 'single_call', harness: run.harness ?? null, sandbox: run.sandbox ?? null, source: run.source ?? manifest.source ?? null, toolchain: run.toolchain ?? null, prompt_template_version: run.prompt_template_version ?? null, settings: run.settings ?? null, protocol_mismatches: run.protocol_mismatches ?? [], bundles: run.bundles ?? null },
+    run: { run_id: run.run_id ?? null, protocol: run.protocol ?? 'single_call', harness: run.harness ?? null, harness_protocol: run.harness_protocol ?? null, harnesses: run.harnesses ?? null, sandbox: run.sandbox ?? null, source: run.source ?? manifest.source ?? null, toolchain: run.toolchain ?? null, prompt_template_version: run.prompt_template_version ?? null, settings: run.settings ?? null, protocol_mismatches: run.protocol_mismatches ?? [], bundles: run.bundles ?? null, machine: run.machine ?? null, regrade: run.regrade ?? null, merged_runs: run.merged_runs ?? [] },
     primary_endpoint: run.primary_endpoint ?? config.primaryEndpoint,
     eligibility_rules: ELIGIBILITY,
-    models: models.map((m) => { const r = primary.find((x) => x.provider === m); return { id: m, model_id: r?.model_id ?? null, display_name: r?.model_display_name ?? m, label: r?.model_label ?? null, host: r?.api_host ?? null, effort: r?.generation?.effort ?? null, facts: factsOf(m) }; }),
-    settings: { k, repair_rounds: repairRounds, bootstrap: bootOpts, temperature: config.generation?.temperature, max_tokens: config.generation?.maxTokens },
+    counting_rules: run.counting_rules ?? null,
+    attempts: run.attempts ? { planned: run.attempts.planned ?? k, by_attempt: Object.fromEntries(Object.entries(run.attempts.by_attempt || {}).map(([a, b]) => [a, { status: b.status, completed: b.problems_completed?.length ?? 0, missing: b.problems_missing ?? [], logs: b.logs ?? [] }])), stop_reason: run.attempts.stop_reason ?? null } : null,
+    models: models.map((m) => { const r = items.find((x) => x.provider === m) || primary.find((x) => x.provider === m); return { id: m, model_id: r?.model_id ?? null, display_name: r?.model_display_name ?? m, label: r?.model_label ?? null, host: r?.api_host ?? null, effort: r?.generation?.effort ?? null, harness: harnessOf(m), facts: factsOf(m) }; }),
+    settings: { k, attempts: k, repair_rounds: repairRounds, bootstrap: bootOpts, temperature: agentRun ? run.settings?.temperature ?? null : config.generation?.temperature, top_p: config.generation?.topP ?? null, top_k: config.generation?.topK ?? null, presence_penalty: config.generation?.presencePenalty ?? null, effort: agentRun ? run.settings?.effort ?? null : config.generation?.effort ?? null, max_tokens: agentRun ? run.settings?.max_tokens ?? null : config.generation?.maxTokens, limits: agentRun ? run.settings?.limits ?? null : null },
     coverage,
     by_target: byTarget,
     paper_level: paperLevelByModel,
@@ -433,6 +484,11 @@ export function matrixRows(summary) {
         verified_pass1_pct: pct(mm.verified_pass1.value),
         verified_pass1_ci: fmtCI(mm.verified_pass1),
         verified_passk: mm.pass_at_k ? fmtRate(mm.pass_at_k) : 'n/a (k=1)',
+        pass_at_k_estimates: mm.pass_at_k?.curve ? mm.pass_at_k.curve.filter((c) => c.prominent).map((c) => `pass@${c.k}=${c.value === null ? 'unavailable' : pct(c.value)}% (n=${c.items})`).join('; ') : 'n/a',
+        attempts_fully_solved: mm.status_counts?.fully_solved ?? null,
+        attempts_partially_solved: mm.status_counts?.partially_solved ?? null,
+        attempts_failed: mm.status_counts?.failed ?? null,
+        attempts_infrastructure_error: mm.status_counts?.infrastructure_error ?? null,
         repair: mm.repair ? fmtRate(mm.repair) : 'n/a',
         sandwich_coverage: scope === 'all' && pl ? fmtRate(pl.sandwich_coverage) : scope === 'all' ? 'unavailable' : 'n/a',
         unresolved: fmtRate(mm.unresolved),

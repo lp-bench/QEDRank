@@ -127,6 +127,23 @@ async function readLeanOptions(leanDir) {
   }
 }
 
+/** The linter a message names ("… disabled with `set_option linter.unusedVariables false`"), or null. */
+export function linterOf(text) {
+  const m = /set_option (linter\.[A-Za-z0-9_.]+) false/.exec(String(text || ''));
+  return m ? m[1] : null;
+}
+
+/** Warnings per linter in a list of parsed messages, e.g. { 'linter.unusedVariables': 2 }. */
+export function countLinterWarnings(messages = []) {
+  const out = {};
+  for (const m of messages) {
+    if (m.severity !== 'warning') continue;
+    const l = linterOf(m.text);
+    if (l) out[l] = (out[l] || 0) + 1;
+  }
+  return out;
+}
+
 /** Parse `lean --json` output lines into message objects. */
 export function parseJsonMessages(stdout) {
   const messages = [];

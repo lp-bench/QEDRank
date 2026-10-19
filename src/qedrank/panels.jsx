@@ -42,6 +42,8 @@ export function CorpusPanel({ onManifest, modelsArg = '', selectedModels = [], o
         expectedCount: Number(expected) || 108,
       })
       setManifest(res.data)
+      // Remembered (without the token) so the Head-to-head page can offer this corpus.
+      try { localStorage.setItem('qedrank.lastCorpus', JSON.stringify({ url: repoUrl.trim(), ref: ref.trim(), subdir: subdir.trim(), commit: res.data?.source?.commit || null })) } catch { /* storage unavailable */ }
       onManifest && onManifest(res.data)
     } catch (err) {
       setError(err.response?.data?.error || err.message || 'Discovery failed')
@@ -102,12 +104,39 @@ export function RunLauncher({ manifest, selectedModels = [], onLoaded = null }) 
   const timer = useRef(null)
   const client = { headers: { 'X-QEDRank-Client': 'web' } }
 
-  const request = {
-    command: 'run', repo: src.url, ref: src.commit, subdir: src.subdir || undefined,
-    models: selectedModels, targets, papers: papersText.split(',').map((s) => s.trim()).filter(Boolean),
-    runId: runId.trim(), task, leanProject: leanProject.trim() || undefined, dryRun,
-  }
-  const commandLine = ['node qedrank/cli.js run', `--repo ${src.url}`, `--ref ${src.commit}`, src.subdir ? `--subdir "${src.subdir}"` : '', `--models ${selectedModels.join(',') || '<models>'}`, targets.length ? `--targets ${targets.join(',')}` : '', request.papers.length ? `--papers ${request.papers.join(',')}` : '', task !== 'formalize' ? `--task ${task}` : '', leanProject.trim() ? `--lean-project "${leanProject.trim()}"` : '', dryRun ? '--dry-run' : '', `--run-id ${runId.trim() || '<id>'}`].filter(Boolean).join(' ')
+  // Harness: QEDRank's single call, or an agent harness the run server reports as ready.
+  const [harness, setHarness] = useState('qedrank-single')
+  const [harnesses, setHarnesses] = useState(null)
+  const [attempts, setAttempts] = useState(1)
+  const [limits, setLimits] = useState({ sessions: 10, sessionOutputTokens: 30000, sessionWorkingTime: 1800, maxTokens: 16000, timeLimit: '', messageLimit: '', maxSamples: 2, maxCostUsd: '' })
+  const [effort, setEffort] = useState('')
+  const [comparator, setComparator] = useState(true)
+  const [retryInfra, setRetryInfra] = useState(false)
+  const [regrade, setRegrade] = useState(false)
+  const [difficulty, setDifficulty] = useState('')
+  const [subject, setSubject] = useState('')
+  useEffect(() => {
+    let alive = true
+    axios.get(`${base}/harnesses`, { timeout: 4000 }).then((r) => { if (alive) setHarnesses(r.data.harnesses || []) }).catch(() => { if (alive) setHarnesses(null) })
+    return () => { alive = false }
+  }, [base])
+  const harnessInfo = harnesses?.find((h) => h.id === harness) || null
+  const difficulties = [...new Set(papers.map((p) => p.difficulty).filter(Boolean))].sort()
+  const subjects = [...new Set(papers.flatMap((p) => p.subject_tags || []))].sort()
+  const applyFilters = () => setPapersText(papers.filter((p) => (!difficulty || p.difficulty === difficulty) && (!subject || (p.subject_tags || []).includes(subject))).map((p) => p.paper_id).join(','))
+  const problemList = papersText.split(',').map((s) => s.trim()).filter(Boolean)
+  const agentRun = harness === 'proofbench'
+
+  const request = agentRun
+    ? { command: 'agent-run', harness, runId: runId.trim(), ref: src.commit, models: selectedModels, papers: problemList, attempts, ...Object.fromEntries(Object.entries(limits).filter(([, v]) => v !== '' && v !== null && v !== undefined)), effort: effort || undefined, comparator, retryInfra, regrade }
+    : {
+      command: 'run', repo: src.url, ref: src.commit, subdir: src.subdir || undefined,
+      models: selectedModels, targets, papers: problemList,
+      runId: runId.trim(), task, leanProject: leanProject.trim() || undefined, dryRun,
+    }
+  const commandLine = agentRun
+    ? ['node qedrank/cli.js agent-run', `--run-id ${runId.trim() || '<id>'}`, `--models ${selectedModels.join(',') || '<models>'}`, `--problems ${problemList.join(',') || '<problems>'}`, `--attempts ${attempts}`, `--ref ${src.commit}`, ...Object.entries(limits).filter(([, v]) => v !== '' && v !== null).map(([k, v]) => `--${k.replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`)} ${v}`), effort ? `--effort ${effort}` : '', comparator ? '' : '--comparator off', retryInfra ? '--retry-infra' : '', regrade ? '--regrade' : ''].filter(Boolean).join(' ')
+    : ['node qedrank/cli.js run', `--repo ${src.url}`, `--ref ${src.commit}`, src.subdir ? `--subdir "${src.subdir}"` : '', `--models ${selectedModels.join(',') || '<models>'}`, targets.length ? `--targets ${targets.join(',')}` : '', problemList.length ? `--papers ${problemList.join(',')}` : '', task !== 'formalize' ? `--task ${task}` : '', leanProject.trim() ? `--lean-project "${leanProject.trim()}"` : '', dryRun ? '--dry-run' : '', `--run-id ${runId.trim() || '<id>'}`].filter(Boolean).join(' ')
 
   const stopPolling = () => { if (timer.current) { clearInterval(timer.current); timer.current = null } }
   useEffect(() => () => stopPolling(), [])
@@ -130,6 +159,8 @@ export function RunLauncher({ manifest, selectedModels = [], onLoaded = null }) 
     setError('')
     if (!selectedModels.length) { setError('Select at least one model in step 0.'); return }
     if (!runId.trim()) { setError('Give the run an id.'); return }
+    if (agentRun && !problemList.length) { setError('Select the problems to run: the agent harness needs an explicit list.'); return }
+    if (agentRun && harnessInfo && !harnessInfo.ready) { setError(`The ProofBench harness is not ready on the run server's machine: ${harnessInfo.reason || 'see node qedrank/cli.js harnesses'}.`); return }
     setLog('')
     offset.current = 0
     try {
@@ -154,7 +185,7 @@ export function RunLauncher({ manifest, selectedModels = [], onLoaded = null }) 
         axios.get(`${base}/runs/${job.run_id}/summary.json`).then((r) => r.data).catch(() => null),
         axios.get(`${base}/runs/${job.run_id}/exports/items.json`).then((r) => r.data.items).catch(() => null),
       ])
-      onLoaded({ run, summary, items })
+      onLoaded({ run, summary, items, server: base })
       if (!summary) setError('The run has no summary yet (it is still in progress or stopped before the statistics stage); progress only.')
     } catch (err) { setError(`Could not load the run: ${err.message}`) } finally { setLoading(false) }
   }
@@ -165,25 +196,79 @@ export function RunLauncher({ manifest, selectedModels = [], onLoaded = null }) 
       <h3>2. Run the benchmark from here</h3>
       <p className="qr-muted">Starts the same command PowerShell would run, through the local run server (<code>npm run qedrank:serve</code>, listening on this machine only). The GitHub token comes from your <code>gh</code> login on that machine; it is never typed here. Model calls and Lean compilation run locally; the page follows the log.</p>
       <div className="qr-form">
-        <label>Task
-          <select value={task} onChange={(e) => setTask(e.target.value)}>{TASKS.map((t) => <option key={t.id} value={t.id}>{t.label}</option>)}</select>
+        <label>Run server<input value={base} onChange={(e) => setBase(e.target.value)} /></label>
+        <label>Harness and Lean environment
+          <select value={harness} onChange={(e) => setHarness(e.target.value)}>
+            <option value="qedrank-single">QEDRank single call (no tools) — graded in the Lean project below</option>
+            <option value="proofbench">ProofBench agent harness (Inspect AI ReAct agent, Comparator grading) — pinned sandbox image</option>
+          </select>
         </label>
-        <div className="qr-small">{TASKS.find((t) => t.id === task)?.note}</div>
-        <div className="qr-form-row">
-          {TARGET_KINDS.map((k) => <label key={k} className="qr-check"><input type="checkbox" checked={targets.includes(k)} onChange={(e) => setTargets(e.target.checked ? [...targets, k] : targets.filter((x) => x !== k))} /> {TARGET_LABELS[k]}</label>)}
-        </div>
-        <label>Problems (comma-separated ids; empty = all {ids.length})
+        {harnesses === null && <div className="qr-small">The run server did not answer <code>/harnesses</code>; start it with <code>npm run qedrank:serve</code> to see which harnesses this machine can run.</div>}
+        {harnesses && harnesses.filter((h) => h.id !== 'qedrank-single').map((h) => (
+          <div key={h.id} className="qr-small">
+            <b>{h.label}</b>: <span className={h.ready ? 'qr-good' : 'qr-muted'}>{h.integration}{h.ready ? ' · ready' : h.reason ? ` · ${h.reason}` : ''}</span>
+            {h.id === 'proofbench' && h.checks?.dir_exists ? <> · harness <code>{(h.checks.harness_commit || '').slice(0, 10) || '?'}</code> · statements <code>{(h.checks.statements_commit || '').slice(0, 10) || '?'}</code>{h.checks.statements_dirty ? ' (dirty)' : ''} · image <code>{h.checks.image}</code>{h.checks.lean_project ? <> · re-grade project <code>{h.checks.lean_project}</code></> : ''}</> : null}
+          </div>
+        ))}
+        {!agentRun && (
+          <>
+            <label>Task
+              <select value={task} onChange={(e) => setTask(e.target.value)}>{TASKS.map((t) => <option key={t.id} value={t.id}>{t.label}</option>)}</select>
+            </label>
+            <div className="qr-small">{TASKS.find((t) => t.id === task)?.note}</div>
+            <div className="qr-form-row">
+              {TARGET_KINDS.map((k) => <label key={k} className="qr-check"><input type="checkbox" checked={targets.includes(k)} onChange={(e) => setTargets(e.target.checked ? [...targets, k] : targets.filter((x) => x !== k))} /> {TARGET_LABELS[k]}</label>)}
+            </div>
+          </>
+        )}
+        {agentRun && <div className="qr-small">Task: prove the given statement (the harness's only task). Dataset: <code>{src.url}</code> at commit <code>{(src.commit || '').slice(0, 10)}</code>; the harness runs from its local statements clone, which must be checked out at this commit (the driver refuses otherwise). Each attempt is a fresh Inspect run with new sandbox containers; the run resumes where it stopped and never repeats a completed attempt.</div>}
+        <label>Problems (comma-separated ids; {agentRun ? 'required' : `empty = all ${ids.length}`})
           <input value={papersText} onChange={(e) => setPapersText(e.target.value)} />
         </label>
         <div className="qr-form-row">
           <button type="button" className="qr-btn qr-btn-secondary" onClick={() => setPapersText(ids.slice(0, 5).join(','))}>First 5</button>
           <button type="button" className="qr-btn qr-btn-secondary" onClick={() => setPapersText(withPdf.join(','))}>With PDF ({withPdf.length})</button>
-          <button type="button" className="qr-btn qr-btn-secondary" onClick={() => setPapersText('')}>All ({ids.length})</button>
+          <button type="button" className="qr-btn qr-btn-secondary" onClick={() => setPapersText(agentRun ? ids.join(',') : '')}>All ({ids.length})</button>
+          {(difficulties.length > 0 || subjects.length > 0) && (
+            <>
+              <select value={difficulty} onChange={(e) => setDifficulty(e.target.value)} aria-label="Difficulty filter"><option value="">any difficulty</option>{difficulties.map((d) => <option key={d} value={d}>{d}</option>)}</select>
+              <select value={subject} onChange={(e) => setSubject(e.target.value)} aria-label="Subject filter"><option value="">any subject</option>{subjects.map((d) => <option key={d} value={d}>{d}</option>)}</select>
+              <button type="button" className="qr-btn qr-btn-secondary" onClick={applyFilters}>Select by filter</button>
+            </>
+          )}
         </div>
+        {difficulties.length === 0 && subjects.length === 0 && <div className="qr-small">This corpus carries no difficulty or subject labels; the results show them as “Unknown”.</div>}
         <label>Run id<input value={runId} onChange={(e) => setRunId(e.target.value)} /></label>
-        <label>Lean project on this machine (optional)<input value={leanProject} onChange={(e) => setLeanProject(e.target.value)} placeholder="default: this repository's lean/ (Mathlib only); for ProofBench.Mathlib_Problems imports give a built ProofBench checkout, e.g. C:\ProofBench" /></label>
-        <label>Run server<input value={base} onChange={(e) => setBase(e.target.value)} /></label>
-        <label className="qr-check"><input type="checkbox" checked={dryRun} onChange={(e) => setDryRun(e.target.checked)} /> Dry run: discovery and preparation only, no model calls</label>
+        <label>Independent attempts per problem and model (1–16)<input type="number" min="1" max="16" value={attempts} onChange={(e) => setAttempts(Math.max(1, Math.min(16, Number(e.target.value) || 1)))} /></label>
+        <div className="qr-small">{agentRun ? 'Each attempt is a separate Inspect run (fresh agent state, fresh sandboxes).' : 'Attempts above 1 need a temperature above 0 (configure it in qedrank.config.json); pass@k is reported for every k up to this number.'}</div>
+        {agentRun ? (
+          <>
+            <div className="qr-form-row">
+              <label>Sessions per attempt<input type="number" min="1" max="50" value={limits.sessions} onChange={(e) => setLimits({ ...limits, sessions: e.target.value })} /></label>
+              <label>Output tokens per session<input type="number" min="1000" value={limits.sessionOutputTokens} onChange={(e) => setLimits({ ...limits, sessionOutputTokens: e.target.value })} /></label>
+              <label>Working seconds per session<input type="number" min="60" value={limits.sessionWorkingTime} onChange={(e) => setLimits({ ...limits, sessionWorkingTime: e.target.value })} /></label>
+              <label>Max tokens per reply<input type="number" min="256" value={limits.maxTokens} onChange={(e) => setLimits({ ...limits, maxTokens: e.target.value })} /></label>
+            </div>
+            <div className="qr-form-row">
+              <label>Wall-clock seconds per problem (optional)<input type="number" min="60" value={limits.timeLimit} onChange={(e) => setLimits({ ...limits, timeLimit: e.target.value })} placeholder="sessions × working time × 3" /></label>
+              <label>Message limit ≈ tool-call cap (optional)<input type="number" min="2" value={limits.messageLimit} onChange={(e) => setLimits({ ...limits, messageLimit: e.target.value })} placeholder="about 2 per tool call" /></label>
+              <label>Problems in parallel<input type="number" min="1" max="64" value={limits.maxSamples} onChange={(e) => setLimits({ ...limits, maxSamples: e.target.value })} /></label>
+              <label>Cost cap, USD (estimated, optional)<input type="number" min="0" step="0.5" value={limits.maxCostUsd} onChange={(e) => setLimits({ ...limits, maxCostUsd: e.target.value })} placeholder="needs pricing in qedrank.config.json" /></label>
+            </div>
+            <div className="qr-form-row">
+              <label>Reasoning effort (reasoning models)<select value={effort} onChange={(e) => setEffort(e.target.value)}><option value="">provider default</option>{['low', 'medium', 'high', 'xhigh', 'max'].map((e) => <option key={e} value={e}>{e}</option>)}</select></label>
+              <label className="qr-check"><input type="checkbox" checked={comparator} onChange={(e) => setComparator(e.target.checked)} /> Comparator (layer 2) on</label>
+              <label className="qr-check"><input type="checkbox" checked={retryInfra} onChange={(e) => setRetryInfra(e.target.checked)} /> Re-run attempts that ended in an infrastructure error</label>
+              <label className="qr-check"><input type="checkbox" checked={regrade} onChange={(e) => setRegrade(e.target.checked)} /> Assess partial progress (re-grade final files in the pinned Lean project; slow)</label>
+            </div>
+            <div className="qr-small">Budgets map to the harness's own variables (SESSIONS, SESSION_OUTPUT_TOKENS, SESSION_WORKING_TIME, MAX_TOKENS, TIME_LIMIT, MESSAGE_LIMIT, MAX_SAMPLES); the cost cap is enforced by QEDRank between attempts from reported usage and configured prices. Every run records harness commit, image, Lean toolchain, tools and these budgets.</div>
+          </>
+        ) : (
+          <>
+            <label>Lean project on this machine (optional)<input value={leanProject} onChange={(e) => setLeanProject(e.target.value)} placeholder="default: this repository's lean/ (Mathlib only); for ProofBench.Mathlib_Problems imports give a built ProofBench checkout, e.g. C:\proofbench-statements" /></label>
+            <label className="qr-check"><input type="checkbox" checked={dryRun} onChange={(e) => setDryRun(e.target.checked)} /> Dry run: discovery and preparation only, no model calls</label>
+          </>
+        )}
         <div className="qr-small">Models: <code>{selectedModels.join(', ') || 'none selected (step 0)'}</code></div>
         <pre className="qr-cmd">{commandLine}</pre>
         <div className="qr-form-row">
@@ -304,8 +389,11 @@ export function RunPanel({ onLoaded }) {
       ])
       setRunMeta(run)
       setProgress(prog)
-      setStatus(summary ? '' : 'No summary yet (statistics stage not run). Showing progress only.')
-      onLoaded({ run, summary, items })
+      const pendingStages = Object.entries(run?.stages || {}).filter(([, s]) => s?.status !== 'done').map(([k, s]) => `${k} ${s?.status || 'pending'}`)
+      setStatus(summary ? ''
+        : items ? 'No summary yet (statistics stage not run). Showing item records only.'
+        : `This run has no results yet${pendingStages.length ? ` (${pendingStages.join(', ')})` : ''}: no model answer has been graded. A dry run stops after preparation. Continue it on your machine with: node qedrank/cli.js resume --run-id ${runId}`)
+      onLoaded({ run, summary, items, server: base })
     } catch (err) {
       setStatus(`Load failed: ${err.message}`)
     }
@@ -339,7 +427,7 @@ export function RunPanel({ onLoaded }) {
       }
     }
     setRunMeta(bundle.run)
-    onLoaded(bundle)
+    onLoaded({ ...bundle, server: null }) // opened from files: proof text cannot be fetched
   }
 
   return (

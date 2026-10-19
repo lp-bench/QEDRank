@@ -81,6 +81,11 @@ export function parseProveResponse(text) {
  */
 export async function evaluateProveAttempt({ runner, toolchain, paper, target, challengeSrc, generation, itemDir, config, setting = 'pass@1', attempt = 1, repairRound = 0, log = () => {} }) {
   const t0 = nowMono();
+  // Reasoning that used the whole output budget leaves no answer. Under a budget that is the same
+  // for every model this is a model outcome (like an answer cut off mid-file), not an
+  // infrastructure failure, so it stays in the denominator as an attempt without a file.
+  const budgetExhausted = generation.error?.kind === 'empty_response';
+  if (budgetExhausted) generation = { ...generation, error: null, text: '', truncated: true };
   const kind = target.target_kind;
   const key = `${paper.paper_id}__${kind}__${generation.provider}`;
   const suffix = `a${attempt}r${repairRound}`;
@@ -140,7 +145,7 @@ export async function evaluateProveAttempt({ runner, toolchain, paper, target, c
     timing: { evaluation_started_at: isoNow(), lean_compile_ms: null, lean_total_ms: null, evaluation_total_ms: null, total_ms: null, working_ms: null },
     eligibility: { statement_track: true, proof_track: proofTrack, reasons: proofTrack ? [] : [`mathematical_status_${status}`] },
     outcomes: { infrastructure_failure: false, compiled: null, audit_clean: null, statement_faithful: null, verified: null },
-    notes: [],
+    notes: budgetExhausted ? ['no_answer_within_output_budget: reasoning used the whole output budget'] : [],
   };
   await ensureDir(itemDir);
   const finish = async () => {
@@ -192,7 +197,7 @@ export async function evaluateProveAttempt({ runner, toolchain, paper, target, c
   rec.static_screen = grade.checks.static_screen;
   const screened = (grade.reasons || []).some((r) => ['static_screen_rejected', 'disallowed_import', 'challenge_import_removed'].includes(r)) && grade.checks.compile?.status === 'not_attempted';
   const compileStatus = screened ? 'rejected_by_static_screen' : grade.checks.compile?.status ?? 'not_attempted';
-  rec.compile = { status: compileStatus, error_count: grade.checks.compile?.error_count ?? null, duration_ms: grade.timing?.compile_ms ?? null, messages: [] };
+  rec.compile = { status: compileStatus, error_count: grade.checks.compile?.error_count ?? null, linter_warnings: grade.checks.compile?.linter_warnings ?? null, duration_ms: grade.timing?.compile_ms ?? null, messages: [] };
   rec.audit = { status: grade.checks.axioms?.status ?? 'not_audited', axioms: grade.checks.axioms?.axioms ?? [], kernel_replay: grade.checks.kernel_replay?.status ?? null, file_sorry_free: grade.checks.sorry?.file_sorry_free ?? null };
   const stmt = grade.checks.statement?.status ?? null;
   rec.statement_match = stmt === 'unchanged' ? 'definitionally_identical' : stmt === 'changed' ? 'different' : 'not_evaluated';

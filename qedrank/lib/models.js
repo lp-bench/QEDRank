@@ -48,13 +48,38 @@ function limiterFor(provider, concurrency) {
   return providerLimiters.get(key);
 }
 
+// A provider whose account cannot serve requests any more is halted for the rest of the process:
+// an exhausted balance at once, a rate limit after this many requests in a row failed every retry.
+// Halted requests are not sent and come back with error.kind 'halted', so the stage can leave the
+// item unrecorded and a later `resume` asks the model again.
+export const RATE_LIMIT_HALT_AFTER = 3;
+const providerHalts = new Map();
+const rateLimitStreaks = new Map();
+export function providerHalt(provider) {
+  return providerHalts.get(provider) || null;
+}
+export function resetProviderHalts() {
+  providerHalts.clear();
+  rateLimitStreaks.clear();
+}
+function noteOutcome(provider, error) {
+  if (!error) { rateLimitStreaks.set(provider, 0); return; }
+  if (error.kind === 'insufficient_quota') {
+    providerHalts.set(provider, { at: isoNow(), kind: 'insufficient_quota', message: error.message });
+  } else if (error.kind === 'rate_limited') {
+    const n = (rateLimitStreaks.get(provider) || 0) + 1;
+    rateLimitStreaks.set(provider, n);
+    if (n >= RATE_LIMIT_HALT_AFTER) providerHalts.set(provider, { at: isoNow(), kind: 'rate_limited', message: `${n} requests in a row were still rate limited after every retry: ${error.message}` });
+  }
+}
+
 /**
  * One generation call. Never throws for provider failures: they are returned as
  * `error` so the item is recorded as an infrastructure/provider failure.
  */
 export async function generateOnce({
   provider, prompt, system = SYSTEM_PROMPT, temperature, maxTokens, effort = null, timeoutMs, retries = 4, baseDelayMs = 2000, maxDelayMs = 60000,
-  providerConcurrency = 1, env = process.env, mode = 'live', fixture = null, meta = {},
+  providerConcurrency = 1, extraSampling = null, env = process.env, mode = 'live', fixture = null, meta = {},
 }) {
   const d = describeProvider(provider, env);
   const base = {
@@ -94,8 +119,11 @@ export async function generateOnce({
         base.finish_reason = r.text ? 'fixture' : 'fixture_missing';
         base.provider_attempts = 1;
         if (!r.text) base.error = { kind: 'fixture_missing', message: 'no fixture response for this item', http_status: null };
+      } else if (providerHalt(provider)) {
+        const h = providerHalt(provider);
+        base.error = { kind: 'halted', message: `not sent: ${provider} was halted at ${h.at} (${h.kind})`, http_status: null };
       } else {
-        const r = await callProvider(provider, { prompt, system, temperature, maxTokens, effort, timeoutMs, retries, baseDelayMs, maxDelayMs, env });
+        const r = await callProvider(provider, { prompt, system, temperature, extraSampling, maxTokens, effort, timeoutMs, retries, baseDelayMs, maxDelayMs, env });
         base.text = r.text;
         base.usage = r.usage;
         base.sampling = r.sampling;
@@ -117,6 +145,7 @@ export async function generateOnce({
         base.error = { kind: 'runner_error', message: err.message, http_status: null };
       }
     }
+    if (mode !== 'fixture' && base.error?.kind !== 'halted') noteOutcome(provider, base.error);
     base.ended_mono_ms = nowMono();
     base.ended_at = isoNow();
     // Observed latency covers every attempt, including waits after rate-limit responses.

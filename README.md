@@ -1,18 +1,21 @@
-# QEDengine · QEDRank
+# QEDRank
 
-Convert mathematical problems to Lean 4 with any set of frontier models, rate the answers, and
-benchmark the same roster on a whole paper corpus with Lean-verified, statistically analysed
-results.
+Formal mathematics benchmark evaluation: evaluate any set of frontier models on a corpus of
+Lean 4 problems with Lean-verified, statistically analysed results, compare benchmark datasets
+with each other, or convert a single problem to Lean 4 and rate the answers.
 
 ## What is in the app
 
-Three pages, one shared model selection:
+Six pages, one shared model selection:
 
 | Page | What it does |
 |---|---|
-| **Convert** (`/`) | Modern front page: pick any number of the eleven roster models (cards show vendor, model id and whether a key is set), state a problem, get Lean 4 from every selected model side by side with latency, tokens and a 1–5 rating, plus a performance snapshot (latency chart + table) of the models you chose. |
-| **Benchmark** (`/benchmark`) | QEDRank batch mode: freeze a GitHub corpus at a commit, preview the manifest, get the exact local run command (with `--models` set to your selection), serve/load runs and watch progress. |
-| **Evaluation** (`/evaluation`) | The complete evaluation matrix and analysis for the loaded run: leaderboard with 95% paper-cluster CIs, models × targets heatmap, the full matrix table, statement-match distribution, time, tokens & cost, calibration diagrams, the k-model comparison (Cochran's Q, exact McNemar with Holm correction, paired-difference matrix), subgroups, coverage, reference audit and the filterable item table. Every chart has a table twin and CSV/JSON downloads. Light and dark themes. |
+| **Home** (`/`) | The two workflows, Evaluate Models and Compare Benchmarks, with what each measures. Old links to `/#models`, `/#problem`, `/#results` and `/#performance` are forwarded to Convert a Problem. |
+| **Evaluate Models** (`/benchmark`) | QEDRank batch mode: pick the models (with the masked key setup), freeze a GitHub corpus at a commit, preview the manifest, get the exact local run command (with `--models` set to your selection), serve/load runs and watch progress. |
+| **Evaluation** (`/evaluation`) | The complete evaluation matrix and analysis for the loaded run: leaderboard with 95% paper-cluster CIs, models × targets heatmap, the full matrix table, statement-match distribution, time, tokens & cost, calibration diagrams, the k-model comparison (Cochran's Q, exact McNemar with Holm correction, paired-difference matrix), subgroups, coverage, reference audit and the filterable item table. Every chart has a table twin; the run downloads as Summary JSON, Matrix CSV, Items JSON and a LaTeX report (metadata, models, result tables, item outcomes; compiles with pdflatex). Light and dark themes. |
+| **Compare Benchmarks** (`/versus`) | Your benchmark (the corpus link used on Evaluate Models, ProofBench by default) against the benchmarks you pick from a dropdown: public ones are measured from their own repositories at pinned commits; not-public ones (AMBER, FormalProofBench) and any other benchmark from a URL you give (GitHub repo/folder, HuggingFace dataset, JSON/JSONL file). Shows a colour-coded performance matrix and charts, with JSON, CSV and LaTeX downloads. Runs on the local run server (`npm run qedrank:serve`, `POST /compare`): clones, tokens and measurements stay on your computer. |
+| **Benchmark Landscape** (`/compare`) | ProofBench against all nine Lean benchmarks for the paper: characteristics with sources, headroom (size vs best reported result and its sampling budget), statement length with and without definitions, own-definition dependence, subject heatmap, level composition. Built by `node qedrank/cli.js compare --repo <corpus> --subdir <folder> --ref <commit> --pdf`, which also writes `paper/benchmark-comparison.tex/.pdf`. |
+| **Convert a Problem** (`/convert`) | Pick any number of the eleven roster models (cards show vendor, model id and whether a key is set), state a problem, get Lean 4 from every selected model side by side with latency, tokens and a 1–5 rating, plus a performance snapshot (latency chart + table) of the models you chose. Answers are not compiled here. |
 
 ## Model roster
 

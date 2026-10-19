@@ -1,7 +1,7 @@
 // Local run server for the QEDRank page: serves run folders read-only (GET /runs,
 // GET /runs/<id>/<file>) and, when a JobManager is given, starts and watches benchmark runs
 // (POST /jobs, GET /jobs, GET /jobs/<id>?from=N, POST /jobs/<id>/stop) so the page can do what
-// the PowerShell command does. The server binds to 127.0.0.1 only; job endpoints answer only to
+// the PowerShell command does, and compares benchmarks (POST /compare, see compare/serve.js). The server binds to 127.0.0.1 only; job endpoints answer only to
 // the app's own origins and need a custom header, so another website in the browser cannot
 // start a run.
 
@@ -9,6 +9,7 @@ import http from 'node:http';
 import path from 'node:path';
 import { promises as fs } from 'node:fs';
 import { readJson } from './util.js';
+import { createCompareHandler } from './compare/serve.js';
 
 const TYPES = { '.json': 'application/json', '.csv': 'text/csv', '.txt': 'text/plain; charset=utf-8', '.lean': 'text/plain; charset=utf-8', '.md': 'text/markdown; charset=utf-8', '.pdf': 'application/pdf' };
 const DEFAULT_ORIGINS = [/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/, /^https:\/\/([a-z0-9-]+\.)*vercel\.app$/];
@@ -35,18 +36,22 @@ async function readBody(req, limit = 64 * 1024) {
   return text ? JSON.parse(text) : {};
 }
 
-export function createServer({ runsDir, jobs = null, allowOrigins = [] }) {
+export function createServer({ runsDir, jobs = null, allowOrigins = [], compare = undefined, harnesses = null }) {
   const root = path.resolve(runsDir);
+  // compare: false disables the endpoint; a function replaces the handler (tests).
+  const compareHandler = compare === false ? null : compare || createCompareHandler({ runsDir: root });
   return http.createServer(async (req, res) => {
     const origin = req.headers.origin;
     const url = new URL(req.url, 'http://localhost');
     const isJobs = url.pathname === '/jobs' || url.pathname.startsWith('/jobs/');
+    const isCompare = url.pathname === '/compare';
+    const guarded = isJobs || isCompare;
     res.setHeader('Cache-Control', 'no-store');
     // The page may be served from https://…vercel.app while this server is on the loopback
     // address: browsers treat that as a private-network request and require this header.
     res.setHeader('Access-Control-Allow-Private-Network', 'true');
-    if (isJobs) {
-      // Jobs: only the app's origins, and a header that forces a preflight.
+    if (guarded) {
+      // Jobs and comparisons: only the app's origins, and a header that forces a preflight.
       if (originAllowed(origin, allowOrigins)) {
         res.setHeader('Access-Control-Allow-Origin', origin);
         res.setHeader('Vary', 'Origin');
@@ -59,6 +64,13 @@ export function createServer({ runsDir, jobs = null, allowOrigins = [] }) {
     }
     if (req.method === 'OPTIONS') { res.writeHead(204); res.end(); return; }
     try {
+      if (isCompare) {
+        if (!compareHandler) return json(res, 404, { error: 'comparison is not enabled on this server' });
+        if (!originAllowed(origin, allowOrigins) || !req.headers['x-qedrank-client']) return json(res, 403, { error: 'the compare endpoint accepts requests from the QEDRank page only' });
+        if (req.method !== 'POST') return json(res, 405, { error: 'POST only' });
+        const body = await readBody(req);
+        try { return json(res, 200, await compareHandler(body)); } catch (err) { return json(res, 400, { error: err.message }); }
+      }
       if (isJobs) {
         if (!jobs) return json(res, 404, { error: 'job control is not enabled on this server' });
         if (!originAllowed(origin, allowOrigins) || !req.headers['x-qedrank-client']) return json(res, 403, { error: 'job endpoints accept requests from the QEDRank page only' });
@@ -80,6 +92,11 @@ export function createServer({ runsDir, jobs = null, allowOrigins = [] }) {
         return json(res, 405, { error: 'method not allowed' });
       }
       if (req.method !== 'GET') { res.writeHead(405); res.end('GET only'); return; }
+      // The harnesses this machine can run, with their integration state (paths, never secrets).
+      if (url.pathname === '/harnesses') {
+        if (!harnesses) return json(res, 404, { error: 'harness listing is not enabled on this server' });
+        return json(res, 200, { harnesses: await harnesses() });
+      }
       if (url.pathname === '/' || url.pathname === '/runs' || url.pathname === '/runs/') {
         const entries = await fs.readdir(root, { withFileTypes: true }).catch(() => []);
         const runs = [];

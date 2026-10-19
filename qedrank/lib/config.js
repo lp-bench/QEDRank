@@ -52,6 +52,18 @@ export const DEFAULT_CONFIG = Object.freeze({
   // e.g. { "my-model": { "released": "2026-05-01", "training_cutoff": "2025-12", "parameters_b": 70 } }
   modelFacts: {},
   allowedAxioms: ['propext', 'Classical.choice', 'Quot.sound'],
+  // Evaluation harnesses QEDRank can drive or import (docs/agent-evaluation.md). Paths are
+  // machine-specific: set them in qedrank.config.json. Only `proofbench` has a driver and an
+  // importer; the other entries are listed with their integration state and never block a run.
+  harnesses: {
+    proofbench: { dir: null, bash: null, python: null, statements: 'proofbench-statements', leanProject: null, image: 'proofbench-sandbox:latest', statementsUrl: 'https://github.com/proof-bench/proofbench-statements' },
+    'matharena-arxivlean': { dir: null, datasetMode: 'adapted' },
+    'qedrank-harness': { dir: 'harness' },
+  },
+  // Lean verification backend. 'lean-cli' (one lean process per file) is the only implemented
+  // backend; a persistent server (Kimina Lean Server, LeanInteract) is added only after
+  // `node qedrank/cli.js lean-bench` shows that compilation is the bottleneck on the target machine.
+  verification: { backend: 'lean-cli' },
 });
 
 function deepMerge(base, extra) {

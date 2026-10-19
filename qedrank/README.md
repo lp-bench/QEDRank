@@ -29,6 +29,7 @@ Two protocols share the Lean checks and the statistics:
 - [What is measured](#what-is-measured)
 - [Independent check: grade](#independent-check-grade)
 - [Agent runs](#agent-runs)
+- [Proof metrics (Head-to-head)](#proof-metrics-head-to-head)
 - [Model facts, difficulty and contamination](#model-facts-difficulty-and-contamination)
 - [Corpus layout and annotations](#corpus-layout-and-annotations)
 - [Run directory and resume](#run-directory-and-resume)
@@ -221,6 +222,20 @@ needs no build of this repository's `lean/` folder.
 
 ## Agent runs
 
+Two agent routes exist. The **ProofBench agent harness** (proofbench-eval-apptainer) is driven
+and imported by QEDRank itself; see [docs/agent-evaluation.md](../docs/agent-evaluation.md) for
+the harness states, configuration, independent attempts, statuses, pass@k rules and the DGX
+commands:
+
+```bash
+node qedrank/cli.js harnesses                                   # what this machine can run
+node qedrank/cli.js agent-run --run-id ag-1 --models qwen --problems P109,P110,P111 --attempts 8 --ref 0a4a476
+node qedrank/cli.js import-harness --run-id ag-dgx --proofbench /path/logs/ag-dgx --regrade --merge-run 2026-10-11-466b32a-regrade
+```
+
+QEDRank's own harness (`harness/`, a fallback whose Docker setup is not validated) exports a
+bundle instead:
+
 ```bash
 proofbench-export logs/*.eval --out bundle.json          # from the harness (one log per model)
 node qedrank/cli.js import-agent --bundle bundle.json --run-id agent-x4
@@ -248,6 +263,38 @@ The hand audit of solved problems goes in `runs/<run_id>/review/audit.json`:
 ```
 
 A rejected solve stops counting when `stats` is run again; unaudited solves count and are listed.
+
+## Proof metrics (Head-to-head)
+
+```bash
+node qedrank/cli.js proof-metrics --project C:\proofbench-statements --solutions C:\ProofBench --runs <run-id> --jobs 3
+node qedrank/cli.js compare        # or Compare on the Head-to-head page: the file is attached to ProofBench
+```
+
+`lean-tools/ProofMetrics.lean` elaborates each file inside its own Lean project (that project's
+toolchain, Mathlib and lakefile `[leanOptions]`; Lean 4.32–4.35 tested) and reports its commands,
+declarations and messages. `proof-metrics` runs it on four sources and writes
+`runs/_compare/proof-metrics.json`: the benchmark's library (`--library`, default
+`ProofBench/Mathlib_Problems`), its problem files, the `*_sol.lean` reference solutions of a separate
+checkout (`--solutions`; private, so the page gets their numbers, never their lemma names) and the
+answers QEDRank graded as verified (`--runs`). One report per file is cached in
+`runs/_cache/proof-metrics/` (keyed on the tool, the toolchain, the project's commit and the file),
+so a second run measures only what changed. The rules, also written into the file:
+
+| measure | rule |
+|---|---|
+| proof | a theorem or lemma whose proof term has no `sorry` and whose lines carry no Lean error |
+| proof length | non-blank lines and Lean tokens of the proof (`:=` to the end of the declaration), comments removed; proof-term size in nodes |
+| tactics | every node of the `tactic` syntax category in the declaration's parsed source, except the grouping forms `·`, `( … )`, `{ … }`; named by the first keyword (`simp only [h]` is `simp`); a term-mode proof has none |
+| automation | share of tactic calls that search or decide (simp family, aesop, omega, decide, norm_num, linarith, positivity, ring, field_simp, tauto, exact?, grind, …; the list is in the file) |
+| unused hypothesis | a binder of the theorem whose type is a proposition and that does not occur in the proof term |
+| linter warning | a warning that names its linter (`set_option linter.… false`), as the project enables them |
+| statement probe | `omega`, `simp_all`, `decide`, `contradiction` (QED_LEAF's vacuity portfolio), each alone, 200,000 heartbeats: does it prove the target outright, or derive `False` from its hypotheses? |
+
+The page's other benchmarks publish statements only, so they have no proofs to measure; their file
+structure (theorems and definitions per file, the few helper lemmas they ship) is measured on source
+text for every benchmark by `compare`. A file whose imports are not built in its project is reported
+as not elaborated, never as a measurement.
 
 ## Model facts, difficulty and contamination
 
@@ -371,6 +418,61 @@ run in another Lean project; each re-grade is recorded in `run.json`
 the original grading, copy the run directory under a new id first. The source
 commit is re-resolved and must match the run.
 
+A resumed run keeps the settings it was started with: `generation` (attempts,
+token budget, timeout, effort, retries, provider concurrency), `lean`, `grade`,
+`concurrency` and the Lean project come from `run.json`; flags and a `--config`
+file given to `resume` override them.
+
+**Provider halts.** When a provider reports an exhausted balance (HTTP 429
+`insufficient_quota` / "insufficient balance"), or three requests in a row are
+still rate limited after every retry, the run stops sending requests to that
+provider. The requests it did not send leave no item record and are listed in
+`run.json` (`provider_halts`); after fixing the account, `resume --run-id X
+--retry-failed` asks the model for them (and retries the request that triggered
+the halt). A 429 is retried after at least the exponential backoff
+(`retryBaseDelayMs` × 2^(attempt−1)), even when the provider asks for a shorter
+`Retry-After`: with a concurrency limit of one, the slot stays busy for minutes.
+
+**Attempt order.** With `--attempts k`, every problem gets attempt 1 before any
+gets attempt 2, so a run that stops early still has complete results for every
+attempt it reached.
+
+### pass@k
+
+With `--attempts k` the summary reports, per model and target,
+`pass_at_k.curve`: the unbiased estimator
+1 − C(n−c, j)/C(n, j) (Chen et al. 2021) for j = 1, 2, 4, …, k, averaged over
+proof-track items with at least j determinate attempts, with paper-cluster
+bootstrap intervals. Its pass@1 uses all k attempts; `verified_pass1` uses
+attempt 1 only. An answer that uses the whole output budget on reasoning
+(`empty_response`) counts as a failed attempt without a file, not as an
+infrastructure failure. A Kimi K3 run with 8 attempts on the prove task:
+
+```powershell
+node qedrank/cli.js run --repo https://github.com/vaibhav-baj/proofbench-statements `
+  --ref 466b32a95dfb0549aeb06a2c6215982a514505ba --subdir ProofBench --task prove `
+  --targets main_theorem --models kimi --lean-project C:\proofbench-statements `
+  --config configs/kimi-prove-pass8.json --run-id kimi-prove-pass8
+```
+
+`configs/kimi-prove-pass8.json` sets 8 attempts, reasoning effort `max` (the API
+default; `low` and `high` are cheaper), a 65,536-token budget, a 45-minute
+timeout, 8 requests in flight (Moonshot Tier 1 or higher; use 1 on Tier 0) and
+Kimi K3 prices (USD 3 / 15 per million input / output tokens) for the cost columns.
+
+pass@k needs independent samples: at temperature 0 the k attempts of a model are
+(nearly) identical and pass@k equals pass@1. `configs/qwen-prove-pass8.json` runs
+Qwen3-30B-A3B-Instruct-2507 on GWDG Chat AI with the model card's sampling
+(temperature 0.7, `topP` 0.8, `topK` 20; `presencePenalty` is also accepted),
+its recommended 16,384-token output, 3 requests in flight (GWDG keys allow 30 per
+minute, 200 per hour, 1,000 per day and 3,000 per month; the response headers
+show yours) and 3 Lean processes. `topP`, `topK` and `presencePenalty` are sent
+only to models whose temperature QEDRank sets, and are recorded per answer
+(`generation.sampling`) and in the summary settings. To use a copy of a model you
+serve yourself (vLLM, SGLang), point its slot at the server:
+`QEDRANK_BASEURL_QWEN=http://127.0.0.1:8000/v1`, `QEDRANK_MODEL_QWEN=<served name>`,
+`QEDRANK_API_KEY_QWEN=<the server's --api-key>`.
+
 ## Configuration
 
 `qedrank.config.json` (optional, git-ignored) overrides the defaults in
@@ -378,7 +480,8 @@ commit is re-resolved and must match the run.
 
 ```json
 {
-  "generation": { "temperature": 0, "maxTokens": 4096, "timeoutMs": 180000, "attempts": 1, "repairRounds": 0 },
+  "generation": { "temperature": 0, "effort": "high", "maxTokens": 4096, "timeoutMs": 180000, "attempts": 1, "repairRounds": 0,
+                  "retries": 4, "retryBaseDelayMs": 2000, "retryMaxDelayMs": 60000, "providerConcurrency": 1 },
   "lean": { "timeoutMs": 600000, "memoryMb": 8192, "maxHeartbeats": 400000, "concurrency": 2 },
   "concurrency": { "items": 2 },
   "context": { "maxChars": 24000 },

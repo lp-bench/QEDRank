@@ -1,4 +1,4 @@
-# QEDengine Setup Guide
+# QEDRank Setup Guide
 
 ## Prerequisites
 

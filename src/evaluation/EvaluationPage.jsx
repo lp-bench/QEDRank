@@ -9,6 +9,8 @@ import { TARGET_KINDS, TARGET_LABELS, fmtRate, fmtCI, fmtMs, fmtNum, fmtInt, dow
 import { ChartSizing, Enlargeable, Figure, HBars, GroupedBars, Heatmap, RangeDots, StackedBars, Reliability, PairMatrix, pct1 } from '../charts/primitives.jsx'
 import { shortLabel, slotColor } from '../components/vendor.js'
 import { MatrixTable, ComparisonTable, CoverageView, ItemsView, AgentView, Rate, matrixCsvRows } from './views.jsx'
+import { ProblemMatrix, PassKTable, PassKProminentFigure, AttemptsSection } from './attempts.jsx'
+import { buildLatexReport } from './latex.js'
 import '../qedrank/qedrank.css'
 import './evaluation.css'
 
@@ -20,10 +22,12 @@ const METRICS = [
 ]
 const SCOPES = ['all', ...TARGET_KINDS]
 const SECTIONS = [
-  ['leaderboard', 'Leaderboard'], ['heatmap', 'Matrix heatmap'], ['matrix', 'Full matrix'], ['statements', 'Statement matches'],
+  ['grid', 'Problems × models'], ['leaderboard', 'Leaderboard'], ['attempts', 'Attempts & failures'], ['passk', 'pass@k'],
+  ['heatmap', 'Matrix heatmap'], ['matrix', 'Full matrix'], ['statements', 'Statement matches'],
   ['time', 'Time'], ['tokens', 'Tokens & cost'], ['calibration', 'Calibration'], ['comparison', 'k-model comparison'],
   ['subgroups', 'Subgroups'], ['coverage', 'Coverage & audit'], ['items', 'Items'],
 ]
+const N = Object.fromEntries(SECTIONS.map(([id], i) => [id, i + 1]))
 const MATCH_PARTS = [
   { key: 'definitionally_identical', label: 'definitionally identical', color: 'var(--seq-5)', ink: 'var(--seq-ink-5)' },
   { key: 'equivalent', label: 'equivalent', color: 'var(--seq-4)', ink: 'var(--seq-ink-4)' },
@@ -55,7 +59,7 @@ const rateTable = (summary, scope, metric) => ({
 
 export default function EvaluationPage() {
   const { loaded, setLoaded, clearLoaded } = useAppState()
-  const { run, summary, items } = loaded
+  const { run, summary, items, server } = loaded
   if (!summary && !items) return <EmptyState onLoaded={setLoaded} />
   return (
     <main className="page eval">
@@ -69,14 +73,15 @@ export default function EvaluationPage() {
           {summary && <button className="btn btn-secondary btn-sm" onClick={() => download(`${summary.run?.run_id || 'qedrank'}-summary.json`, JSON.stringify(summary, null, 2), 'application/json')}>Summary JSON</button>}
           {summary && <button className="btn btn-secondary btn-sm" onClick={() => download(`${summary.run?.run_id || 'qedrank'}-matrix.csv`, toCsv(matrixCsvRows(summary)), 'text/csv')}>Matrix CSV</button>}
           {items && <button className="btn btn-secondary btn-sm" onClick={() => download(`${summary?.run?.run_id || run?.run_id || 'qedrank'}-items.json`, JSON.stringify({ schema: 'qedrank-items-v1', run_id: summary?.run?.run_id, count: items.length, items }, null, 2), 'application/json')}>Items JSON</button>}
+          <button className="btn btn-secondary btn-sm" onClick={() => download(`${summary?.run?.run_id || run?.run_id || 'qedrank'}-evaluation.tex`, buildLatexReport({ summary, items, run }), 'application/x-tex')}>Export LaTeX</button>
           <button className="btn btn-ghost btn-sm" onClick={clearLoaded}>Unload</button>
         </div>
       </div>
 
       <ChartSizing.Provider value={CHART_SIZING}>
-        {summary ? <SummaryAnalysis summary={summary} run={run} /> : <div className="note">Only item records are loaded (no <code>summary.json</code>). Run <code>node qedrank/cli.js stats --run-id …</code> to compute the matrix, or load the summary on the <Link to="/benchmark">Benchmark</Link> page.</div>}
+        {summary ? <SummaryAnalysis summary={summary} run={run} items={items} server={server} /> : <div className="note">Only item records are loaded (no <code>summary.json</code>). Run <code>node qedrank/cli.js stats --run-id …</code> to compute the matrix, or load the summary on <Link to="/benchmark">Evaluate Models</Link>.</div>}
 
-        {items && <section id="items" className="ev-section"><h2 className="ev-h2"><span className="ev-num">{summary ? 11 : 1}</span>Item-level results</h2><ItemsView items={items} runId={run?.run_id || summary?.run?.run_id} /></section>}
+        {items && <section id="items" className="ev-section"><h2 className="ev-h2"><span className="ev-num">{summary ? N.items : 1}</span>Item-level results</h2><ItemsView items={items} runId={run?.run_id || summary?.run?.run_id} /></section>}
       </ChartSizing.Provider>
     </main>
   )
@@ -87,16 +92,17 @@ function EmptyState({ onLoaded }) {
     <main className="page">
       <div className="page-head">
         <span className="eyebrow">QEDRank · evaluation</span>
-        <h1>No run loaded yet</h1>
-        <p>This page displays the results of a <b>run</b>: the folder <code>runs/&lt;run id&gt;/</code> that <code>node qedrank/cli.js run …</code> (or <code>resume</code>, or <code>import-agent</code>) writes on your machine. Nothing is computed here, so the page is empty until a run exists. Three steps: 1. produce a run (the exact command is on the <Link to="/benchmark">Benchmark</Link> page under the corpus preview); 2. start the local server with <code>npm run qedrank:serve</code>; 3. below, click <b>List runs</b>, choose the run and <b>Load</b>. A run that is still in progress can be loaded too — tick auto-refresh.</p>
+        <h1>Evaluate Models on a Benchmark</h1>
+        <p>Assess how effectively different language models formalize mathematics by running them on a selected benchmark corpus. Each model generates Lean 4 code that is checked by the Lean compiler, allowing you to compare verified proof rates, statement fidelity, Pass@1 and Pass@k performance, error patterns, response latency, token usage, computational cost, resource consumption, and results across different difficulty levels and mathematical subject areas.</p>
       </div>
       <RunPanel onLoaded={onLoaded} />
     </main>
   )
 }
 
-function SummaryAnalysis({ summary, run }) {
+function SummaryAnalysis({ summary, run, items = null, server = null }) {
   const models = summary.models
+  const runId = summary.run?.run_id || run?.run_id || null
   const [heatMetric, setHeatMetric] = useState('verified_pass1')
   const [matrixScope, setMatrixScope] = useState('all')
   const best = useMemo(() => {
@@ -110,6 +116,14 @@ function SummaryAnalysis({ summary, run }) {
   const verifiedAll = rateSeries(summary, 'all', METRICS[0])
   const groupedRows = models.map((m) => ({ id: m.id, label: shortLabel(m), values: Object.fromEntries(METRICS.map((mt) => { const r = mt.get(summary.by_target.all?.[m.id]); return [mt.key, { value: r && r.den > 0 ? r.value : null, text: rateText(r) }] })) }))
   const groupedTable = { columns: ['Model', ...METRICS.map((mt) => mt.label)], rows: models.map((m) => [m.display_name, ...METRICS.map((mt) => fmtRate(mt.get(summary.by_target.all?.[m.id])))]) }
+
+  // pass@k from k attempts per problem (unbiased estimator); only in runs with k > 1.
+  const passCurves = models.map((m) => ({ m, pk: summary.by_target.all?.[m.id]?.pass_at_k })).filter((x) => x.pk?.curve?.length)
+  const passLevels = [...new Set(passCurves.flatMap((x) => x.pk.curve.map((c) => c.k)))].sort((a, b) => a - b)
+  const passOf = (pk, k) => pk.curve.find((c) => c.k === k)
+  const passRows = passCurves.map(({ m, pk }) => ({ id: m.id, label: shortLabel(m), values: Object.fromEntries(passLevels.map((k) => { const c = passOf(pk, k); return [`k${k}`, { value: c?.value ?? null, text: typeof c?.value === 'number' ? pct1(c.value) : 'n/a' }] })) }))
+  const passSeries = passLevels.map((k, i) => ({ key: `k${k}`, label: `pass@${k}`, color: `var(--s${(i % 8) + 1})` }))
+  const passTable = { columns: ['Model', ...passLevels.map((k) => `pass@${k}`), 'Items', 'Solved at least once'], rows: passCurves.map(({ m, pk }) => [m.display_name, ...passLevels.map((k) => { const c = passOf(pk, k); return typeof c?.value === 'number' ? `${pct1(c.value)}${typeof c.ci_lo === 'number' ? ` [${pct1(c.ci_lo)}, ${pct1(c.ci_hi)}]` : ''}${c.items_short ? ` (${c.items_short} short)` : ''}` : 'n/a' }), pk.curve[0]?.items ?? 0, pk.curve[pk.curve.length - 1]?.items_solved_any ?? 0]) }
 
   const heatRows = models.map((m) => ({ id: m.id, label: shortLabel(m) }))
   const heatCols = SCOPES.map((s) => ({ id: s, label: TARGET_LABELS[s] }))
@@ -167,8 +181,14 @@ function SummaryAnalysis({ summary, run }) {
 
       {summary.agent && <AgentView summary={summary} />}
 
+      <section id="grid" className="ev-section">
+        <h2 className="ev-h2"><span className="ev-num">{N.grid}</span>Problems × models</h2>
+        <p className="small">Which model fully solved, partially solved or failed each problem, attempt by attempt{summary.run?.harnesses?.length > 1 ? ', grouped by harness' : ''}. Fully solved = every required check of the harness passed; partially solved = independently verified auxiliary lemmas without a complete proof (never counted as verified); infrastructure errors are not the model's.</p>
+        {items ? <ProblemMatrix summary={summary} items={items} runId={runId} server={server} /> : <p className="muted">Load the run's <code>exports/items.json</code> (List runs → Load, or open the file) to see the grid.</p>}
+      </section>
+
       <section id="leaderboard" className="ev-section">
-        <h2 className="ev-h2"><span className="ev-num">1</span>Leaderboard</h2>
+        <h2 className="ev-h2"><span className="ev-num">{N.leaderboard}</span>Leaderboard</h2>
         <p className="small">Descriptive only: models are ordered by point estimate; whether two models differ is decided in section 8. Whiskers are 95% paper-cluster intervals; the label is numerator / denominator.</p>
         <div className="ev-grid-2">
           <Figure title="Verified pass@1 — all targets" subtitle={summary.primary_endpoint?.description} table={rateTable(summary, 'all', METRICS[0])}>
@@ -183,8 +203,22 @@ function SummaryAnalysis({ summary, run }) {
         </div>
       </section>
 
+      <section id="attempts" className="ev-section">
+        <h2 className="ev-h2"><span className="ev-num">{N.attempts}</span>Attempts, failures and protocol</h2>
+        <AttemptsSection summary={summary} />
+      </section>
+
+      <section id="passk" className="ev-section">
+        <h2 className="ev-h2"><span className="ev-num">{N.passk}</span>pass@k — {summary.settings?.attempts ?? summary.settings?.k ?? 1} attempt{(summary.settings?.attempts ?? summary.settings?.k ?? 1) === 1 ? '' : 's'} per problem</h2>
+        <p className="small">The leaderboard above uses attempt 1 only; pass@k uses every attempt. {passCurves.length ? passCurves[0].pk.note : ''}</p>
+        <div className="ev-grid-1">
+          <PassKProminentFigure summary={summary} />
+          <PassKTable summary={summary} />
+        </div>
+      </section>
+
       <section id="heatmap" className="ev-section">
-        <h2 className="ev-h2"><span className="ev-num">2</span>Matrix heatmap — models × targets</h2>
+        <h2 className="ev-h2"><span className="ev-num">{N.heatmap}</span>Matrix heatmap — models × targets</h2>
         <div className="tabs">{METRICS.map((mt) => <button key={mt.key} className={`tab ${heatMetric === mt.key ? 'active' : ''}`} onClick={() => setHeatMetric(mt.key)}>{mt.label}</button>)}</div>
         <Figure title={`${metric.label} by model and target`} subtitle="Darker is higher. Cells show numerator / denominator; hover or focus for the rate and its interval." table={heatTable}>
           <Heatmap rows={heatRows} cols={heatCols} cell={heatCell} ariaLabel={`${metric.label} heatmap`} />
@@ -192,7 +226,7 @@ function SummaryAnalysis({ summary, run }) {
       </section>
 
       <section id="matrix" className="ev-section">
-        <h2 className="ev-h2"><span className="ev-num">3</span>Complete evaluation matrix</h2>
+        <h2 className="ev-h2"><span className="ev-num">{N.matrix}</span>Complete evaluation matrix</h2>
         <p className="small">Every rate shows numerator / eligible denominator with its 95% interval. No weighted composite is computed. Scope selects a target kind.</p>
         <Enlargeable title={`Complete evaluation matrix — ${TARGET_LABELS[matrixScope]}`} toolbar={<div className="tabs">{SCOPES.map((s) => <button key={s} className={`tab ${matrixScope === s ? 'active' : ''}`} onClick={() => setMatrixScope(s)}>{TARGET_LABELS[s]}</button>)}</div>}>
           <MatrixTable summary={summary} scope={matrixScope} />
@@ -201,14 +235,14 @@ function SummaryAnalysis({ summary, run }) {
       </section>
 
       <section id="statements" className="ev-section">
-        <h2 className="ev-h2"><span className="ev-num">4</span>Statement match distribution</h2>
+        <h2 className="ev-h2"><span className="ev-num">{N.statements}</span>Statement match distribution</h2>
         <Figure title="How each model's part-A statement compares with the audited reference" subtitle="Accepted matches are the three blue steps. stronger / weaker / different come only from expert review; unresolved means automation found no equivalence and needs review." legend={matchParts.map((p) => ({ label: p.label, color: p.color }))} table={matchTable}>
           <StackedBars rows={matchRows} parts={matchParts} ariaLabel="Statement match distribution" />
         </Figure>
       </section>
 
       <section id="time" className="ev-section">
-        <h2 className="ev-h2"><span className="ev-num">5</span>Time per item (all attempts)</h2>
+        <h2 className="ev-h2"><span className="ev-num">{N.time}</span>Time per item (all attempts)</h2>
         <p className="small">Dot = median, band = interquartile range, tick = p90. Observed latency includes network and provider queueing; timing is reported regardless of success.</p>
         <div className="ev-grid-3">
           {timeKeys.map(([key, label, color]) => <Figure key={key} title={label} table={timeTable(key)} compact><RangeDots series={timeSeries(key)} color={color} fmt={fmtMs} ariaLabel={label} /></Figure>)}
@@ -216,7 +250,7 @@ function SummaryAnalysis({ summary, run }) {
       </section>
 
       <section id="tokens" className="ev-section">
-        <h2 className="ev-h2"><span className="ev-num">6</span>Tokens and cost</h2>
+        <h2 className="ev-h2"><span className="ev-num">{N.tokens}</span>Tokens and cost</h2>
         <div className="ev-grid-2">
           <Figure title="Median tokens per item" subtitle="Only where the provider reports usage. Reasoning tokens are included in output tokens where the provider counts them." legend={[{ label: 'input', color: 'var(--s1)' }, { label: 'output', color: 'var(--s2)' }]} table={tokTable}>
             <GroupedBars rows={tokRows} series={[{ key: 'input', label: 'input', color: 'var(--s1)' }, { key: 'output', label: 'output', color: 'var(--s2)' }]} labelKey="output" fmtTick={(v) => fmtInt(v * tokMax)} ariaLabel="Median tokens per item" />
@@ -228,7 +262,7 @@ function SummaryAnalysis({ summary, run }) {
       </section>
 
       <section id="calibration" className="ev-section">
-        <h2 className="ev-h2"><span className="ev-num">7</span>Calibration</h2>
+        <h2 className="ev-h2"><span className="ev-num">{N.calibration}</span>Calibration</h2>
         <p className="small">Stated confidence against the observed outcome, ten equal-width bins; marker size grows with bin count. A perfectly calibrated model sits on the diagonal. RMS calibration error is listed per model.</p>
         <div className="ch-legend"><span><i style={{ background: 'var(--s1)' }} />statement fidelity (●)</span><span><i style={{ background: 'var(--s2)' }} />proof audit (■)</span></div>
         <div className="ev-grid-4">
@@ -240,7 +274,7 @@ function SummaryAnalysis({ summary, run }) {
       </section>
 
       <section id="comparison" className="ev-section">
-        <h2 className="ev-h2"><span className="ev-num">8</span>{cmp?.k_models || models.length}-model comparison</h2>
+        <h2 className="ev-h2"><span className="ev-num">{N.comparison}</span>{cmp?.k_models || models.length}-model comparison</h2>
         {cmp ? (
           <>
             <p className="small">{cmp.endpoint}: n = {cmp.n_common_papers} common papers (every model determinate). Cochran's Q tests whether the models differ at all; exact McNemar tests compare each pair on discordant papers with Holm correction across {cmp.pairwise.length} pairs. {cmp.note ? <b>{cmp.note}.</b> : null}</p>
@@ -260,7 +294,7 @@ function SummaryAnalysis({ summary, run }) {
       </section>
 
       <section id="subgroups" className="ev-section">
-        <h2 className="ev-h2"><span className="ev-num">9</span>Subject and difficulty subgroups</h2>
+        <h2 className="ev-h2"><span className="ev-num">{N.subgroups}</span>Subject and difficulty subgroups</h2>
         {sg ? (
           <>
             <p className="small">{sg.note}. Same paired papers; 95% paper-cluster intervals. Labels come from <code>qedrank-annotations.json</code> or the corpus index.</p>
@@ -285,7 +319,7 @@ function SummaryAnalysis({ summary, run }) {
       </section>
 
       <section id="coverage" className="ev-section">
-        <h2 className="ev-h2"><span className="ev-num">10</span>Paper-level coverage, corpus coverage and reference audit</h2>
+        <h2 className="ev-h2"><span className="ev-num">{N.coverage}</span>Paper-level coverage, corpus coverage and reference audit</h2>
         <div className="ev-grid-2">
           <Figure title="Sandwich coverage" subtitle="Papers where main, upper and lower statements are all accepted matches and every bridge check passed." table={{ columns: ['Model', 'Sandwich coverage', '95% CI'], rows: models.map((m) => [m.display_name, fmtRate(pl[m.id]?.sandwich_coverage), fmtCI(pl[m.id]?.sandwich_coverage) || '—']) }}>
             <HBars series={sandwich} color="var(--s3)" ariaLabel="Sandwich coverage by model" />

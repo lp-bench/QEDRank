@@ -26,9 +26,12 @@ const summary = readJson(path.join(runDir, 'summary.json'));
 const exported = readJson(path.join(runDir, 'exports', 'items.json'));
 const difficultyOf = new Map(exported.items.map((i) => [i.item_key, i.difficulty]));
 
-if (summary.settings.k !== 1 || summary.settings.repair_rounds !== 0) {
-  throw new Error('this generator covers pass@1 runs without repair rounds');
+if (summary.settings.repair_rounds !== 0) {
+  throw new Error('this generator covers runs without repair rounds');
 }
+// Attempts per problem. The main tables use attempt 1 (pass@1 as in a single-attempt run); with
+// K > 1 a pass@k section adds the unbiased pass@k over all K attempts.
+const K = summary.settings.k || 1;
 
 const records = [];
 for (const key of fs.readdirSync(path.join(runDir, 'items')).sort()) {
@@ -251,7 +254,7 @@ const modelCols = MODELS.map((m) => m.label).join(' & ');
 const modelRows = MODELS.map((m) => {
   const f = m.facts;
   const size = isNum(f.parameters_b) ? `${fmtB(f.parameters_b)} parameters${isNum(f.active_parameters_b) ? `, ${fmtB(f.active_parameters_b)} active (mixture of experts)` : ''}` : 'size not published';
-  return String.raw`\textbf{${m.label}}: \texttt{${tt(m.modelId)}} via \texttt{${tt(m.host)}}; ${size}; released ${f.released || 'unknown'}; temperature ${S[m.id].temperature}.`;
+  return String.raw`\textbf{${m.label}}: \texttt{${tt(m.modelId)}} via \texttt{${tt(m.host)}}; ${size}; released ${f.released || 'unknown'}; temperature ${S[m.id].temperature}${S[m.id].temperature === 'set by the provider' ? '' : samplingText()}.`;
 }).join(String.raw`\newline `);
 
 const setupTable = String.raw`% ---------------------------------------------------------------- Table: setup
@@ -264,7 +267,7 @@ const setupTable = String.raw`% ------------------------------------------------
 \toprule
 Corpus & \texttt{${tt(run.source.repo)}} at commit \texttt{${short(run.source.commit)}} (${String(run.source.commit_date || '').slice(0, 10)}): ${nProblems} problems with a main-theorem target; claim status ${ms.established || 0} established, ${ms.open || 0} open, ${ms.uncertain || 0} uncertain. The ${cov.targets_discovered.disproof || 0} disproof variants were not evaluated. \\
 Task & Prove the given statement: the model receives the challenge file, whose main theorem ends in a single \texttt{sorry}, and must return the completed file with the statement and all definitions unchanged. \\
-Protocol & One request per problem (pass@1), no repair rounds, no tools or retrieval; prompt template \texttt{${tt(run.prompt_template_version)}}. \\
+Protocol & ${K > 1 ? String.raw`${K} independent requests per problem (pass@1 in Tables~\ref{tab:outcomes} and~\ref{tab:matrix} uses the first; pass@$k$ in Table~\ref{tab:passk} uses all ${K})` : 'One request per problem (pass@1)'}, no repair rounds, no tools or retrieval; prompt template \texttt{${tt(run.prompt_template_version)}}. \\
 Models & ${modelRows} \\
 Budgets & ${int(run.settings.max_tokens)} output tokens and ${run.settings.generation_timeout_ms / 1000}\,s per request. \\
 Grader & Lean ${tt(String(run.toolchain.toolchain).replace(/^.*:/, ''))}, Mathlib \texttt{${short(run.toolchain.mathlib?.rev)}}; ${int(run.settings.lean.maxHeartbeats)} heartbeats, ${run.settings.lean.timeoutMs / 1000}\,s and ${run.settings.lean.memoryMb / 1024}\,GB per compilation. A solution counts as verified when it compiles, contains no \texttt{sorry}, keeps the main theorem and every challenge definition unchanged as compiled declarations, uses only \texttt{propext}, \texttt{Classical.choice} and \texttt{Quot.sound}, and replays through the kernel.${graderMismatch ? String.raw`\textsuperscript{a}` : ''} \\
@@ -509,7 +512,7 @@ if (diffModels.length) {
   diffTable = String.raw`% ---------------------------------------------------------------- Table: by difficulty
 \begin{table}[!htbp]
 \centering
-\caption{Results by the benchmark's difficulty label${diffModels.length === 1 ? ` (${diffModels[0].label}; the other model has no graded attempts)` : ''}.}
+\caption{Results by the benchmark's difficulty label${diffModels.length === 1 ? ` (${diffModels[0].label}${MODELS.length > 1 ? '; the other model has no graded attempts' : ''})` : ''}.}
 \label{tab:difficulty}
 \small
 \begin{tabular}{@{}lrrrrrr@{}}
@@ -542,6 +545,117 @@ ${compiledItems.map((i) => String.raw`${i.paper} & ${MODELS.find((m) => m.id ===
 \end{tabular}
 \end{table}`;
 
+// Sampling settings beyond the temperature, as recorded in the summary.
+function samplingText() {
+  const st = summary.settings || {};
+  const parts = [];
+  if (isNum(st.top_p)) parts.push(`top-$p$ ${st.top_p}`);
+  if (isNum(st.top_k)) parts.push(`top-$k$ ${st.top_k}`);
+  if (isNum(st.presence_penalty)) parts.push(`presence penalty ${st.presence_penalty}`);
+  return parts.length ? `, ${parts.join(', ')}` : '';
+}
+
+// pass@k section (runs with K > 1 attempts per problem)
+let passkSection = '';
+const PASSK_COLOURS = ['qrSorry', 'qrErr', 'qrOk', 'qrStmt', 'qrAx', 'qrEnv'];
+if (K > 1) {
+  const curves = MODELS.map((m, i) => ({ m, colour: PASSK_COLOURS[i % PASSK_COLOURS.length], pk: summary.by_target.all?.[m.id]?.pass_at_k })).filter((x) => x.pk?.curve?.length);
+  const levels = [...new Set(curves.flatMap((x) => x.pk.curve.map((c) => c.k)))].sort((a, b) => a - b);
+  const at = (pk, k) => pk.curve.find((c) => c.k === k);
+  const cellOf = (c) => (c && isNum(c.value) ? `${pct(c.value)}\\,\\%${isNum(c.ci_lo) ? ` {\\footnotesize[${pct(c.ci_lo)}, ${pct(c.ci_hi)}]}` : ''}` : '---');
+  const last = (pk) => pk.curve[pk.curve.length - 1];
+  const incomplete = curves.filter(({ pk }) => pk.curve.some((c) => c.items_short > 0));
+
+  // Every attempt, classified as in Table~\ref{tab:outcomes}.
+  const allAttempts = [];
+  for (const it of items) for (const r of readAttempts(it.key)) allAttempts.push({ model: it.model, paper: it.paper, attempt: r.attempt, cat: classify(r), established: r.mathematical_status === 'established' });
+  const attCats = CATS.filter(([id]) => allAttempts.some((a) => a.cat === id));
+  const nAtt = (m) => allAttempts.filter((a) => a.model === m.id).length;
+  const solvedRows = [];
+  for (const m of MODELS) {
+    const byPaper = new Map();
+    for (const a of allAttempts.filter((x) => x.model === m.id && x.established && CAT[x.cat].group !== 'provider' && CAT[x.cat].group !== 'grader')) {
+      const e = byPaper.get(a.paper) || { n: 0, c: 0 };
+      e.n += 1;
+      if (a.cat === 'verified') e.c += 1;
+      byPaper.set(a.paper, e);
+    }
+    for (const [paper, e] of [...byPaper].sort()) if (e.c > 0) solvedRows.push(String.raw`${paper} & ${m.label} & ${e.c}/${e.n} \\`);
+  }
+
+  passkSection = String.raw`% ---------------------------------------------------------------- Table: pass@k
+\begin{table}[!htbp]
+\centering
+\begin{threeparttable}
+\caption{Verified pass@$k$ on the established main theorems, from ${K} attempts per problem.}
+\label{tab:passk}
+\small
+\begin{tabular}{@{}l${'r'.repeat(levels.length + 1)}@{}}
+\toprule
+Model & ${levels.map((k, i) => `pass@${k}${i === 0 ? '\\tnote{a}' : ''}`).join(' & ')} & Solved at least once\tnote{b} \\
+\midrule
+${curves.map(({ m, pk }) => String.raw`${m.label} & ${levels.map((k) => cellOf(at(pk, k))).join(' & ')} & ${last(pk).items_solved_any}/${last(pk).items} {\footnotesize${ci(last(pk).items_solved_any, last(pk).items)}} \\`).join('\n')}
+\bottomrule
+\end{tabular}
+\begin{tablenotes}\footnotesize
+\item[a] For a problem with $n$ determinate attempts of which $c$ are verified, pass@$k = 1 - \binom{n-c}{k}/\binom{n}{k}$ (Chen et al., 2021), averaged over the problems with at least $k$ determinate attempts; pass@1 is therefore the mean share of verified attempts, not the first attempt alone. Brackets: 95\,\% paper bootstrap intervals, which collapse to a point when no attempt succeeded. Denominator: established main theorems, excluding attempts that failed at the provider or the grader; an attempt without a Lean file counts as a failure.${incomplete.length ? ` ${incomplete.map(({ m, pk }) => `${m.label}: ${Math.max(...pk.curve.map((c) => c.items_short))} problem(s) had fewer than ${K} determinate attempts and are left out of the larger $k$.`).join(' ')}` : ''}
+\item[b] Problems with at least one verified attempt, with an exact Clopper--Pearson interval; equal to pass@${K}.
+\end{tablenotes}
+\end{threeparttable}
+\end{table}
+
+% ---------------------------------------------------------------- Figure: pass@k
+\begin{figure}[!htbp]
+\centering
+\begin{tikzpicture}
+\begin{axis}[
+  width=0.72\linewidth, height=5.6cm, xmode=log, log basis x=2,
+  xtick={${levels.join(',')}}, xticklabels={${levels.join(',')}}, xlabel={$k$},
+  ymin=0, ymax=${Math.max(10, Math.ceil((100 * Math.max(0, ...curves.flatMap(({ pk }) => pk.curve.map((c) => (isNum(c.ci_hi) ? c.ci_hi : c.value || 0))))) / 5) * 5)}, ylabel={Verified pass@$k$ (\%)},
+  legend style={at={(0.02,0.98)}, anchor=north west, draw=none, font=\footnotesize}, legend cell align=left,
+  grid=major, grid style={black!12}, axis x line*=bottom, axis y line*=left,
+]
+${curves.map(({ colour, pk }) => String.raw`\addplot+[mark=*, thick, color=${colour}, mark options={fill=${colour}}] coordinates {${pk.curve.filter((c) => isNum(c.value)).map((c) => `(${c.k},${pct(c.value)})`).join(' ')}};`).join('\n')}
+\legend{${curves.map(({ m }) => m.label).join(',')}}
+\end{axis}
+\end{tikzpicture}
+\caption{Verified pass@$k$ against the number of attempts $k$ (Table~\ref{tab:passk}).}
+\label{fig:passk}
+\end{figure}
+
+% ---------------------------------------------------------------- Table: outcome of all attempts
+\begin{table}[!htbp]
+\centering
+\caption{Outcome of all ${K} attempts per problem, by model (categories as in Table~\ref{tab:outcomes}).}
+\label{tab:outcomes-all}
+\small
+\begin{tabular}{@{}l${'r'.repeat(MODELS.length)}@{}}
+\toprule
+Outcome & ${modelCols} \\
+\midrule
+${attCats.map(([id, label, color]) => String.raw`\swatch{${color}}\,${label} & ${MODELS.map((m) => { const k = allAttempts.filter((a) => a.model === m.id && a.cat === id).length; return nAtt(m) ? `${k} (${pct(k / nAtt(m))}\\,\\%)` : '---'; }).join(' & ')} \\`).join('\n')}
+\midrule
+Attempts & ${MODELS.map((m) => nAtt(m)).join(' & ')} \\
+\bottomrule
+\end{tabular}
+\end{table}
+${solvedRows.length ? String.raw`
+% ---------------------------------------------------------------- Table: problems solved at least once
+\begin{table}[!htbp]
+\centering
+\caption{Established main theorems with at least one verified attempt.}
+\label{tab:solved}
+\small
+\begin{tabular}{@{}llr@{}}
+\toprule
+Problem & Model & Verified attempts \\
+\midrule
+${solvedRows.join('\n')}
+\bottomrule
+\end{tabular}
+\end{table}` : ''}`;
+}
+
 // Validity notes
 const q = S[MODELS[MODELS.length - 1].id];
 const graderLoss = MODELS.map((m) => {
@@ -554,7 +668,7 @@ const validity = String.raw`% --------------------------------------------------
 \begin{itemize}\setlength\itemsep{2pt}
 ${graderMismatch ? String.raw`\item \textbf{Grader configuration.} ${graderLoss} could not be evaluated, because the grader ran outside the benchmark's pinned Lean project and its import policy rejected imports that belong to the challenge files. The rates in Table~\ref{tab:matrix} therefore rest on ${MODELS.map((m) => `${S[m.id].graded.length} graded attempts (${m.label})`).join(' and ')}. The answers that were graded were compiled with Lean ${tt(String(run.toolchain.toolchain).replace(/^.*:/, ''))} instead of the pinned ${BENCHMARK_PIN.lean} and without the benchmark's Lean options.` : ''}
 ${kimiLike ? String.raw`\item \textbf{Provider failures.} ${S[kimiLike.id].count.timeout + S[kimiLike.id].count.rate_limit} of ${S[kimiLike.id].all.length} requests to ${kimiLike.label} failed (${S[kimiLike.id].count.timeout} timed out after ${run.settings.generation_timeout_ms / 1000}\,s; ${S[kimiLike.id].count.rate_limit} were refused with HTTP 429 because the account allows one concurrent request). Its results are not comparable with the other model's.` : ''}
-\item \textbf{Single attempt.} One request per problem${MODELS.some((m) => S[m.id].temperature === '0') ? ' at temperature 0 where the provider allows it' : ''}, without repair rounds or tools; pass@$k$ and repair success are not measured.
+${K > 1 ? String.raw`\item \textbf{Attempts.} ${K} independent samples per problem, without repair rounds or tools; repair success is not measured. pass@$k$ for $k < ${K}$ is estimated from the ${K} samples with the unbiased estimator, not from separate runs.` : String.raw`\item \textbf{Single attempt.} One request per problem${MODELS.some((m) => S[m.id].temperature === '0') ? ' at temperature 0 where the provider allows it' : ''}, without repair rounds or tools; pass@$k$ and repair success are not measured.`}
 \item \textbf{Output budget.} ${pct(q.truncated.length / Math.max(1, q.answered.length), 0)}\,\% of the answers of ${MODELS[MODELS.length - 1].label} reached the ${int(maxTok)}-token limit (Figure~\ref{fig:length}); a larger budget could change its compile rate.
 \item \textbf{Contamination.} Neither provider states a training cutoff and the problems' publication dates are not recorded, so prior exposure cannot be assessed.
 \end{itemize}`;
@@ -572,6 +686,7 @@ const tex = String.raw`% Performance matrix for QEDRank run ${run.run_id}
 \usepackage{booktabs}
 \usepackage{tabularx}
 \usepackage{array}
+\usepackage{amsmath}
 \usepackage{threeparttable}
 \usepackage[font=small,labelfont=bf]{caption}
 \usepackage{xcolor}
@@ -592,6 +707,8 @@ ${outcomeTable}
 ${outcomeFigure}
 
 ${matrixTable}
+
+${passkSection}
 
 ${funnelFigure}
 
@@ -640,6 +757,15 @@ function median(xs) {
   const s = [...xs].sort((a, b) => a - b);
   const h = s.length >> 1;
   return s.length % 2 ? s[h] : (s[h - 1] + s[h]) / 2;
+}
+/** Every attempt record of an item (attempt-a1r0.json … attempt-a<K>r0.json that exist). */
+function readAttempts(key) {
+  const out = [];
+  for (let j = 1; j <= K; j += 1) {
+    const file = path.join(runDir, 'items', key, `attempt-a${j}r0.json`);
+    if (fs.existsSync(file)) out.push(readJson(file));
+  }
+  return out;
 }
 function shortLabel(m) {
   const l = m.label || m.display_name || m.id;

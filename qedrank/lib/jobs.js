@@ -16,6 +16,25 @@ const REF_RE = /^[A-Za-z0-9][A-Za-z0-9._/-]{0,199}$/;
 const SUBDIR_RE = /^[^\0<>:"|?*\\]{1,500}$/;
 const GITHUB_RE = /^https:\/\/github\.com\/[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+(\/.*)?$/;
 export const TASKS = ['formalize', 'prove'];
+/** Harnesses the page may start through `agent-run` (only the ones with a driver). */
+export const AGENT_HARNESSES = ['proofbench'];
+export const EFFORTS = ['low', 'medium', 'high', 'xhigh', 'max'];
+/** Numeric budgets of an agent run: flag, lower and upper bound, integer or not. */
+export const AGENT_LIMITS = Object.freeze({
+  attempts: ['--attempts', 1, 16, true],
+  sessions: ['--sessions', 1, 50, true],
+  sessionOutputTokens: ['--session-output-tokens', 1000, 2000000, true],
+  sessionTokens: ['--session-tokens', 1000, 50000000, true],
+  sessionWorkingTime: ['--session-working-time', 60, 86400, true],
+  noteTokens: ['--note-tokens', 100, 100000, true],
+  maxTokens: ['--max-tokens', 256, 1000000, true],
+  requestTimeout: ['--request-timeout', 10, 86400, true],
+  attemptTimeout: ['--attempt-timeout', 10, 86400, true],
+  timeLimit: ['--time-limit', 60, 7 * 86400, true],
+  messageLimit: ['--message-limit', 2, 100000, true],
+  maxSamples: ['--max-samples', 1, 64, true],
+  maxCostUsd: ['--max-cost-usd', 0, 1000000, false],
+});
 const MAX_LOG = 2 * 1024 * 1024;
 
 function listOf(v) {
@@ -28,8 +47,8 @@ function listOf(v) {
  * outside the allow-list. Returns { argv (after `node cli.js`), run_id, command, summary }.
  */
 export function buildRunArgv(req = {}) {
-  const command = req.command === 'resume' ? 'resume' : req.command === 'run' ? 'run' : null;
-  if (!command) throw new Error('command must be "run" or "resume"');
+  const command = ['run', 'resume', 'agent-run'].includes(req.command) ? req.command : null;
+  if (!command) throw new Error('command must be "run", "resume" or "agent-run"');
   const runId = String(req.runId || '').trim();
   if (!RUN_ID_RE.test(runId)) throw new Error('runId must be 1-80 characters: letters, digits, ".", "_", "-"');
   const argv = [command, '--run-id', runId];
@@ -81,6 +100,36 @@ export function buildRunArgv(req = {}) {
       }
     }
     if (req.dryRun) argv.push('--dry-run');
+  } else if (command === 'agent-run') {
+    const harness = String(req.harness || 'proofbench');
+    if (!AGENT_HARNESSES.includes(harness)) throw new Error(`harness must be one of ${AGENT_HARNESSES.join(', ')} (the others have no driver yet)`);
+    argv.push('--harness', harness);
+    if (!models.length) throw new Error('at least one model is required');
+    argv.push('--models', models.join(','));
+    if (!papers.length) throw new Error('select at least one problem');
+    argv.push('--problems', papers.join(','));
+    if (req.ref !== undefined && req.ref !== null && String(req.ref).trim()) {
+      const ref = String(req.ref).trim();
+      if (!REF_RE.test(ref)) throw new Error('ref contains characters that are not allowed');
+      argv.push('--ref', ref);
+    }
+    const seen = { attempts: false };
+    for (const [key, [flag, lo, hi, integer]] of Object.entries(AGENT_LIMITS)) {
+      if (req[key] === undefined || req[key] === null || req[key] === '') continue;
+      const n = Number(req[key]);
+      if (!Number.isFinite(n) || (integer && !Number.isInteger(n)) || n < lo || n > hi) throw new Error(`${key} must be a ${integer ? 'whole ' : ''}number between ${lo} and ${hi}`);
+      argv.push(flag, String(n));
+      if (key === 'attempts') seen.attempts = true;
+    }
+    if (!seen.attempts) argv.push('--attempts', '1');
+    if (req.effort !== undefined && req.effort !== null && req.effort !== '') {
+      if (!EFFORTS.includes(String(req.effort))) throw new Error(`effort must be one of ${EFFORTS.join(', ')}`);
+      argv.push('--effort', String(req.effort));
+    }
+    if (req.comparator === false || req.comparator === 'off') argv.push('--comparator', 'off');
+    if (req.search) argv.push('--search');
+    if (req.retryInfra) argv.push('--retry-infra');
+    if (req.regrade) argv.push('--regrade');
   } else {
     if (papers.length) argv.push('--papers', papers.join(','));
     if (req.retryFailed) argv.push('--retry-failed');

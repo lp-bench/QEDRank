@@ -119,3 +119,13 @@ test('theoremNames and stripComments', () => {
   assert.deepEqual(theoremNames(SRC), ['main_theorem', 'aux']);
   assert.equal(stripComments('a -- b\n/- c -/ d', { blank: true }).length, 'a -- b\n/- c -/ d'.length);
 });
+
+test('a proof that starts at column 0 (PutnamBench layout) stays in its declaration', () => {
+  const src = 'theorem putnam_x\n(n : ℕ)\n: n = n :=\nsorry\n\nabbrev ans : ℕ :=\nsorry\n\ntheorem t2 : True := by\n  trivial\n';
+  const decls = findDeclarations(src);
+  assert.deepEqual(decls.map((d) => d.name), ['putnam_x', 'ans', 't2']);
+  assert.match(decls[0].body, /^:=\nsorry/);
+  assert.match(decls[1].body, /sorry/);
+  // the statement-only copy has one `sorry` per declaration, not a stray one after the theorem
+  assert.equal((stripProofs(src).match(/\bsorry\b/g) || []).length, 3);
+});

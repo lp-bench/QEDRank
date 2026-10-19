@@ -1,7 +1,7 @@
 // Inline-SVG chart primitives shared by the pages. Marks are thin, labels wear text tokens,
 // every figure has a table twin, and hover/focus show the same tooltip.
 
-import { createContext, useContext, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { Component, createContext, useContext, useEffect, useLayoutEffect, useRef, useState } from 'react'
 
 export const pct = (v) => `${Math.round(100 * v)}%`
 export const pct1 = (v) => `${(100 * v).toFixed(1)}%`
@@ -214,6 +214,35 @@ export function Enlargeable({ title, toolbar, children }) {
 /* Figure wrapper with chart | table toggle                                           */
 /* ---------------------------------------------------------------------------------- */
 
+/**
+ * A chart that throws while drawing must not take the whole page down (React unmounts the tree on
+ * an uncaught render error): it shows its table instead, with the error, and the rest renders.
+ */
+export class ChartBoundary extends Component {
+  constructor(props) {
+    super(props)
+    this.state = { error: null }
+  }
+
+  static getDerivedStateFromError(error) {
+    return { error }
+  }
+
+  componentDidCatch(error) {
+    console.error('chart failed to draw:', error)
+  }
+
+  render() {
+    if (!this.state.error) return this.props.children
+    return (
+      <div className="ch-empty">
+        <p>This chart could not be drawn ({String(this.state.error.message || this.state.error)}).{this.props.table ? ' Its table:' : ''}</p>
+        {this.props.table && <DataTable table={this.props.table} />}
+      </div>
+    )
+  }
+}
+
 /** `compact` marks a small multiple: smaller title and, under ChartSizing, the compact height. */
 export function Figure({ title, subtitle, legend, table, children, className = '', actions, compact = false }) {
   const sizing = useContext(ChartSizing)
@@ -230,7 +259,7 @@ export function Figure({ title, subtitle, legend, table, children, className = '
       {legend && view === 'chart' && (
         <div className="ch-legend">{legend.map((l) => <span key={l.label}><i style={{ background: l.color }} className={l.shape === 'line' ? 'line' : ''} />{l.label}</span>)}</div>
       )}
-      {view === 'chart' ? children : <DataTable table={table} />}
+      {view === 'chart' ? <ChartBoundary table={table}>{children}</ChartBoundary> : <DataTable table={table} />}
     </>
   )
   return (
@@ -596,6 +625,16 @@ export function PairMatrix({ models, pairs, ariaLabel }) {
             if (i === j) return <rect key={c.id} x={cx + 1} y={cy + 1} width={cw - 2} height={ch - 2} rx={4} className="hm dv-diag" />
             const p = byKey.get(`${r.id}|${c.id}`)
             if (!p) return <rect key={c.id} x={cx + 1} y={cy + 1} width={cw - 2} height={ch - 2} rx={4} className="hm seq-none" />
+            // No common papers (e.g. one model answered nothing): no difference to show.
+            if (typeof p.diff_pp !== 'number') {
+              const none = <span><b>{labelOf(r.id)}</b> − <b>{labelOf(c.id)}</b><br />no common papers on which both models are determinate (n = {p.n ?? 0})</span>
+              return (
+                <g key={c.id} tabIndex={0} className="ch-cell" onPointerMove={(e) => showAtPointer(e, none)} onFocus={() => showAtSvg(cx + cw / 2, cy + ch / 2, none)} onBlur={hide}>
+                  <rect x={cx + 1} y={cy + 1} width={cw - 2} height={ch - 2} rx={4} className="hm seq-none" />
+                  <text x={cx + cw / 2} y={cy + ch / 2 + dy} textAnchor="middle" className="hm-text">n/a</text>
+                </g>
+              )
+            }
             const diff = p.flipped ? -p.diff_pp : p.diff_pp
             const lo = p.flipped ? (p.diff_ci_hi === null ? null : -p.diff_ci_hi) : p.diff_ci_lo
             const hi = p.flipped ? (p.diff_ci_lo === null ? null : -p.diff_ci_lo) : p.diff_ci_hi

@@ -18,6 +18,7 @@ import {
 } from './leansrc.js';
 import { buildComparisonScript, classifyAxioms, classifyComparison, applyExpertDecision } from './compare.js';
 import { parseModelOutput } from './prompt.js';
+import { countLinterWarnings } from './lean.js';
 import { ITEM_SCHEMA, STATEMENT_MATCH_ACCEPTED } from './schema.js';
 import { ensureDir, writeText, writeJson, readJson, exists, sha256, leanIdent, slug, nowMono, isoNow } from './util.js';
 
@@ -363,6 +364,10 @@ function ensureImports(src, preludeModules) {
  */
 export async function evaluateAttempt({ runner, toolchain, paper, target, reference, prelude, generation, itemDir, config, expertDecision = null, setting = 'pass@1', attempt = 1, repairRound = 0, log = () => {} }) {
   const t0 = nowMono();
+  // Reasoning that used the whole output budget leaves no answer: a model outcome under the fixed
+  // budget, not an infrastructure failure (see evaluateProveAttempt).
+  const budgetExhausted = generation.error?.kind === 'empty_response';
+  if (budgetExhausted) generation = { ...generation, error: null, text: '', truncated: true };
   const kind = target.target_kind;
   const preludeModules = ['QEDRank.Prelude', ...(prelude?.moduleName ? [prelude.moduleName] : [])];
   const allowedImports = [...preludeModules];
@@ -422,7 +427,7 @@ export async function evaluateAttempt({ runner, toolchain, paper, target, refere
     timing: { evaluation_started_at: isoNow(), lean_compile_ms: null, lean_audit_ms: null, lean_compare_ms: null, lean_total_ms: null, evaluation_total_ms: null, total_ms: null, working_ms: null },
     eligibility: { statement_track: false, proof_track: false, reasons: [] },
     outcomes: { infrastructure_failure: false, compiled: null, audit_clean: null, statement_faithful: null, verified: null },
-    notes: [],
+    notes: budgetExhausted ? ['no_answer_within_output_budget: reasoning used the whole output budget'] : [],
   };
   await ensureDir(itemDir);
   const suffix = `a${attempt}r${repairRound}`;
@@ -504,6 +509,7 @@ export async function evaluateAttempt({ runner, toolchain, paper, target, refere
     const mod = `QRM_${leanIdent(paper.paper_id)}_${kind}_${leanIdent(generation.provider)}_${suffix}`;
     rec.compile = await withTime(() => runner.compileModule({ src: parsed.proofFile, moduleName: mod, scratchDir: path.join(itemDir, 'lean'), label: `proof:${key}` }));
     rec.compile.module = mod;
+    rec.compile.linter_warnings = countLinterWarnings(rec.compile.messages || []);
     rec.compile.messages = (rec.compile.messages || []).slice(0, 200);
   }
   rec.timing.lean_compile_ms = rec.compile.duration_ms ?? null;

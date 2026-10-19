@@ -13,7 +13,7 @@ import { extractPdfText, guessTitle, buildContext, findPages, figureMentions } f
 import { detectToolchain, LeanRunner } from './lean.js';
 import { preparePrelude, prepareReference, evaluateAttempt } from './evaluate.js';
 import { renderPrompt, PROMPT_TEMPLATE_VERSION, SYSTEM_PROMPT } from './prompt.js';
-import { generateOnce, listModels, loadFixtureProvider } from './models.js';
+import { generateOnce, listModels, loadFixtureProvider, providerHalt } from './models.js';
 import { buildSummary } from './metrics.js';
 import { writeExports } from './export.js';
 import { findDeclarations } from './leansrc.js';
@@ -77,6 +77,7 @@ export async function createRun({ config, runId = newRunId(), sourceOpts, models
     system_prompt: SYSTEM_PROMPT,
     settings: {
       temperature: config.generation.temperature,
+      sampling_extras: samplingExtras(config.generation),
       max_tokens: config.generation.maxTokens,
       generation_timeout_ms: config.generation.timeoutMs,
       attempts_k: config.generation.attempts,
@@ -304,6 +305,29 @@ async function recordReevaluation(ctx, { noGenerate }) {
   await ctx.saveRun();
 }
 
+/**
+ * Optional sampling settings beyond the temperature, as the chat-completions fields they become:
+ * generation.topP -> top_p, topK -> top_k, presencePenalty -> presence_penalty. Null when none is set.
+ * They are sent only to models whose temperature QEDRank sets (not to reasoning models).
+ */
+export function samplingExtras(gen = {}) {
+  const out = {};
+  if (typeof gen.topP === 'number') out.top_p = gen.topP;
+  if (typeof gen.topK === 'number') out.top_k = gen.topK;
+  if (typeof gen.presencePenalty === 'number') out.presence_penalty = gen.presencePenalty;
+  return Object.keys(out).length ? out : null;
+}
+
+/** Providers halted during this stage (balance exhausted, persistent rate limit) are recorded on the run. */
+function recordHalts(ctx, models, counters) {
+  for (const m of models) {
+    const h = providerHalt(m);
+    if (!h) continue;
+    ctx.run.provider_halts = { ...(ctx.run.provider_halts || {}), [m]: { ...h, requests_not_sent: counters.halted } };
+    ctx.log(`${m} was halted (${h.kind}): ${counters.halted} request(s) were not sent. Fix the account, then resume with --retry-failed to ask the model for them.`);
+  }
+}
+
 export async function stageGeneration(ctx, { selection = null, retryFailed = false, reevaluate = false, noGenerate = false, fixtureDir = null } = {}) {
   if (reevaluate) await recordReevaluation(ctx, { noGenerate });
   if ((ctx.run.task || ctx.config.task) === 'prove') return stageGenerationProve(ctx, { selection, retryFailed, reevaluate, noGenerate, fixtureDir });
@@ -318,7 +342,7 @@ export async function stageGeneration(ctx, { selection = null, retryFailed = fal
   ctx.run.model_ids = Object.fromEntries(listModels(process.env, models).map((m) => [m.id, mode === 'fixture' ? `fixture:${m.id}` : m.model_id]));
   ctx.run.model_hosts = Object.fromEntries(listModels(process.env, models).map((m) => [m.id, mode === 'fixture' ? null : m.host]));
   ctx.run.model_facts = Object.fromEntries(listModels(process.env, models).map((m) => [m.id, modelFacts(m.model_id, ctx.config.modelFacts || {})]));
-  const genOpts = { system: SYSTEM_PROMPT, temperature: ctx.config.generation.temperature, effort: ctx.config.generation.effort ?? null, maxTokens: ctx.config.generation.maxTokens, timeoutMs: ctx.config.generation.timeoutMs, retries: ctx.config.generation.retries ?? 4, baseDelayMs: ctx.config.generation.retryBaseDelayMs ?? 2000, maxDelayMs: ctx.config.generation.retryMaxDelayMs ?? 60000, providerConcurrency: ctx.config.generation.providerConcurrency ?? 1 };
+  const genOpts = { system: SYSTEM_PROMPT, temperature: ctx.config.generation.temperature, effort: ctx.config.generation.effort ?? null, maxTokens: ctx.config.generation.maxTokens, timeoutMs: ctx.config.generation.timeoutMs, retries: ctx.config.generation.retries ?? 4, baseDelayMs: ctx.config.generation.retryBaseDelayMs ?? 2000, maxDelayMs: ctx.config.generation.retryMaxDelayMs ?? 60000, providerConcurrency: ctx.config.generation.providerConcurrency ?? 1, extraSampling: samplingExtras(ctx.config.generation) };
   ctx.run.selection = { papers: papers.map((p) => p.paper_id), models, targets: kinds };
   await ctx.setStage('generation', 'running');
   await ctx.setStage('compilation', 'running');
@@ -329,7 +353,7 @@ export async function stageGeneration(ctx, { selection = null, retryFailed = fal
   const k = ctx.config.generation.attempts;
   const repairRounds = ctx.config.generation.repairRounds;
   const limit = pLimit(ctx.config.concurrency.items || 1);
-  const counters = { total: 0, done: 0, skipped: 0, generated: 0, gen_failed: 0, compiled: 0, verified: 0, infra: 0, errors: [] };
+  const counters = { total: 0, done: 0, skipped: 0, halted: 0, generated: 0, gen_failed: 0, compiled: 0, verified: 0, infra: 0, errors: [] };
   const tasks = [];
   const t0 = nowMono();
 
@@ -376,6 +400,8 @@ export async function stageGeneration(ctx, { selection = null, retryFailed = fal
               else {
                 await writeText(path.join(itemDir, `prompt-a${attempt}.txt`), prompt.text);
                 gen = await generateOnce({ provider, prompt: prompt.text, ...genOpts, mode, fixture, meta: { paper_id: paper.paper_id, target_kind: kind, attempt } });
+                // Not sent because the provider was halted: leave no record, so `resume` asks again.
+                if (gen.error?.kind === 'halted') { counters.skipped += 1; counters.halted += 1; return; }
                 gen.facts = ctx.run.model_facts?.[provider] ?? null;
                 gen.prompt_hash = prompt.hash;
                 gen.prompt_template_version = prompt.templateVersion;
@@ -425,8 +451,9 @@ ${repairPrompt}`);
     }
   }
   await Promise.all(tasks);
+  recordHalts(ctx, models, counters);
   const status = counters.errors.length ? 'failed' : 'done';
-  await ctx.setStage('generation', status, { generated: counters.generated, failed: counters.gen_failed, skipped: counters.skipped });
+  await ctx.setStage('generation', status, { generated: counters.generated, failed: counters.gen_failed, skipped: counters.skipped, halted: counters.halted });
   await ctx.setStage('compilation', status, { compiled: counters.compiled });
   await ctx.setStage('audit', status);
   await ctx.setStage('comparison', status);
@@ -496,14 +523,14 @@ export async function stageGenerationProve(ctx, { selection = null, retryFailed 
   ctx.run.model_ids = Object.fromEntries(described.map((m) => [m.id, mode === 'fixture' ? `fixture:${m.id}` : m.model_id]));
   ctx.run.model_hosts = Object.fromEntries(described.map((m) => [m.id, mode === 'fixture' ? null : m.host]));
   ctx.run.model_facts = Object.fromEntries(described.map((m) => [m.id, modelFacts(m.model_id, ctx.config.modelFacts || {})]));
-  const genOpts = { system: SYSTEM_PROMPT, temperature: ctx.config.generation.temperature, effort: ctx.config.generation.effort ?? null, maxTokens: ctx.config.generation.maxTokens, timeoutMs: ctx.config.generation.timeoutMs, retries: ctx.config.generation.retries ?? 4, baseDelayMs: ctx.config.generation.retryBaseDelayMs ?? 2000, maxDelayMs: ctx.config.generation.retryMaxDelayMs ?? 60000, providerConcurrency: ctx.config.generation.providerConcurrency ?? 1 };
+  const genOpts = { system: SYSTEM_PROMPT, temperature: ctx.config.generation.temperature, effort: ctx.config.generation.effort ?? null, maxTokens: ctx.config.generation.maxTokens, timeoutMs: ctx.config.generation.timeoutMs, retries: ctx.config.generation.retries ?? 4, baseDelayMs: ctx.config.generation.retryBaseDelayMs ?? 2000, maxDelayMs: ctx.config.generation.retryMaxDelayMs ?? 60000, providerConcurrency: ctx.config.generation.providerConcurrency ?? 1, extraSampling: samplingExtras(ctx.config.generation) };
   ctx.run.selection = { papers: papers.map((p) => p.paper_id), models, targets: kinds };
   for (const s of ['generation', 'compilation', 'audit', 'comparison']) await ctx.setStage(s, 'running');
   const allowedImports = `Mathlib or the statement library (${(ctx.config.grade?.libraryPrefixes || ['ProofBench.Mathlib_Problems']).join(', ')})`;
   const k = ctx.config.generation.attempts;
   const repairRounds = ctx.config.generation.repairRounds;
   const limit = pLimit(ctx.config.concurrency.items || 1);
-  const counters = { total: 0, done: 0, skipped: 0, generated: 0, gen_failed: 0, compiled: 0, verified: 0, infra: 0, errors: [] };
+  const counters = { total: 0, done: 0, skipped: 0, halted: 0, generated: 0, gen_failed: 0, compiled: 0, verified: 0, infra: 0, errors: [] };
   const tasks = [];
   const t0 = nowMono();
   // A live model call is only worth paying for when the grader can compile the challenge it answers.
@@ -529,6 +556,7 @@ export async function stageGenerationProve(ctx, { selection = null, retryFailed 
     return gen;
   };
 
+  const units = [];
   for (const paper of papers) {
     const prep = ctx.prepared?.[paper.paper_id] || (await readJson(ctx.p('prepared', slug(paper.paper_id), 'done.json'), null));
     if (!prep) { counters.errors.push({ paper_id: paper.paper_id, error: 'not prepared' }); continue; }
@@ -537,10 +565,17 @@ export async function stageGenerationProve(ctx, { selection = null, retryFailed 
       if (!target?.lean_path || !prep.challenges?.[kind]) continue;
       const challengeSrc = await fs.readFile(ctx.p('prepared', slug(paper.paper_id), `challenge__${kind}.lean`), 'utf8');
       const prompt = renderProvePrompt({ paper_id: paper.paper_id, target: target.declaration_name || paper.paper_id, challenge: challengeSrc, lean_toolchain: ctx.toolchain.toolchain || 'unknown', mathlib_version: ctx.toolchain.mathlib?.rev || 'unknown', allowed_imports: allowedImports });
+      units.push({ paper, kind, target, challengeSrc, prompt });
+    }
+  }
+  // Attempt-major order: every problem gets attempt 1 before any gets attempt 2, so a run that
+  // stops early (budget, rate limit) still has complete results for every attempt it reached.
+  for (let attempt = 1; attempt <= k; attempt += 1) {
+    for (const { paper, kind, target, challengeSrc, prompt } of units) {
       for (const provider of models) {
         const key = itemKey(paper.paper_id, kind, provider);
         const itemDir = ctx.p('items', key);
-        for (let attempt = 1; attempt <= k; attempt += 1) {
+        {
           counters.total += 1;
           tasks.push(limit(async () => {
             try {
@@ -567,6 +602,8 @@ export async function stageGenerationProve(ctx, { selection = null, retryFailed 
                 }
                 await writeText(path.join(itemDir, `prompt-a${attempt}.txt`), prompt.text);
                 gen = stamp(await generateOnce({ provider, prompt: prompt.text, ...genOpts, mode, fixture, meta: { paper_id: paper.paper_id, target_kind: kind, attempt } }), prompt);
+                // Not sent because the provider was halted: leave no record, so `resume` asks again.
+                if (gen.error?.kind === 'halted') { counters.skipped += 1; counters.halted += 1; return; }
                 await writeJson(genFile, gen);
                 if (gen.error) counters.gen_failed += 1; else counters.generated += 1;
               }
@@ -600,8 +637,9 @@ export async function stageGenerationProve(ctx, { selection = null, retryFailed 
     }
   }
   await Promise.all(tasks);
+  recordHalts(ctx, models, counters);
   const status = counters.errors.length ? 'failed' : 'done';
-  await ctx.setStage('generation', status, { generated: counters.generated, failed: counters.gen_failed, skipped: counters.skipped });
+  await ctx.setStage('generation', status, { generated: counters.generated, failed: counters.gen_failed, skipped: counters.skipped, halted: counters.halted });
   await ctx.setStage('compilation', status, { compiled: counters.compiled });
   await ctx.setStage('audit', status);
   await ctx.setStage('comparison', status);

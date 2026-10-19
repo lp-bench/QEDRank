@@ -1,0 +1,39 @@
+/* Compare Benchmarks page. Chart chrome comes from evaluation.css, colours from index.css. */
+
+.versus .vs-wide { grid-column: span 2; }
+.versus .vs-picker { min-width: 280px; }
+.versus .vs-dot { background: var(--s2); }
+
+.vs-selections { display: flex; flex-direction: column; gap: 0.6rem; margin-top: 0.5rem; }
+.vs-sel { display: flex; gap: 0.75rem; border: 1px solid var(--border); border-radius: 12px; padding: 0.75rem 0.9rem; background: var(--surface); }
+.vs-sel-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 0.5rem; }
+.vs-swatch { width: 6px; border-radius: 999px; background: var(--mc); flex: 0 0 auto; }
+.vs-name { font-weight: 700; font-size: 0.95rem; padding: 0.35rem 0.55rem; border-radius: 8px; border: 1px solid var(--border-strong); background: var(--surface-2); color: var(--text); min-width: 240px; }
+.vs-url { margin: 0; }
+
+.vs-legend { padding: 0.8rem 1rem; margin-top: 1.25rem; }
+.vs-pill i, .vs-head i { display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: var(--mc); margin-right: 0.4rem; vertical-align: middle; }
+.vs-cards { margin: 1rem 0; }
+.vs-unit { font-size: 0.85rem; font-weight: 500; }
+
+/* The matrix is the page's main table: shown whole, not in a capped scroll box. */
+.versus .table-wrap.vs-matrix-wrap, .table-wrap.vs-matrix-wrap { max-height: none; overflow-y: visible; }
+.vs-matrix th[scope='row'] { white-space: normal; min-width: 210px; text-align: left; font-weight: 600; color: var(--text-2); position: sticky; left: 0; background: var(--surface); z-index: 1; }
+.vs-matrix thead th { border-bottom: 3px solid var(--mc); }
+.vs-matrix thead th:first-child { border-bottom-color: var(--border); }
+.vs-matrix td { min-width: 140px; font-size: 0.84rem; }
+.vs-cell { font-weight: 650; color: var(--text); font-variant-numeric: tabular-nums; }
+.vs-head { white-space: nowrap; }
+
+.vs-note { border-left: 3px solid var(--s4); padding: 0.35rem 0.7rem; background: color-mix(in oklab, var(--s4) 8%, var(--surface)); border-radius: 6px; }
+
+/* Every proof, behind a disclosure under the proof charts. */
+.vs-details { margin-top: 1rem; border: 1px solid var(--border); border-radius: 12px; padding: 0.6rem 0.9rem; background: var(--surface); }
+.vs-details summary { cursor: pointer; font-weight: 600; color: var(--text-2); }
+.vs-details[open] summary { margin-bottom: 0.6rem; }
+.vs-details .row { margin-bottom: 0.5rem; }
+
+@media (max-width: 720px) {
+  .versus .vs-wide { grid-column: auto; }
+  .vs-name { min-width: 0; width: 100%; }
+}

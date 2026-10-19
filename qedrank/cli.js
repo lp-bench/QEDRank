@@ -26,6 +26,22 @@
 //                          [--library-prefix A,B] [--allow-extra-imports] [--extra-lean-path DIR] [--allow-unused-sorry]
 //                          [--no-kernel-replay] [--out grade.json] [--scratch DIR]
 //       independent Lean check of an agent's solution file; exit code 0 = graded, 2 = the grader itself failed
+//   node qedrank/cli.js proof-metrics --project DIR [--solutions DIR] [--runs id1,id2] [--only library,statements,solutions,models]
+//                          [--library ProofBench/Mathlib_Problems] [--jobs 3] [--timeout-per-file 600] [--refresh] [--out FILE]
+//       tactics, proof length, unused hypotheses and linter warnings of the benchmark's own proofs, and an automation
+//       probe of its statements, measured with Lean in each project (runs/_compare/proof-metrics.json, shown on Head-to-head)
+//   node qedrank/cli.js harnesses [--json]
+//       the evaluation harnesses this machine can run, with their integration state
+//   node qedrank/cli.js agent-run --run-id ID --models slot[,slot] --problems P001,P002 [--attempts 1..16] [--harness proofbench]
+//                          [--sessions N] [--session-output-tokens N] [--session-tokens N] [--session-working-time S] [--note-tokens N]
+//                          [--max-tokens N] [--request-timeout S] [--attempt-timeout S] [--time-limit S] [--message-limit N] [--max-samples N]
+//                          [--max-cost-usd X] [--effort low|high|max] [--comparator on|off] [--search] [--ref COMMIT] [--retry-infra] [--regrade [--lean-project DIR]]
+//       independent attempts with the ProofBench agent harness (docs/agent-evaluation.md); resumable, every log imported
+//   node qedrank/cli.js import-harness --run-id ID --proofbench DIR [--attempts N] [--regrade [--lean-project DIR]] [--merge-run ID[,ID]] [--force]
+//       logs of the ProofBench harness (a log directory, or a directory of attempt-N/ directories) as a run; --merge-run adds
+//       another QEDRank run's main-theorem records for a cross-harness comparison
+//   node qedrank/cli.js lean-bench [--project DIR] [--files N]
+//       time Lean on N challenge files of a project: the measurement to take before adding a persistent verification backend
 //
 // A local directory can replace --repo with --path DIR (fixtures, offline review).
 
@@ -49,6 +65,15 @@ import { gradeSubmission, DEFAULT_GRADE_POLICY } from './lib/grade.js';
 import { importAgentBundles } from './lib/agent.js';
 import { JobManager } from './lib/jobs.js';
 import { fileURLToPath } from 'node:url';
+import { compareCommand } from './lib/compare/command.js';
+import { proofMetricsCommand } from './lib/proofmetrics.js';
+import { describeHarnesses, proofbenchSettings } from './lib/harness/registry.js';
+import { importProofbenchLogs, discoverSources } from './lib/harness/proofbench.js';
+import { runAttempts } from './lib/harness/attempts.js';
+import { ATTEMPT_STATUS } from './lib/harness/status.js';
+
+/** agent-run flags -> budget keys of the attempts driver. */
+const LIMIT_FLAGS = { sessions: 'sessions', 'session-output-tokens': 'sessionOutputTokens', 'session-tokens': 'sessionTokens', 'session-working-time': 'sessionWorkingTime', 'note-tokens': 'noteTokens', 'max-tokens': 'maxTokens', 'request-timeout': 'requestTimeout', 'attempt-timeout': 'attemptTimeout', 'time-limit': 'timeLimit', 'message-limit': 'messageLimit', 'max-samples': 'maxSamples' };
 
 function parseArgs(argv) {
   const args = { _: [] };
@@ -69,6 +94,21 @@ function list(v) {
 }
 
 const log = (m) => process.stderr.write(`[qedrank] ${m}\n`);
+
+/**
+ * A resumed run keeps the settings it was started with (attempts, token budget, timeout, effort,
+ * Lean project, grade policy), so the attempts it still has to ask are asked the same way. Flags
+ * and a --config file given to `resume` override them.
+ */
+async function resumeConfig(config, overrides, args) {
+  const stored = (await readJson(path.join(config.runsDir, args['run-id'], 'run.json'), null))?.config;
+  if (!stored) return config;
+  const file = args.config ? (await readJson(args.config, null)) || {} : {};
+  const pick = (k) => ({ ...(config[k] || {}), ...(stored[k] || {}), ...(file[k] || {}), ...(overrides[k] || {}) });
+  const leanDir = overrides.leanDir || (file.leanDir ? path.resolve(file.leanDir) : null) || stored.leanDir || config.leanDir;
+  if (leanDir !== config.leanDir) log(`resume: Lean project ${leanDir} (as the run was started; --lean-project overrides)`);
+  return { ...config, generation: pick('generation'), lean: pick('lean'), grade: pick('grade'), concurrency: pick('concurrency'), leanDir };
+}
 
 async function main() {
   const args = parseArgs(process.argv.slice(2));
@@ -148,7 +188,7 @@ async function main() {
     }
     case 'resume': {
       if (!args['run-id']) throw new Error('resume requires --run-id');
-      const ctx = await openRun({ config, runId: args['run-id'], log });
+      const ctx = await openRun({ config: await resumeConfig(config, overrides, args), runId: args['run-id'], log });
       ctx.sourceToken = args.token || null;
       const sel = ctx.run.selection || {};
       const selection = { papers: list(args.papers).length ? list(args.papers) : sel.papers || [], models: sel.models || ctx.run.models, targets: sel.targets || [], limit: null };
@@ -213,18 +253,112 @@ async function main() {
       if (grade.verdict === 'grader_error') process.exitCode = 2;
       return;
     }
+    case 'compare': {
+      await compareCommand(args, { config, log, list });
+      return;
+    }
+    case 'proof-metrics': {
+      await proofMetricsCommand(args, { config, log, list });
+      return;
+    }
+    case 'harnesses': {
+      const rows = await describeHarnesses(config);
+      if (args.json) { console.log(JSON.stringify(rows, null, 2)); return; }
+      for (const h of rows) console.log(`${h.id.padEnd(22)} ${h.integration.padEnd(18)} ${h.ready ? 'ready' : 'not ready'}${h.reason ? ` - ${h.reason}` : ''}`);
+      return;
+    }
+    case 'agent-run': {
+      if (!args['run-id'] || typeof args.models !== 'string' || typeof args.problems !== 'string') throw new Error('agent-run requires --run-id ID, --models slot[,slot] and --problems P001[,P002]');
+      const harness = typeof args.harness === 'string' ? args.harness : 'proofbench';
+      if (harness !== 'proofbench') throw new Error(`no driver for harness ${harness}; see node qedrank/cli.js harnesses`);
+      const limits = {};
+      for (const [flag, key] of Object.entries(LIMIT_FLAGS)) if (args[flag] !== undefined && args[flag] !== true) limits[key] = Number(args[flag]);
+      const regrade = args.regrade ? { leanProject: typeof args['lean-project'] === 'string' ? path.resolve(args['lean-project']) : (await proofbenchSettings(config)).leanProject } : null;
+      if (regrade && !regrade.leanProject) throw new Error('--regrade needs the pinned Lean project: --lean-project DIR or harnesses.proofbench.leanProject in qedrank.config.json');
+      const result = await runAttempts({
+        config, runId: args['run-id'], slots: list(args.models), problems: list(args.problems), attempts: Number(args.attempts || 1), limits,
+        effort: typeof args.effort === 'string' ? args.effort : null, search: Boolean(args.search), network: args.network === undefined ? null : args.network !== 'false',
+        comparator: args.comparator !== 'off', retryInfra: Boolean(args['retry-infra']), maxCostUsd: args['max-cost-usd'] !== undefined && args['max-cost-usd'] !== true ? Number(args['max-cost-usd']) : null,
+        datasetRef: typeof args.ref === 'string' ? args.ref : null, regrade, log,
+      });
+      log(`attempts: ${result.attempts.map((a) => `a${a.attempt}=${a.status}`).join(' ')}; stop reason: ${result.stop_reason}`);
+      const summary = await readJson(path.join(config.runsDir, args['run-id'], 'summary.json'), null);
+      if (summary) printAttempts(summary);
+      if (result.stop_reason !== 'completed') process.exitCode = 3;
+      return;
+    }
+    case 'import-harness': {
+      if (!args['run-id'] || typeof args.proofbench !== 'string') throw new Error('import-harness requires --run-id ID and --proofbench DIR (a log directory, or a directory of attempt-N/ directories)');
+      const sources = await discoverSources(path.resolve(args.proofbench));
+      const regrade = args.regrade ? { leanProject: typeof args['lean-project'] === 'string' ? path.resolve(args['lean-project']) : (await proofbenchSettings(config)).leanProject } : null;
+      if (regrade && !regrade.leanProject) throw new Error('--regrade needs the pinned Lean project: --lean-project DIR or harnesses.proofbench.leanProject in qedrank.config.json');
+      await importProofbenchLogs({ config, runId: args['run-id'], sources, attemptsPlanned: args.attempts && args.attempts !== true ? Number(args.attempts) : null, force: Boolean(args.force), regrade, mergeRuns: list(args['merge-run']), log });
+      const ctx = await openRun({ config, runId: args['run-id'], log });
+      const { summary, exports: ex } = await stageStatistics(ctx);
+      printAttempts(summary);
+      log(`exports: ${Object.values(ex).join(', ')}`);
+      return;
+    }
+    case 'lean-bench': {
+      const project = path.resolve(typeof args.project === 'string' ? args.project : config.leanDir);
+      const n = Number(args.files || 3);
+      const toolchain = await detectToolchain(project, { log });
+      const runner = new LeanRunner(toolchain, { ...config.lean, log });
+      const probDir = path.join(project, 'ProofBench', 'PROBLEMS');
+      const ids = (await fs.readdir(probDir).catch(() => [])).filter((d) => /^P\d{3}$/.test(d)).sort().slice(0, n);
+      if (!ids.length) throw new Error(`no ProofBench/PROBLEMS/Pxxx folders under ${project}; give a built statements project with --project`);
+      const cacheDir = await fs.mkdtemp(path.join(os.tmpdir(), 'qedrank-lean-bench-cache-'));
+      const scratch = await fs.mkdtemp(path.join(os.tmpdir(), 'qedrank-lean-bench-'));
+      const rows = [];
+      try {
+        for (const id of ids) {
+          const src = await fs.readFile(path.join(probDir, id, `${id}.lean`), 'utf8');
+          const t0 = Date.now();
+          const g = await gradeSubmission({ runner, toolchain, challengeSrc: src, solutionSrc: src, target: id, scratchDir: path.join(scratch, id), cacheDir, policy: { ...DEFAULT_GRADE_POLICY, libraryPrefixes: ['ProofBench.Mathlib_Problems', 'Matroid', 'Archive.Sensitivity'], allowUnusedSorry: true, kernelReplay: false }, allowedAxioms: config.allowedAxioms, log: () => {} });
+          rows.push({ id, challenge_compile_s: g.timing?.challenge_compile_ms != null ? g.timing.challenge_compile_ms / 1000 : null, solution_compile_s: g.timing?.compile_ms != null ? g.timing.compile_ms / 1000 : null, wall_s: (Date.now() - t0) / 1000, verdict: g.verdict, reasons: g.reasons });
+          log(`${id}: challenge ${rows.at(-1).challenge_compile_s ?? '?'} s, file ${rows.at(-1).solution_compile_s ?? '?'} s, wall ${rows.at(-1).wall_s.toFixed(1)} s`);
+        }
+      } finally {
+        await fs.rm(scratch, { recursive: true, force: true }).catch(() => {});
+        await fs.rm(cacheDir, { recursive: true, force: true }).catch(() => {});
+      }
+      const med = (xs) => { const v = xs.filter((x) => typeof x === 'number').sort((a, b) => a - b); return v.length ? v[Math.floor(v.length / 2)] : null; };
+      const report = { project, toolchain: toolchain.toolchain, lean_version: toolchain.lean_version, cpus: os.cpus().length, memory_mb: Math.round(os.totalmem() / 1048576), files: rows, median_file_compile_s: med(rows.map((r) => r.solution_compile_s)), median_wall_s: med(rows.map((r) => r.wall_s)), measured_at: new Date().toISOString() };
+      const perFile = report.median_wall_s;
+      report.assessment = perFile === null ? 'no timing' : perFile > 60 ? `about ${Math.round(perFile)} s per file: with hundreds of attempts, Lean checking is a bottleneck on this machine; a persistent verification backend (Kimina Lean Server or LeanInteract) is worth evaluating, provided it runs this exact toolchain (${toolchain.toolchain})` : `about ${Math.round(perFile)} s per file: Lean checking is not the bottleneck here; keep the lean-cli backend`;
+      if (args.out) { await writeJson(path.resolve(args.out), report); log(`wrote ${args.out}`); } else console.log(JSON.stringify(report, null, 2));
+      return;
+    }
     case 'serve': {
       const port = Number(args.port || 8787);
       const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
       const jobs = args['no-jobs'] ? null : new JobManager({ cwd: repoRoot, cliPath: fileURLToPath(import.meta.url), logDir: path.join(config.runsDir, '.jobs') });
-      const server = createServer({ runsDir: config.runsDir, jobs, allowOrigins: list(args['allow-origin']) });
+      const server = createServer({ runsDir: config.runsDir, jobs, allowOrigins: list(args['allow-origin']), harnesses: () => describeHarnesses(config) });
       server.listen(port, '127.0.0.1', () => log(`serving ${config.runsDir} at http://127.0.0.1:${port}/runs${jobs ? ' (the page can start runs here; --no-jobs disables that)' : ''}`));
       return;
     }
     default:
-      console.error('usage: node qedrank/cli.js <toolchain|models|ping|discover|run|resume|stats|export|prompt|grade|import-agent|serve> [options]');
+      console.error('usage: node qedrank/cli.js <toolchain|models|ping|discover|run|resume|stats|export|prompt|grade|import-agent|import-harness|agent-run|harnesses|lean-bench|compare|proof-metrics|serve> [options]');
       process.exitCode = 1;
   }
+}
+
+/** Attempt statuses, pass@k and coverage per model of an imported or driven agent run. */
+function printAttempts(summary) {
+  const name = (id) => summary.models.find((m) => m.id === id)?.display_name ?? id;
+  const hp = summary.run?.harness_protocol;
+  console.log(`\nRun ${summary.run?.run_id}: ${summary.attempts?.planned ?? summary.settings?.attempts ?? 1} attempt(s) planned${hp ? `; harness ${hp.id} @ ${(hp.commit || '').slice(0, 10)}, image ${(hp.image_id || '').replace(/^sha256:/, '').slice(0, 12) || 'n/a'}, Lean ${hp.lean_toolchain || 'n/a'}, Comparator ${hp.comparator === false ? 'off' : 'on'}` : ''}`);
+  console.log(`model | ${ATTEMPT_STATUS.slice(0, 4).join(' | ')} | pass@k (unbiased, prominent) | problems covered`);
+  for (const m of summary.models) {
+    const mm = summary.by_target.all?.[m.id];
+    if (!mm) continue;
+    const sc = mm.status_counts || {};
+    const curve = (mm.pass_at_k?.curve || []).filter((c) => c.prominent).map((c) => `pass@${c.k}=${c.value === null ? 'unavailable' : `${(100 * c.value).toFixed(1)}%`} (n=${c.items})`).join(', ');
+    console.log(`${name(m.id)} | ${sc.fully_solved ?? 0} | ${sc.partially_solved ?? 0} | ${sc.failed ?? 0} | ${sc.infrastructure_error ?? 0} | ${curve || 'n/a'} | ${summary.coverage?.problems_by_model?.[m.id]?.length ?? '?'}`);
+  }
+  for (const d of summary.coverage?.coverage_differences || []) console.log(`coverage: ${name(d.model)} lacks ${d.missing.length} problem(s) others have: ${d.missing.slice(0, 10).join(' ')}${d.missing.length > 10 ? ' …' : ''}`);
+  for (const mm of summary.run?.protocol_mismatches || []) console.log(`WARNING: ${mm.model} (attempt ${mm.attempt}) differs from ${mm.reference_model} in ${mm.field}`);
+  if (summary.attempts?.stop_reason && summary.attempts.stop_reason !== 'completed') console.log(`stop reason: ${summary.attempts.stop_reason}`);
 }
 
 function printAgent(summary) {

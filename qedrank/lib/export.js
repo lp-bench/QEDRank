@@ -3,10 +3,12 @@
 import path from 'node:path';
 import { toCsv, writeJson, writeText, round } from './util.js';
 import { matrixRows } from './metrics.js';
+import { statusOf, failureOf } from './harness/status.js';
 
 export const ITEM_COLUMNS = [
   'run_id', 'harness_commit', 'source_commit', 'item_key', 'paper_id', 'target_kind', 'provider', 'model', 'model_id', 'api_host', 'response_model', 'task', 'setting', 'attempt', 'repair_round',
-  'difficulty', 'model_released', 'model_training_cutoff', 'model_parameters_b', 'problem_publication_date', 'published_before_cutoff',
+  'harness', 'status', 'failure_class', 'failure_evidence', 'partial_assessed', 'partial_verified_aux_lemmas', 'partial_method', 'submission_artifact', 'grade_artifact',
+  'difficulty', 'subject_tags', 'model_released', 'model_training_cutoff', 'model_parameters_b', 'problem_publication_date', 'published_before_cutoff',
   'mathematical_status', 'reference_proof_status', 'reference_statement_available', 'eligible_statement_track', 'eligible_proof_track', 'eligibility_reasons',
   'infrastructure_failure', 'generation_error', 'abstained', 'statement_confidence', 'proof_confidence',
   'compile_status', 'compile_error_count', 'compile_first_error', 'lean_diagnostics', 'static_screen_rejections',
@@ -20,9 +22,16 @@ export const ITEM_COLUMNS = [
   'prompt_hash', 'prompt_template_version', 'temperature', 'max_tokens', 'notes',
 ];
 
-export function flattenItem(r, { runId = null, sourceCommit = null, pricing = {}, harnessCommit = null, facts = null, difficulty = null } = {}) {
+export function flattenItem(r, { runId = null, sourceCommit = null, pricing = {}, harnessCommit = null, facts = null, difficulty = null, subjectTags = null } = {}) {
   const firstErr = (r.compile?.messages || []).find((m) => m.severity === 'error');
-  const diags = (r.compile?.messages || []).filter((m) => m.severity === 'error').slice(0, 10).map((m) => `${m.line}:${m.column}: ${m.text}`).join(' || ');
+  // The prove task keeps the compiler text, not parsed messages: its first error line serves.
+  const textErr = !firstErr && typeof r.compiler_output === 'string' ? r.compiler_output.match(/^(\d+:\d+): error: ([^\n]*)/m) : null;
+  const layer1Err = !firstErr && !textErr && r.agent?.layer1?.errors?.length ? r.agent.layer1.errors[0] : null;
+  const diags = (r.compile?.messages || []).filter((m) => m.severity === 'error').slice(0, 10).map((m) => `${m.line}:${m.column}: ${m.text}`).join(' || ')
+    || (typeof r.compiler_output === 'string' ? [...r.compiler_output.matchAll(/^(\d+:\d+): error: ([^\n]*)/gm)].slice(0, 10).map((m) => `${m[1]}: ${m[2]}`).join(' || ') : '')
+    || (r.agent?.layer1?.errors || []).slice(0, 10).join(' || ');
+  const status = statusOf(r);
+  const failure = failureOf(r);
   const price = pricing[r.model_id];
   const u = r.generation?.usage;
   const cost = typeof r.agent?.totals?.cost_usd === 'number' ? r.agent.totals.cost_usd
@@ -43,7 +52,17 @@ export function flattenItem(r, { runId = null, sourceCommit = null, pricing = {}
     setting: r.setting,
     attempt: r.attempt,
     repair_round: r.repair_round,
+    harness: r.harness ?? (r.setting === 'agent' ? 'agent' : 'qedrank-single'),
+    status,
+    failure_class: failure?.class ?? null,
+    failure_evidence: failure?.evidence ?? null,
+    partial_assessed: r.partial?.assessed ?? null,
+    partial_verified_aux_lemmas: r.partial?.assessed ? r.partial.verified_aux_lemmas ?? 0 : null,
+    partial_method: r.partial?.assessed ? r.partial.method ?? null : r.partial?.reason ?? null,
+    submission_artifact: r.artifacts?.submission ?? null,
+    grade_artifact: r.artifacts?.grade ?? null,
     difficulty,
+    subject_tags: subjectTags,
     model_released: facts?.released ?? null,
     model_training_cutoff: facts?.training_cutoff ?? r.contamination?.model_training_cutoff ?? null,
     model_parameters_b: facts?.parameters_b ?? null,
@@ -62,7 +81,7 @@ export function flattenItem(r, { runId = null, sourceCommit = null, pricing = {}
     proof_confidence: r.confidence?.proof ?? null,
     compile_status: r.compile?.status ?? null,
     compile_error_count: r.compile?.error_count ?? null,
-    compile_first_error: firstErr ? `${firstErr.line}:${firstErr.column}: ${firstErr.text.slice(0, 300)}` : null,
+    compile_first_error: firstErr ? `${firstErr.line}:${firstErr.column}: ${firstErr.text.slice(0, 300)}` : textErr ? `${textErr[1]}: ${textErr[2].slice(0, 300)}` : layer1Err ? String(layer1Err).slice(0, 300) : null,
     lean_diagnostics: diags.slice(0, 4000),
     static_screen_rejections: (r.static_screen?.rejections || []).map((x) => `${x.code}:${x.text}`).join('|'),
     audit_status: r.audit?.status ?? null,
@@ -117,8 +136,9 @@ export function flattenItem(r, { runId = null, sourceCommit = null, pricing = {}
 export async function writeExports(runDir, { items, summary, run, config, manifest = null }) {
   const dir = path.join(runDir, 'exports');
   const difficultyOf = new Map((manifest?.papers || []).map((p) => [p.paper_id, p.difficulty ?? null]));
+  const subjectOf = new Map((manifest?.papers || []).map((p) => [p.paper_id, (p.subject_tags || []).join('|') || null]));
   const factsOf = new Map((summary.models || []).map((m) => [m.id, m.facts ?? null]));
-  const rows = items.map((r) => flattenItem(r, { runId: run.run_id, sourceCommit: run.source?.commit ?? null, pricing: config.pricing || {}, harnessCommit: run.harness?.commit ?? null, facts: factsOf.get(r.provider) ?? null, difficulty: difficultyOf.get(r.paper_id) ?? null }));
+  const rows = items.map((r) => flattenItem(r, { runId: run.run_id, sourceCommit: run.source?.commit ?? null, pricing: config.pricing || {}, harnessCommit: run.harness?.commit ?? null, facts: factsOf.get(r.provider) ?? null, difficulty: difficultyOf.get(r.paper_id) ?? null, subjectTags: subjectOf.get(r.paper_id) ?? null }));
   await writeText(path.join(dir, 'items.csv'), toCsv(rows, ITEM_COLUMNS));
   await writeJson(path.join(dir, 'items.json'), { schema: 'qedrank-items-v1', run_id: run.run_id, source_commit: run.source?.commit ?? null, count: rows.length, items: rows });
   const mrows = matrixRows(summary);

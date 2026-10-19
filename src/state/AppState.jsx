@@ -18,7 +18,9 @@ function write(kind, key, value) {
   try { storage(kind)?.setItem(key, JSON.stringify(value)) } catch { /* quota or private mode: state stays in memory */ }
 }
 
-const EMPTY_RUN = { run: null, summary: null, items: null }
+// `server` is the run server a run was loaded from (null when opened from files); the Evaluation
+// page reads proof text and grading records from it on demand.
+const EMPTY_RUN = { run: null, summary: null, items: null, server: null }
 
 export function AppStateProvider({ children, initialRoster = null, initialRun = null }) {
   const [roster, setRoster] = useState(initialRoster || [])
@@ -59,7 +61,7 @@ export function AppStateProvider({ children, initialRoster = null, initialRun = 
   const setTheme = useCallback((t) => setThemeState(t), [])
   const setLoaded = useCallback((bundle) => {
     setLoadedState((prev) => {
-      const next = { run: bundle.run ?? prev.run, summary: bundle.summary ?? prev.summary, items: bundle.items ?? prev.items }
+      const next = { run: bundle.run ?? prev.run, summary: bundle.summary ?? prev.summary, items: bundle.items ?? prev.items, server: bundle.server !== undefined ? bundle.server : prev.server ?? null }
       write('sessionStorage', KEYS.run, next)
       return next
     })

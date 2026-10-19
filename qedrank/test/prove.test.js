@@ -1,6 +1,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { renderProvePrompt, parseProveResponse, PROVE_TEMPLATE_VERSION } from '../lib/prove.js';
+import os from 'node:os';
+import path from 'node:path';
+import { promises as fs } from 'node:fs';
+import { renderProvePrompt, parseProveResponse, evaluateProveAttempt, PROVE_TEMPLATE_VERSION } from '../lib/prove.js';
 
 const CHALLENGE = 'import Mathlib\n\ndef weight (n : Nat) : Nat := n + n\n\ntheorem P900 (n : Nat) : weight n = 2 * n := by\n  sorry\n';
 
@@ -34,4 +37,26 @@ test('prove response: the largest lean block is the file; prose alone is an abst
   assert.equal(cut.file.startsWith('/- Paper: x -/\nimport Mathlib.Data.Real.Basic'), true);
   assert.deepEqual(cut.notes, ['unterminated_code_block']);
   assert.equal(cut.abstained, false);
+});
+
+test('reasoning that used the whole output budget is a failed attempt without a file, not an infrastructure failure', async () => {
+  const itemDir = await fs.mkdtemp(path.join(os.tmpdir(), 'qr-prove-'));
+  try {
+    const paper = { paper_id: 'P900', targets: {} };
+    const target = { target_kind: 'main_theorem', mathematical_status: 'established', declaration_name: 'P900' };
+    const base = { provider: 'kimi', display_name: 'Kimi K3', model_id: 'kimi-k3', mode: 'live', usage: { inputTokens: 500, outputTokens: 65536 } };
+    const out = await evaluateProveAttempt({ runner: null, toolchain: { available: false }, paper, target, challengeSrc: CHALLENGE, itemDir, config: {},
+      generation: { ...base, text: '', error: { kind: 'empty_response', message: 'hit the output token limit before producing an answer' } } });
+    assert.equal(out.outcomes.infrastructure_failure, false);
+    assert.equal(out.abstained, true);
+    assert.equal(out.compile.status, 'not_attempted');
+    assert.match(out.notes.join(' '), /no_answer_within_output_budget/);
+    assert.equal(out.eligibility.proof_track, true);
+    // a provider failure stays an infrastructure failure
+    const rl = await evaluateProveAttempt({ runner: null, toolchain: { available: false }, paper, target, challengeSrc: CHALLENGE, itemDir, config: {}, attempt: 2,
+      generation: { ...base, text: '', error: { kind: 'rate_limited', message: '429' } } });
+    assert.equal(rl.outcomes.infrastructure_failure, true);
+  } finally {
+    await fs.rm(itemDir, { recursive: true, force: true });
+  }
 });

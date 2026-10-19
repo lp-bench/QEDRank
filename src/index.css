@@ -26,6 +26,9 @@
   --seq-ink-1: #0b0b0b; --seq-ink-2: #0b0b0b; --seq-ink-3: #ffffff; --seq-ink-4: #ffffff; --seq-ink-5: #ffffff;
 
   --div-mid: #f0efec;
+  /* Ordinal ramp (five validated steps; light end >= 2:1 on the surface) and three neutrals. */
+  --ord-1: #86b6ef; --ord-2: #3987e5; --ord-3: #256abf; --ord-4: #184f95; --ord-5: #0d366b;
+  --neutral-1: #e1e0d9; --neutral-2: #a09f96; --neutral-3: #c3c2b7;
   --dv-n3: #c62b2a; --dv-n2: #e87170; --dv-n1: #f3b4b3;
   --dv-p1: #b7d3f6; --dv-p2: #6da7ec; --dv-p3: #1c5cab;
 
@@ -67,6 +70,8 @@
     --seq-1: #104281; --seq-2: #1c5cab; --seq-3: #3987e5; --seq-4: #6da7ec; --seq-5: #b7d3f6;
     --seq-ink-1: #ffffff; --seq-ink-2: #ffffff; --seq-ink-3: #ffffff; --seq-ink-4: #0b0b0b; --seq-ink-5: #0b0b0b;
     --div-mid: #383835;
+    --ord-1: #1c5cab; --ord-2: #2a78d6; --ord-3: #5598e7; --ord-4: #86b6ef; --ord-5: #b7d3f6;
+    --neutral-1: #4a4a46; --neutral-2: #8a897f; --neutral-3: #6b6a63;
     --dv-n3: #e66767; --dv-n2: #a64443; --dv-n1: #5e2f2e;
     --dv-p1: #22365a; --dv-p2: #1c5cab; --dv-p3: #3987e5;
     --good-text: #0ca30c;
@@ -94,6 +99,8 @@
   --seq-1: #104281; --seq-2: #1c5cab; --seq-3: #3987e5; --seq-4: #6da7ec; --seq-5: #b7d3f6;
   --seq-ink-1: #ffffff; --seq-ink-2: #ffffff; --seq-ink-3: #ffffff; --seq-ink-4: #0b0b0b; --seq-ink-5: #0b0b0b;
   --div-mid: #383835;
+  --ord-1: #1c5cab; --ord-2: #2a78d6; --ord-3: #5598e7; --ord-4: #86b6ef; --ord-5: #b7d3f6;
+  --neutral-1: #4a4a46; --neutral-2: #8a897f; --neutral-3: #6b6a63;
   --dv-n3: #e66767; --dv-n2: #a64443; --dv-n1: #5e2f2e;
   --dv-p1: #22365a; --dv-p2: #1c5cab; --dv-p3: #3987e5;
   --good-text: #0ca30c;

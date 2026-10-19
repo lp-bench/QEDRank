@@ -239,6 +239,29 @@ export function passAtK(attempts, k) {
   return a.some((x) => x === 1) ? 1 : 0;
 }
 
+/**
+ * Unbiased pass@k from n attempts with c successes (Chen et al. 2021, "Evaluating Large Language
+ * Models Trained on Code"): the probability that at least one of k attempts drawn without
+ * replacement from the n is a success, 1 - C(n-c, k) / C(n, k). Null when n < k.
+ */
+export function passAtKUnbiased(n, c, k) {
+  if (!(n >= k) || k < 1) return null;
+  if (n - c < k) return 1;
+  let fail = 1;
+  for (let i = n - c + 1; i <= n; i += 1) fail *= 1 - k / i;
+  return 1 - fail;
+}
+
+/** The k values reported for n attempts: every integer from 1 to n (n at most 16 in practice). */
+export function passAtKLevels(n) {
+  const ks = [];
+  for (let k = 1; k <= n; k += 1) ks.push(k);
+  return ks;
+}
+
+/** The k values given prominence in summaries and on the page. */
+export const PASS_K_PROMINENT = Object.freeze([1, 2, 4, 8]);
+
 export function meanPerAttempt(attempts) {
   if (attempts.length === 0) return null;
   return attempts.reduce((s, x) => s + x, 0) / attempts.length;

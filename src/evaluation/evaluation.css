@@ -141,3 +141,25 @@
   .ch-overlay-head { flex-wrap: wrap; }
   .ch-overlay-head, .ch-overlay-body { padding-left: 0.85rem; padding-right: 0.85rem; }
 }
+
+/* Attempts: problems × models grid, drawer, pass@k table ---------------------------- */
+.ev-grid-filters { margin-bottom: 0.5rem; }
+.ev-pgrid th.ev-harness-head { text-align: center; font-weight: 700; color: var(--text); background: var(--surface-3); }
+.ev-pgrid th.ev-model-head .link-btn { display: inline-flex; align-items: center; gap: 0.35rem; font-size: 0.85rem; color: var(--text); }
+.ev-pgrid td.ev-cell { padding: 0.2rem 0.4rem; text-align: center; }
+.ev-cell-btn { background: none; border: 1px solid transparent; border-radius: 8px; padding: 0.25rem 0.45rem; cursor: pointer; font-size: 1rem; letter-spacing: 0.08em; line-height: 1; }
+.ev-cell-btn:hover { border-color: var(--border-strong); background: var(--surface-2); }
+.ev-cell-fully_solved .ev-cell-btn { background: color-mix(in oklab, var(--good) 14%, transparent); }
+.ev-cell-partially_solved .ev-cell-btn { background: color-mix(in oklab, var(--s4) 16%, transparent); }
+.ev-cell-infrastructure_error .ev-cell-btn { background: color-mix(in oklab, var(--critical) 12%, transparent); }
+.ev-glyph { font-family: var(--mono); }
+.ev-drawer { margin-top: 0.75rem; border-left: 4px solid var(--accent); }
+.ev-drawer .ev-h3 { margin: 0; }
+.ev-evidence { max-width: 320px; word-break: break-word; }
+.ev-inspect { margin-top: 0.75rem; }
+.ev-doc { margin-top: 0.5rem; }
+.ev-pre { max-height: 520px; overflow: auto; background: var(--surface-2); border: 1px solid var(--border); border-radius: 10px; padding: 0.75rem 0.9rem; font-size: 0.8rem; line-height: 1.5; white-space: pre-wrap; word-break: break-word; }
+.ev-passk th.pk-prominent, .ev-passk td.pk-prominent { background: color-mix(in oklab, var(--s1) 9%, var(--surface)); font-weight: 600; }
+.ev-protocol { margin-bottom: 0.75rem; }
+.ev-protocol .qr-kv > div { display: grid; grid-template-columns: 150px 1fr; gap: 0.6rem; padding: 0.3rem 0; border-bottom: 1px solid var(--border); font-size: 0.88rem; }
+.ev-protocol .qr-kv > div > span:first-child { color: var(--text-2); font-weight: 600; }

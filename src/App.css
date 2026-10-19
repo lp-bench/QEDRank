@@ -9,7 +9,8 @@
 .brand:hover { text-decoration: none; }
 .brand-mark { width: 34px; height: 34px; border-radius: 10px; background: linear-gradient(135deg, var(--s7), var(--s1) 60%, var(--s3)); color: #fff; display: grid; place-items: center; font-weight: 800; font-size: 0.72rem; letter-spacing: 0.04em; box-shadow: 0 6px 16px -8px var(--s1); }
 .brand small { display: block; font-weight: 500; font-size: 0.7rem; color: var(--muted); letter-spacing: 0; }
-.nav { display: flex; gap: 0.2rem; margin-left: 0.5rem; }
+/* Six pages do not fit beside the brand, so the page links take their own row. */
+.nav { order: 3; width: 100%; display: flex; flex-wrap: wrap; gap: 0.2rem; margin-left: 0; }
 .nav a { padding: 0.42rem 0.85rem; border-radius: 999px; color: var(--text-2); font-weight: 600; font-size: 0.9rem; transition: background 0.15s, color 0.15s; }
 .nav a:hover { background: var(--surface-2); text-decoration: none; color: var(--text); }
 .nav a.active { background: var(--surface-3); color: var(--text); }
@@ -111,8 +112,7 @@ details[open] summary { margin-bottom: 0.4rem; }
 
 @media (max-width: 720px) {
   .topbar-inner { gap: 0.5rem; }
-  .nav { order: 3; width: 100%; justify-content: space-between; margin-left: 0; }
-  .nav a { padding: 0.4rem 0.6rem; font-size: 0.85rem; flex: 1; text-align: center; }
+  .nav a { padding: 0.4rem 0.6rem; font-size: 0.85rem; flex: 1 1 auto; text-align: center; }
   .card { padding: 1rem; }
   .page { padding: 1rem 1rem 2.5rem; }
 }

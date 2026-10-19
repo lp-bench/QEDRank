@@ -241,3 +241,21 @@ test('ping helper extracts the Lean block and adds an import when the model gave
   assert.match(code, /^import Mathlib\.Tactic\n\ntheorem add_comm_example/);
   assert.equal(leanFromAnswer('```lean\nimport Mathlib\ntheorem x : True := trivial\n```'), 'import Mathlib\ntheorem x : True := trivial');
 });
+
+test('extra sampling settings go to models whose temperature is set, never to Kimi K3; Kimi gets a reasoning effort it accepts', async () => {
+  const bodies = [];
+  const fetchImpl = async (url, init) => { bodies.push(JSON.parse(init.body)); return completion('done'); };
+  const extraSampling = { top_p: 0.8, top_k: 20 };
+  const q = await callProvider('qwen', { prompt: 'P', temperature: 0.7, extraSampling, env: { GWDG_API_KEY: 'g' }, fetchImpl, sleep: noSleep });
+  assert.equal(bodies[0].temperature, 0.7);
+  assert.equal(bodies[0].top_p, 0.8);
+  assert.equal(bodies[0].top_k, 20);
+  assert.deepEqual(q.sampling, { temperature: 0.7, effort: null, top_p: 0.8, top_k: 20 });
+  const k = await callProvider('kimi', { prompt: 'P', temperature: 0.7, extraSampling, effort: 'high', env: { MOONSHOT_API_KEY: 'm' }, fetchImpl, sleep: noSleep });
+  assert.equal('temperature' in bodies[1], false);
+  assert.equal('top_p' in bodies[1], false);
+  assert.equal(bodies[1].reasoning_effort, 'high');
+  assert.deepEqual(k.sampling, { temperature: null, effort: 'high' });
+  await callProvider('kimi', { prompt: 'P', effort: 'medium', env: { MOONSHOT_API_KEY: 'm' }, fetchImpl, sleep: noSleep });
+  assert.equal('reasoning_effort' in bodies[2], false); // not a level Kimi accepts: the API default applies
+});

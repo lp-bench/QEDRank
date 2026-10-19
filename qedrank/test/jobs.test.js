@@ -26,6 +26,18 @@ test('job requests become allow-listed CLI arguments; anything else is refused',
   assert.throws(() => buildRunArgv({ command: 'run', repo: REPO, runId: 'r' }), /at least one model/);
   // a token in the request is ignored: it never becomes an argument
   assert.ok(!buildRunArgv({ command: 'run', repo: REPO, models: 'kimi', runId: 'r', token: 'ghp_x' }).argv.join(' ').includes('ghp_x'));
+  // agent runs: harness allow-list, explicit problems, attempts 1-16, bounded budgets, no shell
+  const a = buildRunArgv({ command: 'agent-run', harness: 'proofbench', runId: 'ag-1', ref: '0a4a476', models: 'qwen', papers: 'P109,P110', attempts: 4, sessions: 10, sessionOutputTokens: 30000, sessionWorkingTime: 1800, maxTokens: 16000, maxSamples: 2, maxCostUsd: 12.5, effort: 'high', comparator: true, retryInfra: true, regrade: true });
+  assert.deepEqual(a.argv, ['agent-run', '--run-id', 'ag-1', '--harness', 'proofbench', '--models', 'qwen', '--problems', 'P109,P110', '--ref', '0a4a476', '--attempts', '4', '--sessions', '10', '--session-output-tokens', '30000', '--session-working-time', '1800', '--max-tokens', '16000', '--max-samples', '2', '--max-cost-usd', '12.5', '--effort', 'high', '--retry-infra', '--regrade']);
+  assert.deepEqual(buildRunArgv({ command: 'agent-run', runId: 'ag-2', models: 'qwen', papers: 'P109', comparator: false }).argv, ['agent-run', '--run-id', 'ag-2', '--harness', 'proofbench', '--models', 'qwen', '--problems', 'P109', '--attempts', '1', '--comparator', 'off']);
+  assert.throws(() => buildRunArgv({ command: 'agent-run', runId: 'r', models: 'qwen', papers: 'P1', attempts: 17 }), /attempts must be/);
+  assert.throws(() => buildRunArgv({ command: 'agent-run', runId: 'r', models: 'qwen', papers: 'P1', attempts: 0 }), /attempts must be/);
+  assert.throws(() => buildRunArgv({ command: 'agent-run', runId: 'r', models: 'qwen', papers: 'P1', sessions: 1.5 }), /sessions must be a whole number/);
+  assert.throws(() => buildRunArgv({ command: 'agent-run', runId: 'r', models: 'qwen', papers: 'P1', maxCostUsd: -1 }), /maxCostUsd/);
+  assert.throws(() => buildRunArgv({ command: 'agent-run', runId: 'r', models: 'qwen', papers: 'P1', effort: 'extreme' }), /effort/);
+  assert.throws(() => buildRunArgv({ command: 'agent-run', runId: 'r', models: 'qwen', papers: 'P1', harness: 'matharena-arxivlean' }), /harness must be one of proofbench/);
+  assert.throws(() => buildRunArgv({ command: 'agent-run', runId: 'r', models: 'qwen' }), /select at least one problem/);
+  assert.throws(() => buildRunArgv({ command: 'agent-run', runId: 'r', models: 'qwen', papers: 'P1; rm -rf /' }), /paper id/);
 });
 
 function fakeSpawn(record) {

@@ -213,7 +213,7 @@ export function CoverageView({ summary }) {
 /* ------------------------------------------------------------------ */
 
 const ITEM_FILTERS = [
-  ['model', 'Model'], ['paper_id', 'Paper'], ['target_kind', 'Target'], ['mathematical_status', 'Math status'], ['statement_match', 'Statement match'], ['compile_status', 'Compile'], ['audit_status', 'Audit'], ['setting', 'Setting'],
+  ['model', 'Model'], ['paper_id', 'Paper'], ['target_kind', 'Target'], ['mathematical_status', 'Math status'], ['statement_match', 'Statement match'], ['compile_status', 'Compile'], ['audit_status', 'Audit'], ['setting', 'Setting'], ['status', 'Status'], ['failure_class', 'Failure class'], ['harness', 'Harness'],
 ]
 
 export function ItemsView({ items, runId }) {

@@ -21,6 +21,7 @@ import { promises as fs } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { parseImports, staticScreen, findDeclarations, theoremNames, countLines, stripComments, DEFAULT_ALLOWED_IMPORT_PREFIXES } from './leansrc.js';
 import { classifyAxioms } from './compare.js';
+import { countLinterWarnings } from './lean.js';
 import { ensureDir, writeText, exists, sha256, nowMono, isoNow } from './util.js';
 
 export const GRADE_SCHEMA = 'qedrank-grade-v1';
@@ -367,7 +368,7 @@ export async function gradeSubmission({ runner, toolchain, challengeSrc, solutio
   }
   const sol = await runner.compileModule({ src: solutionSrc, moduleName: SUBMISSION_MODULE, scratchDir: solDir, extraLeanPath, label: 'solution', extraArgs: leanArgs });
   rec.timing.compile_ms = sol.duration_ms;
-  rec.checks.compile = { status: sol.status, error_count: sol.error_count, warning_count: sol.warning_count, duration_ms: sol.duration_ms, infra_reason: sol.infra_reason ?? null, resource_limit: sol.resource_limit ?? null };
+  rec.checks.compile = { status: sol.status, error_count: sol.error_count, warning_count: sol.warning_count, linter_warnings: countLinterWarnings(sol.messages), duration_ms: sol.duration_ms, infra_reason: sol.infra_reason ?? null, resource_limit: sol.resource_limit ?? null };
   rec.compiler_output = formatCompilerOutput(sol.messages);
   if (sol.status === 'infrastructure_failure') return graderError('solution_compile_infrastructure_failure', sol.infra_reason);
   if (sol.status === 'timeout') { fail('compile_timeout'); rec.completeness = { available: false, reason: 'file_does_not_compile', definition: COMPLETENESS_DEFINITION }; return finish(); }

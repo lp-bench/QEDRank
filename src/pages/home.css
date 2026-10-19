@@ -1,4 +1,4 @@
-/* Front page: hero, model picker, problem form, result cards. */
+/* Front page (hero, workflow panels) and Convert a Problem (model picker, problem form, result cards). */
 
 .hero { display: grid; grid-template-columns: 1.3fr 1fr; gap: 2rem; align-items: center; padding: 2.5rem 0 2rem; }
 .hero-text h1 { font-size: clamp(2rem, 4.2vw, 3.2rem); letter-spacing: -0.03em; margin: 0.6rem 0 0.8rem; font-weight: 800; line-height: 1.08; }
@@ -10,7 +10,25 @@
 .hero-stats .stat { background: color-mix(in oklab, var(--surface) 85%, transparent); }
 .hero-stats .stat:first-child { grid-column: 1 / -1; }
 
+/* Workflow panels: the symbols are decoration only (aria-hidden), never the content. */
+.workflows { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; margin: 0.5rem 0 1.25rem; }
+.workflow { position: relative; overflow: hidden; display: flex; flex-direction: column; gap: 0.6rem; border-top: 3px solid var(--wf-color); }
+.workflows > .card + .card { margin-top: 0; } /* side by side: the grid gap spaces them, not the stacked-card margin */
+.workflow h2 { font-size: 1.3rem; letter-spacing: -0.01em; }
+.workflow p { color: var(--text-2); margin: 0; max-width: 60ch; }
+.wf-glyph { position: absolute; top: -0.6rem; right: 0.9rem; font-family: var(--mono); font-size: 6.5rem; line-height: 1; color: var(--wf-color); opacity: 0.1; pointer-events: none; user-select: none; }
+.wf-list-title { font-size: 0.78rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-2); margin-top: 0.3rem; }
+.wf-list-title span { font-family: var(--mono); color: var(--wf-color); letter-spacing: 0; }
+.wf-list { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 0.35rem 1rem; }
+.wf-list li { position: relative; padding-left: 1.1rem; font-size: 0.92rem; }
+.wf-list li::before { content: ''; position: absolute; left: 0; top: 0.5em; width: 0.5em; height: 0.5em; background: var(--wf-color); border-radius: 1px; }
+.wf-cta { align-self: flex-start; margin-top: auto; }
+.wf-cta:hover { text-decoration: none; }
+.home-convert { margin: 0 0 1rem; }
+
 .key-hint { font-size: 0.8rem; max-width: 520px; }
+.key-hint > summary { list-style: none; color: var(--text); }
+.key-hint > summary::-webkit-details-marker { display: none; }
 .key-hint pre { background: var(--surface-2); border: 1px solid var(--border); border-radius: 10px; padding: 0.7rem 0.85rem; margin: 0.4rem 0 0; white-space: pre-wrap; font-size: 0.76rem; line-height: 1.5; }
 
 /* Model picker ------------------------------------------------------------- */
@@ -64,4 +82,5 @@
 @media (max-width: 900px) {
   .hero { grid-template-columns: 1fr; padding: 1.5rem 0 1rem; }
   .results-grid { grid-template-columns: 1fr; }
+  .workflows { grid-template-columns: 1fr; }
 }

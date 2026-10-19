@@ -15,6 +15,7 @@ const DECL_KEYWORDS = [
 const MODIFIERS = new Set(['noncomputable', 'private', 'protected', 'partial', 'unsafe', 'nonrec', 'scoped', 'local']);
 const NAMED_KINDS = new Set(['theorem', 'lemma', 'def', 'abbrev', 'instance', 'structure', 'inductive', 'class', 'axiom', 'opaque', 'irreducible_def']);
 
+const PROOF_START = /^(?:sorry|admit|by|fun|calc)(?![A-Za-z0-9_.'!?])/;
 const COMMAND_START = new RegExp(`^(?:@\\[|#|/-|--|(?:${DECL_KEYWORDS.join('|')})(?![A-Za-z0-9_.'!?]))`);
 
 /**
@@ -147,11 +148,14 @@ export function findDeclarations(src) {
   let acc = 0;
   for (const l of lines) { offsets.push(acc); acc += l.length + 1; }
 
-  // Command boundaries: line indices where a command starts (column 0).
+  // Command boundaries: line indices where a command starts (column 0). A proof may also start at
+  // column 0 (`:=` then `sorry` on the next line, as PutnamBench writes it); no command begins
+  // with these words, so such a line continues the declaration above.
   const starts = [];
   for (let i = 0; i < sLines.length; i += 1) {
     const l = sLines[i];
     if (!l || /^\s/.test(l)) continue;
+    if (PROOF_START.test(l)) continue;
     if (isCommandStart(l) || /^[A-Za-z_]/.test(l)) starts.push(i);
   }
   const decls = [];

@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { chiSquareSf, cochranQ, mcnemarExact, holm, calibration, bootstrapByPaper, passAtK, pairwiseMcNemar, timeSummary } from '../lib/stats.js';
+import { chiSquareSf, cochranQ, mcnemarExact, holm, calibration, bootstrapByPaper, passAtK, passAtKUnbiased, passAtKLevels, pairwiseMcNemar, timeSummary } from '../lib/stats.js';
 
 test('chi-square survival matches tabulated critical values', () => {
   assert.ok(Math.abs(chiSquareSf(3.841, 1) - 0.05) < 0.001);
@@ -51,6 +51,28 @@ test('paper bootstrap CI brackets the point estimate and is reproducible', () =>
   assert.deepEqual(a, b);
   assert.ok(a.lo <= a.point && a.point <= a.hi);
   assert.equal(bootstrapByPaper([], stat).point, null);
+});
+
+test('unbiased pass@k: 1 - C(n-c, k)/C(n, k), and the reported k levels', () => {
+  const close = (a, b) => assert.ok(Math.abs(a - b) < 1e-12, `${a} vs ${b}`);
+  close(passAtKUnbiased(8, 0, 1), 0);
+  close(passAtKUnbiased(8, 2, 1), 2 / 8); // pass@1 is the success share
+  close(passAtKUnbiased(8, 1, 4), 0.5); // 1 - C(7,4)/C(8,4) = 1 - 35/70
+  close(passAtKUnbiased(8, 2, 4), 1 - 15 / 70); // C(6,4) = 15
+  close(passAtKUnbiased(8, 1, 8), 1);
+  close(passAtKUnbiased(8, 5, 4), 1); // fewer than k failures: always solved
+  assert.equal(passAtKUnbiased(3, 1, 4), null);
+  // Every integer k up to n is reported; the summary marks 1, 2, 4 and 8 as prominent.
+  assert.deepEqual(passAtKLevels(8), [1, 2, 3, 4, 5, 6, 7, 8]);
+  assert.deepEqual(passAtKLevels(3), [1, 2, 3]);
+  assert.deepEqual(passAtKLevels(1), [1]);
+  assert.deepEqual(passAtKLevels(0), []);
+  // Numerical stability at the largest supported n: the product form against the binomial formula.
+  const binom = (n, k) => { let r = 1; for (let i = 1; i <= k; i += 1) r = (r * (n - k + i)) / i; return r; };
+  for (const [n, c] of [[16, 1], [16, 3], [16, 8], [16, 15], [12, 5], [7, 2]]) for (let k = 1; k <= n; k += 1) close(passAtKUnbiased(n, c, k), n - c < k ? 1 : 1 - binom(n - c, k) / binom(n, k));
+  close(passAtKUnbiased(16, 0, 16), 0);
+  close(passAtKUnbiased(16, 1, 16), 1);
+  assert.equal(passAtKUnbiased(15, 1, 16), null, 'fewer attempts than k is unavailable, never 0');
 });
 
 test('pass@k and pairwise comparison bookkeeping', () => {

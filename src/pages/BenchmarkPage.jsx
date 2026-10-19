@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import { useAppState } from '../state/AppState.jsx'
 import ModelPicker from '../components/ModelPicker.jsx'
+import KeyHint from '../components/KeyHint.jsx'
 import { CorpusPanel, RunPanel } from '../qedrank/panels.jsx'
 import { download } from '../qedrank/helpers.js'
 import '../qedrank/qedrank.css'
@@ -13,19 +14,18 @@ export default function BenchmarkPage() {
   return (
     <main className="page">
       <div className="page-head">
-        <span className="eyebrow">QEDRank · batch benchmark</span>
-        <h1>Benchmark the roster on a paper corpus</h1>
-        <p>
-          Every selected model is evaluated on every problem, in one of two tasks: <b>prove the given statement</b> (the model gets the challenge file and fills in its <code>sorry</code>; the completed file is checked for compilation, no <code>sorry</code>, standard axioms, unchanged statement and definitions as compiled, and kernel replay) or <b>formalize statement and proof from the paper</b> (the model writes the Lean statement from the paper text; it is compared with the audited reference). Both measure at pass@1 with paper-cluster confidence intervals. Preview the corpus here, start the run from this page (or from PowerShell), then load the run and open the <Link to="/evaluation">Evaluation</Link> page.
-        </p>
+        <span className="eyebrow">QEDRank · evaluate models</span>
+        <h1>Evaluate Models on a Benchmark</h1>
+        <p>Run a selected benchmark corpus with one or more language models. Measure proof validity, Lean 4 verification, accuracy, efficiency, errors, and performance across different difficulty levels and subject areas.</p>
       </div>
 
       <section className="card">
         <div className="card-head">
           <div>
             <h2><span className="step">0</span>Models for this run</h2>
-            <p>The selection is shared with the front page. The run command below uses it as <code>--models</code>; models without a key are recorded as infrastructure failures, never as successes.</p>
+            <p>The selection is shared with Convert a Problem. The run command below uses it as <code>--models</code>; models without a key are recorded as infrastructure failures, never as successes.</p>
           </div>
+          <KeyHint />
         </div>
         <ModelPicker compact />
       </section>

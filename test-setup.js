@@ -29,7 +29,7 @@ const requiredFiles = [
   'scripts/set-llm-keys.ps1'
 ];
 
-console.log('🔍 QEDengine Project Structure Verification\n');
+console.log('🔍 QEDRank Project Structure Verification\n');
 
 let allFilesExist = true;
 
