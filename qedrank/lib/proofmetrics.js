@@ -164,7 +164,7 @@ export function theoremRecords(report, { source, file, problem = null }) {
       proofLines = proof.split('\n').filter((l) => l.trim()).length;
       proofTokens = leanTokens(proof).length;
     }
-    const byName = {};
+    const byName = Object.create(null); // tactic names include `constructor`: no prototype keys
     for (const [k, n] of Object.entries(cmd?.tactics_by_name || {})) if (!PLACEHOLDER_TACTICS.has(k)) byName[k] = n;
     const tactics = Object.values(byName).reduce((a, n) => a + n, 0);
     const inRange = (m) => line != null && m.line >= line && m.line <= (endLine ?? line);
@@ -187,7 +187,7 @@ export function theoremRecords(report, { source, file, problem = null }) {
       term_size: d.term_size ?? null,
       term_size_capped: Boolean(d.term_size_capped),
       tactics,
-      tactics_by_name: byName,
+      tactics_by_name: { ...byName },
       automation: Object.entries(byName).reduce((a, [k, n]) => a + (AUTOMATION.has(k) ? n : 0), 0),
       hypotheses: hyps.length,
       unused_hypotheses: hyps.filter((h) => h.used === false).map((h) => h.name),
@@ -198,18 +198,18 @@ export function theoremRecords(report, { source, file, problem = null }) {
   return out;
 }
 
-const countBy = (xs) => xs.reduce((a, k) => { a[k] = (a[k] || 0) + 1; return a; }, {});
+const countBy = (xs) => ({ ...xs.reduce((a, k) => { a[k] = (a[k] || 0) + 1; return a; }, Object.create(null)) });
 const sum = (xs) => xs.reduce((a, b) => a + b, 0);
 
 function linterSummary(reports) {
-  const by = {};
+  const by = Object.create(null);
   const perFile = [];
   for (const rep of reports) {
     let n = 0;
     for (const m of rep.messages || []) if (m.severity === 'warning' && m.linter) { by[m.linter] = (by[m.linter] || 0) + 1; n += 1; }
     perFile.push(n);
   }
-  return { total: sum(Object.values(by)), by_linter: by, files_with_warnings: perFile.filter((n) => n > 0).length, per_file: summarizeValues(perFile) };
+  return { total: sum(Object.values(by)), by_linter: { ...by }, files_with_warnings: perFile.filter((n) => n > 0).length, per_file: summarizeValues(perFile) };
 }
 
 const fileBroken = (rep) => Boolean(rep.error) || Boolean(rep.header_errors);
@@ -217,7 +217,7 @@ const fileBroken = (rep) => Boolean(rep.error) || Boolean(rep.header_errors);
 /** Summary of one proof source: its files' reports and the theorem records made from them. */
 export function summarizeProofs(records, reports) {
   const proofs = records.filter((r) => r.complete);
-  const byName = {};
+  const byName = Object.create(null);
   for (const r of proofs) for (const [k, n] of Object.entries(r.tactics_by_name)) byName[k] = (byName[k] || 0) + n;
   const calls = sum(Object.values(byName));
   const auto = sum(proofs.map((r) => r.automation));
@@ -239,7 +239,7 @@ export function summarizeProofs(records, reports) {
     automation_calls: auto,
     automation_share: calls ? auto / calls : null,
     top_tactics: Object.entries(byName).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).slice(0, 15).map(([name, count]) => ({ name, count, share: count / calls, automation: AUTOMATION.has(name) })),
-    tactic_counts: byName,
+    tactic_counts: { ...byName },
     hypotheses: {
       proofs_with_hypotheses: withHyps.length,
       proofs_with_unused: withHyps.filter((r) => r.unused_hypotheses.length > 0).length,
