@@ -21,9 +21,10 @@ function isPrimary(r) {
   return r.setting === 'pass@1' && r.attempt === 1 && r.repair_round === 0;
 }
 
-/** Agent runs have one record per problem and model: the whole session chain of the first epoch. */
+/** Agent runs have one record per problem and model: the whole session chain of the first epoch.
+ *  A single-call run merged into the comparison contributes its first attempt the same way. */
 function isPrimaryAgent(r) {
-  return r.setting === 'agent' && r.attempt === 1;
+  return (r.setting === 'agent' || r.setting === 'pass@1') && r.attempt === 1 && (r.repair_round ?? 0) === 0;
 }
 
 function costOf(rec, pricing) {
@@ -178,7 +179,7 @@ export function modelMetrics(records, allAttempts, { pricing = {}, bootOpts, k =
     .filter((x) => x !== null);
 
   const calStmt = calibration(eligStmt.filter((r) => r.confidence?.statement !== null && r.outcomes.statement_faithful !== null).map((r) => ({ confidence: r.confidence.statement, outcome: r.outcomes.statement_faithful })));
-  const calProof = calibration(nonInfra.filter((r) => r.confidence?.proof !== null && r.compile?.status !== 'not_attempted' || (r.abstained && r.confidence?.proof !== null)).map((r) => ({ confidence: r.confidence.proof, outcome: r.audit?.status === 'clean' ? 1 : 0 })));
+  const calProof = calibration(nonInfra.filter((r) => r.confidence?.proof != null && r.compile?.status !== 'not_attempted' || (r.abstained && r.confidence?.proof != null)).map((r) => ({ confidence: r.confidence.proof, outcome: r.audit?.status === 'clean' ? 1 : 0 })));
 
   return {
     n_records: records.length,

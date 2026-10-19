@@ -202,7 +202,7 @@ function statusFromIndex(entry) {
   return null;
 }
 
-function subjectTagsFromIndex(entry) {
+export function subjectTagsFromIndex(entry) {
   const raw = entry.subject_tags ?? entry.msc ?? entry.subjects ?? null;
   const list = Array.isArray(raw) ? raw : typeof raw === 'string' && raw.trim() ? [raw] : [];
   return list.map((t) => {

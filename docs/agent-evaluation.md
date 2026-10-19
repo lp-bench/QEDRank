@@ -157,7 +157,10 @@ final proof file, the grading record and the attempt record with its sessions, f
 run server), the "Attempts & failures" section (protocol block, status and failure-class
 charts) and the pass@k table (every k, prominent 1/2/4/8, estimate with interval, observed
 num/den, "—" where fewer than k attempts exist). The item-level table at the end filters by
-status, failure class and harness as well as the single-call fields.
+status, failure class and harness as well as the single-call fields. A single-call run merged in
+with `--merge-run` contributes its first attempts as primary records, so its compile, statement
+and verified rates, tokens and latency are reported next to the agent harness's; subject groups
+use the MSC code of each `Database.json` entry, as the single-call corpus loader does.
 
 ## 7. Fixes to the ProofBench harness (fork, branch `DGX_Testing`)
 

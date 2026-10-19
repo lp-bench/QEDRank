@@ -4,7 +4,7 @@ import path from 'node:path';
 import os from 'node:os';
 import { promises as fs } from 'node:fs';
 import { loadConfig } from '../lib/config.js';
-import { importProofbenchLogs, proofbenchItem, harnessProtocolOf, discoverSources, compileStatusFromLayer1 } from '../lib/harness/proofbench.js';
+import { importProofbenchLogs, proofbenchItem, harnessProtocolOf, discoverSources, compileStatusFromLayer1, loadDatabaseLabels } from '../lib/harness/proofbench.js';
 import { openRun, stageStatistics, collectItems } from '../lib/run.js';
 import { writeZip } from '../lib/harness/zip.js';
 import { normalizeSample } from '../lib/harness/evallog.js';
@@ -170,8 +170,28 @@ test('import: a run from another harness merges in with its own provider ids for
   const byId = Object.fromEntries(summary.models.map((m) => [m.id, m]));
   assert.equal(byId['qwen__qedrank-single'].harness, 'qedrank-single');
   assert.equal(byId['openai-api_qwen_qwen3-30b'].harness, 'proofbench');
+  // The merged run's first attempts are primary records of the comparison: its compile and
+  // statement rates are reported next to the agent harness's, not only its statuses.
+  assert.equal(summary.by_target.main_theorem['qwen__qedrank-single'].n_records, 1, 'merged single-call first attempt counts as a primary record');
+  assert.equal(summary.by_target.main_theorem['qwen__qedrank-single'].compile.den, 1);
   assert.equal(summary.by_target.all['qwen__qedrank-single'].failure_counts.tactic, 1, 'merged single-call records get a failure class from their grade');
   assert.equal(summary.by_target.all['openai-api_qwen_qwen3-30b'].status_counts.fully_solved, 1);
   assert.deepEqual(summary.run.merged_runs, ['single']);
+  await fs.rm(dir, { recursive: true, force: true });
+});
+
+test('database labels: the MSC code of an entry is its subject tag, as in the corpus loader', async () => {
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'qedrank-labels-'));
+  await fs.mkdir(path.join(dir, 'ProofBench', 'DATABASE'), { recursive: true });
+  await fs.writeFile(path.join(dir, 'ProofBench', 'DATABASE', 'Database.json'), JSON.stringify([
+    { id: 1, name: 'A', difficulty: 'Research', msc: '05C15 Coloring of graphs and hypergraphs' },
+    { id: 2, name: 'B', difficulty: 'Open', msc: ['11B37', '05D10 Ramsey theory'] },
+    { id: 3, name: 'C', difficulty: 'Undergraduate' },
+  ]));
+  const labels = await loadDatabaseLabels(dir);
+  assert.deepEqual(labels.P001.subject_tags, ['05C15'], 'free text after the code is not a tag');
+  assert.deepEqual(labels.P002.subject_tags, ['11B37', '05D10']);
+  assert.deepEqual(labels.P003.subject_tags, []);
+  assert.equal(labels.P002.difficulty, 'Open');
   await fs.rm(dir, { recursive: true, force: true });
 });

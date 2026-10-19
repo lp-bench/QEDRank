@@ -18,6 +18,7 @@ import { promises as fs } from 'node:fs';
 import { ITEM_SCHEMA, RUN_SCHEMA, MANIFEST_SCHEMA, STAGES, TARGET_KINDS, itemKey } from '../schema.js';
 import { ensureDir, exists, isoNow, readJson, slug, writeJson, writeText } from '../util.js';
 import { contaminationOf } from '../evaluate.js';
+import { subjectTagsFromIndex } from '../corpus.js';
 import { providerIdOf, modelIdOf } from '../agent.js';
 import { modelFacts } from '../../../lib/model-facts.js';
 import { readEvalLogs } from './evallog.js';
@@ -221,9 +222,10 @@ export async function loadDatabaseLabels(statementsDir) {
   for (const e of db) {
     const id = String(e.id ?? '').padStart(3, '0');
     if (!id) continue;
-    const msc = e.msc ?? e.MSC ?? e.msc_primary ?? null;
-    const tags = Array.isArray(msc) ? msc : msc ? String(msc).split(/[,;\s]+/).filter(Boolean) : [];
-    out[`P${id}`] = { name: e.name ?? null, difficulty: e.difficulty ?? null, subject_tags: tags.map((t) => String(t).slice(0, 2)).filter((t, i, a) => a.indexOf(t) === i), msc: tags, publication_date: e.publication_date ?? e.date ?? null };
+    // Same tag rule as the single-call corpus loader: the MSC code of an entry such as
+    // "05C15 Coloring of graphs and hypergraphs", so both harnesses group subjects alike.
+    const tags = subjectTagsFromIndex(e);
+    out[`P${id}`] = { name: e.name ?? null, difficulty: e.difficulty ?? null, subject_tags: tags, msc: tags, publication_date: e.publication_date ?? e.date ?? null };
   }
   return out;
 }
