@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { subjectGroup, proofbenchPerformance, matchProofMetrics } from '../lib/compare/build.js';
+import { subjectGroup, proofbenchPerformance, proofbenchRunFacts, matchProofMetrics } from '../lib/compare/build.js';
 import { difficultyLevel, mscArea, mscSection } from '../lib/compare/proofbench.js';
 import { comparisonTex, tex } from '../lib/compare/latex.js';
 import { promises as fs } from 'node:fs';
@@ -40,6 +40,9 @@ test('pass rates come from run summaries with exact intervals', async () => {
   const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'qr-cmp-'));
   await fs.writeFile(path.join(dir, 'summary.json'), JSON.stringify({
     run: { run_id: 'r1', source: { commit: 'abc' } },
+    generated_at: '2026-10-19T00:00:00Z',
+    coverage: { papers_discovered: 111, problems_by_model: { qwen: ['P001', 'P002'], kimi: ['P001'] }, coverage_differences: [{ model: 'kimi', covered: 1, of: 2, missing: ['P002'] }], common_problems: ['P001'] },
+    reference_defects: { references_total: 111, references_reviewed: 0, defects_recorded: 1, automated_findings: { invalid: 0, contains_placeholder: 1, missing: 0, statement_unavailable: 0 } },
     models: [{ id: 'qwen', label: 'Qwen', model_id: 'q' }, { id: 'kimi', label: 'Kimi', model_id: 'k' }],
     by_target: { main_theorem: { qwen: { verified_pass1: { num: 0, den: 80 }, n_records: 111, infrastructure_failures: 0 }, kimi: { verified_pass1: { num: 0, den: 0 }, n_records: 111, infrastructure_failures: 94 } } },
   }));
@@ -48,6 +51,14 @@ test('pass rates come from run summaries with exact intervals', async () => {
   assert.equal(perf[0].den, 80);
   assert.ok(Math.abs(perf[0].ci[1] - 0.0451) < 1e-3);
   assert.equal(perf[1].ci, null);
+  assert.equal(perf[0].covered, 2); assert.equal(perf[0].missing, 0); assert.equal(perf[0].problems_discovered, 111);
+  assert.equal(perf[1].covered, 1); assert.equal(perf[1].missing, 1);
+  const facts = await proofbenchRunFacts([dir]);
+  assert.equal(facts.run_id, 'r1');
+  assert.equal(facts.reference_defects.defects_recorded, 1);
+  assert.equal(facts.reference_defects.automated_findings.contains_placeholder, 1);
+  assert.equal(facts.coverage.common_problems, 1);
+  assert.equal(facts.coverage.differences[0].model, 'kimi');
 });
 
 test('LaTeX: special characters are escaped and the document is complete', () => {

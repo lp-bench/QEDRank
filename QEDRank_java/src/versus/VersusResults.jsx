@@ -206,13 +206,13 @@ function ProofsSection({ number, pm, note, base, others }) {
   const legend = withProofs.map((x) => ({ label: x.label, color: x.color }))
   const box = (field) => withProofs.map((x) => { const d = x.s[field] || {}; return { id: x.id, label: `${x.label} (${x.s.proofs})`, n: d.n, p10: d.p10, q1: d.q1, median: d.median, q3: d.q3, p90: d.p90, color: x.color } })
   const boxTable = (field) => ({ columns: ['Source', 'Proofs', 'P10', 'Q1', 'Median', 'Q3', 'P90', 'Max'], rows: withProofs.map((x) => { const d = x.s[field] || {}; return [x.label, num(x.s.proofs), num(d.p10), num(d.q1), num(d.median), num(d.q3), num(d.p90), num(d.max)] }) })
-  const tacticTotals = {}
+  const tacticTotals = Object.create(null) // `constructor` is a tactic name
   for (const x of withProofs) for (const [k, n] of Object.entries(x.s.tactic_counts || {})) tacticTotals[k] = (tacticTotals[k] || 0) + n
   const topNames = Object.entries(tacticTotals).sort((a, b) => b[1] - a[1]).slice(0, 12).map(([k]) => k)
   const tacticRows = topNames.map((name) => ({
     id: name,
     label: name,
-    values: Object.fromEntries(withProofs.map((x) => { const c = x.s.tactic_counts?.[name] || 0; return [x.id, { value: share(c, x.s.tactic_calls), text: `${c} (${pct(share(c, x.s.tactic_calls))})` }] })),
+    values: Object.fromEntries(withProofs.map((x) => { const c = Object.hasOwn(x.s.tactic_counts || {}, name) ? x.s.tactic_counts[name] : 0; return [x.id, { value: share(c, x.s.tactic_calls), text: `${c} (${pct(share(c, x.s.tactic_calls))})` }] })),
   }))
   const tacticMax = Math.min(1, Math.ceil(10 * Math.max(0.1, ...tacticRows.flatMap((r) => Object.values(r.values).map((v) => v.value || 0)))) / 10)
   const records = sources.flatMap((x) => (x.src.records || []).filter((r) => r.complete).map((r) => ({ ...r, sourceLabel: x.label })))
@@ -390,9 +390,12 @@ export default function VersusResults({ result }) {
       {perf.length > 0 && (
         <section className="ev-section">
           <h2 className="ev-h2"><span className="ev-num">8</span>{baseRow.name}: your QEDRank runs</h2>
-          <Figure title="Verified answers by model" subtitle="Established main theorems with a determinate outcome; whiskers are exact 95% intervals." table={{ columns: ['Run', 'Model', 'Verified', '95% interval', 'Provider/grader failures'], rows: perf.map((p) => [p.run_id, p.model, `${p.verified}/${p.den}`, p.ci ? `${pct(p.ci[0])}–${pct(p.ci[1])}` : '—', p.infra]) }}>
+          <Figure title="Verified answers by model" subtitle="Established main theorems with a determinate outcome; whiskers are exact 95% intervals." table={{ columns: ['Run', 'Model', 'Verified', '95% interval', 'Provider/grader failures', 'Problems covered', 'Lacks vs other models'], rows: perf.map((p) => [p.run_id, p.model, `${p.verified}/${p.den}`, p.ci ? `${pct(p.ci[0])}–${pct(p.ci[1])}` : '—', p.infra, p.covered == null ? '—' : `${p.covered}${p.problems_discovered ? ` of ${p.problems_discovered}` : ''}`, p.missing ?? '—']) }}>
             <HBars series={perf.filter((p) => p.den > 0).map((p, i) => ({ id: `${p.run_id}-${p.model}-${i}`, label: `${p.model} (${p.run_id})`, value: p.verified / p.den, lo: p.ci?.[0], hi: p.ci?.[1], text: `${p.verified}/${p.den}`, color: colors.proofbench }))} />
           </Figure>
+          {data.proofbench?.run_facts?.reference_defects && (() => { const d = data.proofbench.run_facts.reference_defects; const a = d.automated_findings || {}; return (
+            <p className="small">Reference defects (run {data.proofbench.run_facts.run_id}): {num(d.defects_recorded)} recorded by review, {num(d.references_reviewed)} of {num(d.references_total)} references reviewed; automated findings: {num(a.invalid)} invalid, {num(a.contains_placeholder)} with a placeholder, {num(a.missing)} missing, {num(a.statement_unavailable)} statement unavailable.{data.proofbench.run_facts.coverage ? ` Common problems of all models in that run: ${num(data.proofbench.run_facts.coverage.common_problems)}.` : ''}</p>
+          ) })()}
         </section>
       )}
     </>

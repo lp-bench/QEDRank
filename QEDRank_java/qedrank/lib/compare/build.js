@@ -88,8 +88,34 @@ export async function proofbenchPerformance(runDirs) {
         records: mm.n_records,
         infra: mm.infrastructure_failures,
         ci: clopperPearson(v.num, v.den),
+        // Coverage of this model: problems with at least one determinate attempt, and the
+        // problems other models of the run covered that this one lacks.
+        covered: summary.coverage?.problems_by_model?.[m.id]?.length ?? null,
+        missing: (summary.coverage?.coverage_differences || []).find((c) => c.model === m.id)?.missing?.length ?? 0,
+        problems_discovered: summary.coverage?.papers_discovered ?? null,
       });
     }
+  }
+  return out;
+}
+
+/**
+ * Run-level facts of the base corpus from the newest run summary that has them: the reference
+ * defects found or recorded, and the coverage differences between the run's models.
+ */
+export async function proofbenchRunFacts(runDirs) {
+  let out = { reference_defects: null, coverage: null, run_id: null };
+  for (const dir of runDirs) {
+    const summary = await readJson(path.join(dir, 'summary.json'), null);
+    if (!summary) continue;
+    const newer = !out.run_id || String(summary.generated_at || '') > String(out.generated_at || '');
+    if (!newer) continue;
+    out = {
+      run_id: summary.run?.run_id || path.basename(dir),
+      generated_at: summary.generated_at || null,
+      reference_defects: summary.reference_defects || null,
+      coverage: summary.coverage ? { papers_discovered: summary.coverage.papers_discovered ?? null, common_problems: summary.coverage.common_problems?.length ?? null, differences: summary.coverage.coverage_differences || [] } : null,
+    };
   }
   return out;
 }
@@ -212,6 +238,7 @@ export async function buildComparisonFor({ base, selections = [], runDirs = [], 
   if (!pb.problems) throw new Error(`no problems found in ${baseSource.url || baseSource.path}${baseSource.subdir ? ` (${baseSource.subdir})` : ''}`);
   pb.name = baseName;
   pb.performance = await proofbenchPerformance(runDirs);
+  pb.run_facts = await proofbenchRunFacts(runDirs);
 
   const benchmarks = [];
   let customN = 0;
