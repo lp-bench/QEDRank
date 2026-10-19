@@ -2,8 +2,16 @@
 // Nothing here ever contains a credential; keys stay in the environment.
 
 import path from 'node:path';
+import { existsSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { readJson } from './util.js';
 import { PROVIDER_IDS, getRoster } from '../../lib/providers.js';
+
+// The repository holds the app (QEDRank_java/) next to the ProofBench harness
+// (QEDRank-ProofBencheval/) and the built statements project (proofbench-statements/, a clone
+// that is not committed). A sibling folder that exists is the default; qedrank.config.json overrides.
+const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..', '..');
+const sibling = (name) => (existsSync(path.join(REPO_ROOT, name)) ? path.join(REPO_ROOT, name) : null);
 
 export const DEFAULT_CONFIG = Object.freeze({
   runsDir: 'runs',
@@ -53,10 +61,10 @@ export const DEFAULT_CONFIG = Object.freeze({
   modelFacts: {},
   allowedAxioms: ['propext', 'Classical.choice', 'Quot.sound'],
   // Evaluation harnesses QEDRank can drive or import (docs/agent-evaluation.md). Paths are
-  // machine-specific: set them in qedrank.config.json. Only `proofbench` has a driver and an
+  // machine-specific: set them in qedrank.config.json (defaults: the sibling folders above). Only `proofbench` has a driver and an
   // importer; the other entries are listed with their integration state and never block a run.
   harnesses: {
-    proofbench: { dir: null, bash: null, python: null, statements: 'proofbench-statements', leanProject: null, image: 'proofbench-sandbox:latest', statementsUrl: 'https://github.com/proof-bench/proofbench-statements' },
+    proofbench: { dir: sibling('QEDRank-ProofBencheval'), bash: null, python: null, statements: 'proofbench-statements', leanProject: sibling('proofbench-statements'), image: 'proofbench-sandbox:latest', statementsUrl: 'https://github.com/proof-bench/proofbench-statements' },
     'matharena-arxivlean': { dir: null, datasetMode: 'adapted' },
     'qedrank-harness': { dir: 'harness' },
   },

@@ -568,9 +568,10 @@ A run is reproduced from its folder alone: \code{run.json} names the corpus comm
 \toprule
 Where & What \\
 \midrule
-\code{C:\textbackslash QEDRank-QEDRank} & QEDRank, branch \code{QEDRank}, HEAD \code{bfc8df8}; 21 modified and several untracked files hold the pass@$k$, halt and page fixes (uncommitted on 2026-10-16) \\
-\code{C:\textbackslash proofbench-statements} & the benchmark's pinned Lean project (Lean/Mathlib v4.33.1, all 185 modules built), used with \code{--lean-project} \\
-\code{C:\textbackslash proofbench-eval} & the agent harness (branch \code{DGX\_Testing}, upstream \code{2803e81}) with \code{proofbench-statements} at \code{0a4a476}, image \code{proofbench-sandbox:latest} (P109--P111) \\
+\code{C:\textbackslash QEDRank} & the repository \code{github.com/vaibhav-baj/QEDRank}, branch \code{main}: one folder holding everything below \
+\code{QEDRank\_java/} & the app, the CLI (\code{node qedrank/cli.js}), the Lean audit project and \code{runs/} \
+\code{QEDRank-ProofBencheval/} & the agent harness (git subtree of \code{proof-bench/proofbench-eval-apptainer}, upstream \code{2803e81}, with the fork's fixes) with its \code{proofbench-statements} clone at \code{0a4a476}, image \code{proofbench-sandbox:latest} (P109--P111) \
+\code{proofbench-statements/} & the benchmark's pinned Lean project (Lean/Mathlib v4.33.1, all 185 modules built), used with \code{--lean-project}; not committed \\
 \code{runs/<run-id>/} & \code{run.json}, \code{manifest.json}, \code{prepared/}, \code{items/<key>/attempt-a\{k\}r\{r\}.json} and \code{response-*.txt}, \code{results.json}, \code{summary.json}, \code{exports/items.json}, \code{progress.json} \\
 \code{paper/} & \code{make-tex.cjs} (prove runs, $k \geq 1$) and \code{make-tex-formalize.cjs} (formalize, $k = 1$) regenerate every table and figure from a run folder; outputs \code{performance-matrix*.tex/.pdf}, \code{benchmark-comparison.tex} \\
 \bottomrule

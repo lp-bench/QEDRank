@@ -119,7 +119,7 @@ export default function VersusPage() {
       write('sessionStorage', RESULT, next)
     } catch (err) {
       const msg = err.response?.data?.error || err.message
-      setError(err.response ? msg : `Could not reach the run server at ${server}. Start it in PowerShell: cd C:\\QEDRank-QEDRank, then npm run qedrank:serve, and leave the window open. If your browser asks whether this site may access your local network, allow it. (${msg})`)
+      setError(err.response ? msg : `Could not reach the run server at ${server}. Start it in PowerShell: cd C:\\QEDRank\\QEDRank_java, then npm run qedrank:serve, and leave the window open. If your browser asks whether this site may access your local network, allow it. (${msg})`)
     } finally {
       setBusy(false)
     }

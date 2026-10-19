@@ -52,7 +52,7 @@ export const HARNESSES = Object.freeze([
     kind: 'agent',
     integration: 'fallback_untested',
     command: null,
-    repo: 'https://github.com/vaibhav-baj/QEDRank/tree/QEDRank/harness',
+    repo: 'https://github.com/vaibhav-baj/QEDRank/tree/main/QEDRank_java/harness',
     protocol: 'QEDRank\'s own Inspect AI harness (sessions with HANDOFF.md, QEDRank grade after every session).',
     limits: ['sessions', 'session_output_tokens'],
     tools: ['bash', 'python', 'lean', 'file edit', 'web_search (optional)'],

@@ -24,15 +24,28 @@ contributes no metric; the Docker route needs nothing of it.
 
 ## 2. Configuration
 
-`qedrank.config.json` (machine-specific, not committed):
+One repository, one branch (`main`), one folder:
+
+```
+QEDRank/                       the repository (github.com/vaibhav-baj/QEDRank, branch main)
+  QEDRank_java/                the app, the CLI (node qedrank/cli.js) and the Lean audit project
+  QEDRank-ProofBencheval/      the ProofBench agent harness with the QEDRank fork's fixes
+                               (git subtree of proof-bench/proofbench-eval-apptainer)
+    proofbench-statements/     private statements clone used to build the sandbox image (not committed)
+  proofbench-statements/       the built Lean project for grading (not committed)
+```
+
+The CLI runs from `QEDRank_java/`. Without configuration, `dir` and `leanProject` default to the
+sibling folders above when they exist. `qedrank.config.json` (machine-specific, not committed)
+overrides them:
 
 ```json
 {
   "harnesses": {
     "proofbench": {
-      "dir": "C:/proofbench-eval",
+      "dir": "C:/QEDRank/QEDRank-ProofBencheval",
       "statements": "proofbench-statements",
-      "leanProject": "C:/proofbench-statements",
+      "leanProject": "C:/QEDRank/proofbench-statements",
       "image": "proofbench-sandbox:latest"
     }
   },
@@ -40,7 +53,8 @@ contributes no metric; the Docker route needs nothing of it.
 }
 ```
 
-- `dir`: the harness checkout (branch `DGX_Testing` of this repository mirrors it, with the fork's fixes).
+- `dir`: the harness folder (`QEDRank-ProofBencheval/`, with the fork's fixes; upstream changes
+  can be extracted with `git subtree split --prefix=QEDRank-ProofBencheval`).
 - `statements`: the private statements clone inside it, checked out at the dataset commit of the run.
 - `leanProject`: the pinned Lean project (Lean 4.33.1, Mathlib, Matroid fork) for `--regrade`.
 - `python`, `bash`: optional overrides (defaults: the harness `.venv`; Git's bash on Windows).
@@ -162,7 +176,7 @@ with `--merge-run` contributes its first attempts as primary records, so its com
 and verified rates, tokens and latency are reported next to the agent harness's; subject groups
 use the MSC code of each `Database.json` entry, as the single-call corpus loader does.
 
-## 7. Fixes to the ProofBench harness (fork, branch `DGX_Testing`)
+## 7. Fixes to the ProofBench harness (folder `QEDRank-ProofBencheval/`)
 
 Both scoring fixes were located in the harness's code and implemented; see its README section
 "Changes in the QEDRank fork":
@@ -225,14 +239,12 @@ is `lean-cli` and is the only implemented value.
 
 ```bash
 # once
-git clone -b DGX_Testing https://github.com/vaibhav-baj/QEDRank.git ~/proofbench-eval   # the harness fork
-cd ~/proofbench-eval && uv venv .venv --python 3.12 && . .venv/bin/activate && pip install -e .
+git clone https://github.com/vaibhav-baj/QEDRank.git ~/QEDRank       # app + harness, branch main
+cd ~/QEDRank/QEDRank-ProofBencheval && uv venv .venv --python 3.12 && . .venv/bin/activate && pip install -e .
 git clone https://github.com/proof-bench/proofbench-statements proofbench-statements && git -C proofbench-statements checkout 0a4a476
 IDS="P109 P110 P111" scripts/build_image.sh            # sandbox image for the selected problems
-git clone -b QEDRank https://github.com/vaibhav-baj/QEDRank.git ~/qedrank && cd ~/qedrank && npm ci
-cat > qedrank.config.json <<'EOF'
-{ "harnesses": { "proofbench": { "dir": "/home/USER/proofbench-eval", "leanProject": "/home/USER/proofbench-statements" } } }
-EOF
+# the built Lean project for --regrade (optional): ~/QEDRank/proofbench-statements, lake build there
+cd ~/QEDRank/QEDRank_java && npm ci                    # harness and Lean project are found as sibling folders
 export QEDRANK_BASEURL_QWEN=http://127.0.0.1:8080/v1 QEDRANK_MODEL_QWEN=qwen3-30b-a3b-instruct-2507 QEDRANK_API_KEY_QWEN=...   # the llama.cpp server
 # the evaluation (resumable: run the same command again after a stop)
 tmux new -s qedrank
