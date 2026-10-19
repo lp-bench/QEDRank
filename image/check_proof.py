@@ -55,15 +55,35 @@ def norm(line: str) -> str:
     return " ".join(line.split())
 
 
+def signature_end(lines: list[str], i: int) -> tuple[int, int, str] | None:
+    """(line j, column, signature text) of the first `:=` at bracket depth 0 from line i on:
+    the one that ends the theorem's signature.  A `:=` inside binders, such as the named
+    argument in `(F := F)` of P102, is skipped."""
+    depth = 0
+    text: list[str] = []
+    for j in range(i, len(lines)):
+        l = lines[j]
+        k = 0
+        while k < len(l):
+            c = l[k]
+            if c in "([{⟨":
+                depth += 1
+            elif c in ")]}⟩":
+                depth = max(0, depth - 1)
+            elif depth == 0 and l.startswith(":=", k):
+                return j, k, " ".join(text + [l[:k]])
+            k += 1
+        text.append(l)
+    return None
+
+
 def statement_span(lines: list[str], short: str) -> tuple[int, int] | None:
-    """Line range [i, j] of `theorem short ... :=` (j is the line holding `:=`)."""
+    """Line range [i, j] of `theorem short ... :=` (j is the line holding the signature's `:=`)."""
     pat = re.compile(rf"^\s*(theorem|lemma)\s+{re.escape(short)}\b")
     for i, l in enumerate(lines):
         if pat.match(l):
-            for j in range(i, len(lines)):
-                if ":=" in lines[j]:
-                    return i, j
-            return None
+            end = signature_end(lines, i)
+            return (i, end[0]) if end else None
     return None
 
 
@@ -138,8 +158,9 @@ def main() -> None:
     elif sspan is None:
         errors.append(f"submission no longer states theorem {short}")
     else:
-        ref_stmt = norm(" ".join(ref_code[rspan[0] : rspan[1] + 1]).split(":=")[0])
-        sub_stmt = norm(" ".join(sub_code[sspan[0] : sspan[1] + 1]).split(":=")[0])
+        ref_stmt = norm(signature_end(ref_code, rspan[0])[2])
+        sub_end = signature_end(sub_code, sspan[0])
+        sub_stmt = norm(sub_end[2])
         if ref_stmt != sub_stmt:
             errors.append("theorem statement altered")
         needed = [norm(l) for l in ref_code[: rspan[0]] if norm(l) and not l.startswith("import")]
@@ -160,7 +181,7 @@ def main() -> None:
                     errors.append(f"line added before the theorem changes it: {h[:60]!r}")
         if k < len(needed):
             errors.append(f"reference line missing or altered before the theorem: {needed[k]!r}")
-        after = sub_code[sspan[1]].split(":=", 1)[1].strip()
+        after = sub_code[sspan[1]][sub_end[1] + 2 :].strip()
         proof_lines = sum(1 for l in sub_code[sspan[1] + 1 :] if l.strip()) + (1 if after not in ("", "by") else 0)
         if proof_lines == 0:
             errors.append("no proof after the statement")

@@ -12,6 +12,8 @@ ends without a proof, the model writes a handoff note in a fixed format
 under "sessions".
 """
 
+import asyncio
+import re
 from typing import Any
 
 from inspect_ai.agent import AgentPrompt, react, run
@@ -119,6 +121,23 @@ async def _handoff_note(messages: list[ChatMessage], max_tokens: int) -> str:
         return f"(no note: {type(ex).__name__}: {str(ex)[:200]})"
 
 
+# Exceptions (by class name) and messages that mean the model provider, not the model, failed.
+PROVIDER_ERRORS = (
+    "RateLimit", "APIStatus", "APIConnection", "APITimeout", "Timeout", "InternalServer", "ServiceUnavailable",
+    "Overloaded", "BadGateway", "GatewayTimeout", "ConnectError", "ReadTimeout", "RemoteProtocol",
+    "InsufficientQuota", "PermissionDenied", "AuthenticationError",
+)
+PROVIDER_MESSAGE = re.compile(r"\b(401|402|403|429|500|502|503|504)\b|rate.?limit|overloaded|insufficient.?(balance|quota)|connection (refused|reset|error)|temporarily unavailable", re.I)
+
+
+def error_kind(ex: BaseException) -> str:
+    """'provider' for transport, quota and server-side failures; 'other' for everything else."""
+    name = type(ex).__name__
+    if any(n in name for n in PROVIDER_ERRORS) or PROVIDER_MESSAGE.search(str(ex)):
+        return "provider"
+    return "other"
+
+
 @solver
 def handoff_sessions(
     tools: list[Tool | ToolSource],
@@ -127,13 +146,19 @@ def handoff_sessions(
     total_tokens: int | None = 1_000_000,
     working_seconds: float | None = 1800,
     note_tokens: int = 8000,
+    provider_retries: int = 2,
+    provider_backoff: float = 30.0,
 ) -> Solver:
     async def solve(state: TaskState, generate: Generate) -> TaskState:
         md = state.metadata
         note: str | None = None
         records: list[dict[str, Any]] = []
         transcript: list[ChatMessage] = []
-        for k in range(1, sessions + 1):
+        k, provider_failures = 1, 0
+        # A session that ends in a provider error is not the model's work: it is started again
+        # (provider_retries times, after a backoff) without counting against `sessions`; when the
+        # retries are used up the chain stops and the scorer reports NOANSWER (infrastructure).
+        while k <= sessions:
             files = await collect_submission(sandbox(), md)
             rel = lambda p: p[len(md["project_dir"]) + 1 :]
             helpers = [rel(p) for p in files if p != md["submission"]]
@@ -158,6 +183,7 @@ def handoff_sessions(
             work_limit = working_limit(working_seconds)
             agent = react(prompt=AgentPrompt(instructions=SYSTEM), tools=tools, attempts=1)
             messages: list[ChatMessage] = []
+            kind = None
             try:
                 agent_state, exceeded = await run(
                     agent, prompt, limits=[out_limit, all_limit, work_limit], name=f"session {k}"
@@ -165,7 +191,21 @@ def handoff_sessions(
                 messages = agent_state.messages
                 ended_by = exceeded.type if exceeded else "submit"
             except Exception as ex:
-                ended_by = f"error: {type(ex).__name__}: {str(ex)[:200]}"
+                kind = error_kind(ex)
+                ended_by = f"{'provider_error' if kind == 'provider' else 'error'}: {type(ex).__name__}: {str(ex)[:200]}"
+            if kind == "provider":
+                provider_failures += 1
+                records.append({
+                    "session": k, "ended_by": ended_by, "error_kind": "provider", "counted": False,
+                    "retry": provider_failures, "output_tokens": int(out_limit.usage), "total_tokens": int(all_limit.usage),
+                    "working_seconds": round(work_limit.usage), "passed": False, "errors": [],
+                })
+                state.store.set("sessions", records)
+                if provider_failures <= provider_retries:
+                    await asyncio.sleep(provider_backoff * provider_failures)
+                    continue  # the same session index again: a provider failure consumes no session
+                state.store.set("provider_abort", True)
+                break
             try:  # layer 1 only, to decide whether to stop
                 report = await check_submission(sandbox(), md, state.sample_id)
             except Exception as ex:
@@ -173,6 +213,8 @@ def handoff_sessions(
             record = {
                 "session": k,
                 "ended_by": ended_by,
+                "error_kind": kind,
+                "counted": True,
                 "output_tokens": int(out_limit.usage),
                 "total_tokens": int(all_limit.usage),
                 "working_seconds": round(work_limit.usage),
@@ -191,6 +233,7 @@ def handoff_sessions(
             state.store.set("sessions", records)
             if record["passed"]:
                 break
+            k += 1
         state.messages = transcript
         return state
 

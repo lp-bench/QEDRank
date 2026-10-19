@@ -15,7 +15,7 @@ from pathlib import Path
 from inspect_ai.event import ModelEvent, ToolEvent
 from inspect_ai.log import list_eval_logs, read_eval_log
 
-COLS = ["run", "model", "problem", "epoch", "correct", "sessions_used", "session_ends", "errors", "tokens_in",
+COLS = ["run", "model", "problem", "epoch", "correct", "status", "sessions_used", "session_ends", "errors", "tokens_in",
         "tokens_out", "tokens_total", "total_time_s", "working_time_s", "tool_calls", "tool_errors", "model_calls",
         "lines", "proof_lines", "compile_s", "axioms", "limit"]
 
@@ -34,7 +34,9 @@ def rows_for(log_dir: Path):
                 "problem": s.id,
                 "epoch": s.epoch,
                 "correct": int(sc.value == "C") if sc else "",
-                "sessions_used": len(sessions),
+                # C correct, I incorrect, N no answer (infrastructure: provider errors before any model output)
+                "status": sc.value if sc else "",
+                "sessions_used": sum(1 for r in sessions if r.get("counted", True)),
                 "session_ends": " ".join(str(r.get("ended_by", "")).split(":")[0] for r in sessions),
                 "errors": " | ".join(md.get("errors", []))[:200] if md else (sc.explanation if sc else ""),
                 "tokens_in": sum(u.input_tokens for u in usage.values()),

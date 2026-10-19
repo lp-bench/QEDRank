@@ -26,7 +26,7 @@ import re
 from pathlib import Path
 from typing import Any
 
-from inspect_ai.scorer import CORRECT, INCORRECT, Score, Target, accuracy, scorer, stderr
+from inspect_ai.scorer import CORRECT, INCORRECT, NOANSWER, Score, Target, accuracy, scorer, stderr
 from inspect_ai.solver import TaskState
 from inspect_ai.util import SandboxEnvironment, SandboxUserUnsupportedError, sandbox
 
@@ -154,6 +154,23 @@ def _verifier() -> SandboxEnvironment | None:
 def lean_check():
     async def score(state: TaskState, target: Target) -> Score:
         md = state.metadata
+        sessions = state.store.get("sessions", [])
+        # Every session ended in a provider error before the model produced anything: that is an
+        # infrastructure failure, not a model failure. NOANSWER keeps it out of the model's record
+        # (accuracy() still counts it as 0; results.csv shows it as status N).
+        if state.store.get("provider_abort") and not any((r.get("output_tokens") or 0) > 0 for r in sessions):
+            return Score(
+                value=NOANSWER,
+                explanation="infrastructure: every session ended in a provider error before any model output",
+                metadata={
+                    "infrastructure_error": True,
+                    "errors": [str(r.get("ended_by", "")) for r in sessions][:5],
+                    "comparator": "off" if not md.get("comparator", True) else None,
+                    "graded_in": None,
+                    "sessions_used": 0,
+                    "provider_failures": len(sessions),
+                },
+            )
         files = await collect_submission(sandbox(), md)
         if md["submission"] not in files:
             return Score(value=INCORRECT, explanation="cannot read submission")
@@ -183,7 +200,8 @@ def lean_check():
                 **report,
                 "comparator": comparator if use_comparator else "off",
                 "graded_in": "verifier" if verifier else "agent sandbox",
-                "sessions_used": len(state.store.get("sessions", [])),
+                "sessions_used": sum(1 for r in sessions if r.get("counted", True)),
+                "provider_failures": sum(1 for r in sessions if r.get("error_kind") == "provider"),
             },
         )
 

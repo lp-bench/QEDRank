@@ -25,6 +25,11 @@ Task parameters (pass with `-T name=value`):
   session_working_time   safety cap: working seconds per session (default 1800)
   note_tokens  output tokens for writing a handoff note (default 8000)
   comparator  run Comparator as the second grading layer (default True)
+  provider_retries  how often a session that ended in a provider error (rate limit,
+              5xx, connection) is started again without consuming a session
+              (default 2); when they are used up the problem is scored NOANSWER
+              (infrastructure), not INCORRECT
+  provider_backoff  seconds to wait before such a retry, times the retry count (default 30)
 """
 
 import json
@@ -90,16 +95,23 @@ def strip_comments(text: str) -> str:
 
 
 def qualified_theorem(text: str, pid: str) -> str:
-    """`pid` prefixed by the namespaces open at its declaration."""
-    stack: list[str] = []
+    """`pid` prefixed by the namespaces open at its declaration.
+
+    Namespaces and sections share one stack, as in Lean: `end X` (or a bare
+    `end`) closes the innermost of either.  A section that ends before the
+    theorem therefore no longer pops its enclosing namespace (P039, P105, P106
+    and P108 open a section inside their namespace; the old rule returned the
+    bare name for them, and every grading of those problems failed).
+    """
+    stack: list[tuple[str, str]] = []  # (kind, name)
     for line in text.splitlines():
-        m = re.match(r"^namespace\s+(\S+)", line)
+        m = re.match(r"^(?:noncomputable\s+)?(namespace|section)\b\s*(\S*)", line)
         if m:
-            stack.append(m.group(1))
-        elif re.match(r"^end\s+\S+", line) and stack:
+            stack.append((m.group(1), m.group(2)))
+        elif re.match(r"^end\b", line) and stack:
             stack.pop()
         elif re.match(rf"^\s*theorem\s+{pid}\b", line):
-            return ".".join(stack + [pid])
+            return ".".join([name for kind, name in stack if kind == "namespace" and name] + [pid])
     raise ValueError(f"{pid}: no `theorem {pid}` found")
 
 
@@ -176,6 +188,8 @@ def proofbench(
     session_working_time: int = 1800,
     note_tokens: int = 8000,
     comparator: bool = True,
+    provider_retries: int = 2,
+    provider_backoff: float = 30.0,
 ) -> Task:
     tools = [bash(timeout=tool_timeout), python(timeout=tool_timeout), text_editor(timeout=tool_timeout)]
     if lean_mcp:
@@ -227,6 +241,8 @@ def proofbench(
         total_tokens=session_tokens,
         working_seconds=session_working_time,
         note_tokens=note_tokens,
+        provider_retries=provider_retries,
+        provider_backoff=provider_backoff,
     )
 
     return Task(
@@ -247,5 +263,7 @@ def proofbench(
             "session_working_time": session_working_time,
             "note_tokens": note_tokens,
             "comparator": comparator,
+            "provider_retries": provider_retries,
+            "provider_backoff": provider_backoff,
         },
     )

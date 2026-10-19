@@ -14,3 +14,8 @@ image/context/
 journal-submission/
 # scratch for apptainer build
 .apptainer-tmp/
+# local run artefacts of the Windows helper scripts
+*.log
+last_run_id.txt
+.verify.*.lean
+vtmp.*/

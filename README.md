@@ -105,3 +105,26 @@ epochs, token/time/working limits.  Change any of these and it is a new run.
   several `sorry`s (P015, P017, P070) requires every one to be replaced.
 * Uniformity across vendors is not perfect: reasoning-effort dials differ, and
   Fable has always-on thinking.  Record the effort per model and report it.
+
+## Changes in the QEDRank fork (branch DGX_Testing)
+
+Two scoring fixes and two conveniences, each marked in the code; proposed upstream.
+
+* `qualified_theorem` (task.py) tracked only `namespace`, so a `section … end X`
+  inside a namespace popped the namespace: P039, P105, P106 and P108 were graded
+  under the bare name and every proof of them failed at `#print axioms`/Comparator.
+  Sections and namespaces now share one stack, as in Lean.
+* A session that ended in a provider error (rate limit, 5xx, connection, quota)
+  used to count as a session and the problem scored INCORRECT. It is now retried
+  `provider_retries` times (default 2, after `provider_backoff` seconds times the
+  retry count) without consuming a session; when the retries are used up the chain
+  stops and the scorer returns NOANSWER with `infrastructure_error: true`.
+  Inspect's `accuracy()` still counts NOANSWER as 0; `results.csv` has a `status`
+  column (C/I/N) and `sessions_used` counts only sessions the model worked in.
+* `check_proof.py` compared the signature up to the first `:=`, which in P102 is
+  the named argument `(F := F)`. The signature now ends at the first `:=` at
+  bracket depth 0 (matters only with Comparator off).
+* `scripts/run.sh` accepts `MESSAGE_LIMIT` (Inspect `--message-limit`, about two
+  messages per tool call), `PROVIDER_RETRIES` and `PROVIDER_BACKOFF`, and records
+  them in `manifest.json`. `scripts/build_image.sh` writes its staged files as
+  UTF-8 with `\n` so the image also builds from Windows.
