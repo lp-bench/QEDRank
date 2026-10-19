@@ -15,6 +15,7 @@ const EVALUATE_MEASURES = [
   'Latency and token usage',
   'Cost and resource consumption',
   'Performance by difficulty and subject area',
+  'Performance of different LLMs on your own dataset (e.g. ProofBench)',
 ]
 const COMPARE_AREAS = [
   'Number of problems',
@@ -22,7 +23,6 @@ const COMPARE_AREAS = [
   'Difficulty distribution',
   'Theorem and proof types',
   'Formalization language and Lean version',
-  'Model performance across datasets',
 ]
 
 export default function HomePage() {
