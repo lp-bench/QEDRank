@@ -106,7 +106,14 @@ epochs, token/time/working limits.  Change any of these and it is a new run.
 * Uniformity across vendors is not perfect: reasoning-effort dials differ, and
   Fable has always-on thinking.  Record the effort per model and report it.
 
-## Changes in the QEDRank fork (branch DGX_Testing)
+## Changes in the QEDRank fork
+
+This copy lives in the folder `QEDRank-ProofBencheval/` of the QEDRank repository
+(github.com/vaibhav-baj/QEDRank, branch `main`), added as a git subtree of
+proof-bench/proofbench-eval-apptainer with its full history. QEDRank drives it from the sibling
+folder `QEDRank_java/` (`node qedrank/cli.js agent-run`). To offer these changes upstream:
+`git subtree split --prefix=QEDRank-ProofBencheval -b proofbench-eval-upstream` in the repository
+root gives a branch with this folder's history only.
 
 Two scoring fixes and two conveniences, each marked in the code; proposed upstream.
 
