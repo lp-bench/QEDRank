@@ -1,0 +1,10 @@
+# Each project folder has its own .gitignore; this one covers the repository root.
+
+# Built Lean project of the private statements (a separate clone, never committed)
+/proofbench-statements/
+
+# OS and editor files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
