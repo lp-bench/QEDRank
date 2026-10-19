@@ -492,6 +492,18 @@ serve yourself (vLLM, SGLang), point its slot at the server:
 }
 ```
 
+### Private corpus
+
+`"privacy": { "privateCorpus": true, "allowedHosts": ["dgx-2", ".tu-freiberg.de"] }` makes every
+run refuse a model slot whose endpoint is not on the allow-list (loopback addresses are always
+allowed), before any request is sent; `--private` turns it on for one run and `--allow-host h1,h2`
+extends the list for one run. `node qedrank/cli.js models` shows which slots the policy refuses,
+and the check with the resolved hosts is recorded in `run.json` (`privacy`) and in
+`attempts-plan.json` of agent runs. With a private corpus such as ProofBench keep it on and
+restrict the roster to self-hosted slots (`QEDRANK_MODELS`). The run folders, the harness logs
+and the sandbox image hold the statements: they stay on local disks and in the private
+repository, and the deployment leaves them out (`.vercelignore`).
+
 ## Expert review inputs
 
 Put reviewer decisions under `runs/<run_id>/review/` and re-run `stats` (or

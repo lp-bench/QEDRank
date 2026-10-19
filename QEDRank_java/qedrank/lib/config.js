@@ -49,6 +49,9 @@ export const DEFAULT_CONFIG = Object.freeze({
   download: {},
   bootstrap: { B: 2000, seed: 20260930 },
   exploratoryThreshold: 10,
+  // Private corpus (ProofBench): refuse a model slot whose endpoint is not on the allow-list
+  // (loopback is always allowed), before any request is sent. qedrank/lib/privacy.js.
+  privacy: { privateCorpus: false, allowedHosts: [] },
   primaryEndpoint: {
     id: 'verified_pass1_main_theorem',
     description: 'Strict verified success at pass@1 on the main_theorem target: original model file compiles under the pinned toolchain, its target declaration depends only on the allowed axioms, its statement is an accepted match to the audited reference, and the paper claim is established.',

@@ -14,6 +14,7 @@ import { detectToolchain, LeanRunner } from './lean.js';
 import { preparePrelude, prepareReference, evaluateAttempt } from './evaluate.js';
 import { renderPrompt, PROMPT_TEMPLATE_VERSION, SYSTEM_PROMPT } from './prompt.js';
 import { generateOnce, listModels, loadFixtureProvider, providerHalt } from './models.js';
+import { assertPrivateCorpus, checkPrivateCorpus } from './privacy.js';
 import { buildSummary } from './metrics.js';
 import { writeExports } from './export.js';
 import { findDeclarations } from './leansrc.js';
@@ -342,6 +343,11 @@ export async function stageGeneration(ctx, { selection = null, retryFailed = fal
   ctx.run.model_ids = Object.fromEntries(listModels(process.env, models).map((m) => [m.id, mode === 'fixture' ? `fixture:${m.id}` : m.model_id]));
   ctx.run.model_hosts = Object.fromEntries(listModels(process.env, models).map((m) => [m.id, mode === 'fixture' ? null : m.host]));
   ctx.run.model_facts = Object.fromEntries(listModels(process.env, models).map((m) => [m.id, modelFacts(m.model_id, ctx.config.modelFacts || {})]));
+  // The check is recorded on the run before the gate: a refused run shows why generation never started.
+  ctx.run.privacy = checkPrivateCorpus({ config: ctx.config, slots: models, env: process.env, mode });
+  if (ctx.run.privacy.refused.length) await ctx.setStage('generation', 'blocked', { reason: `private corpus: refused slot(s) ${ctx.run.privacy.refused.join(', ')}` });
+  assertPrivateCorpus({ config: ctx.config, slots: models, env: process.env, mode });
+  if (ctx.run.privacy.enforced) ctx.log(`private corpus: every slot resolves to an allowed host (${ctx.run.privacy.slots.map((s) => `${s.slot}@${s.host}`).join(', ')})`);
   const genOpts = { system: SYSTEM_PROMPT, temperature: ctx.config.generation.temperature, effort: ctx.config.generation.effort ?? null, maxTokens: ctx.config.generation.maxTokens, timeoutMs: ctx.config.generation.timeoutMs, retries: ctx.config.generation.retries ?? 4, baseDelayMs: ctx.config.generation.retryBaseDelayMs ?? 2000, maxDelayMs: ctx.config.generation.retryMaxDelayMs ?? 60000, providerConcurrency: ctx.config.generation.providerConcurrency ?? 1, extraSampling: samplingExtras(ctx.config.generation) };
   ctx.run.selection = { papers: papers.map((p) => p.paper_id), models, targets: kinds };
   await ctx.setStage('generation', 'running');
@@ -523,6 +529,11 @@ export async function stageGenerationProve(ctx, { selection = null, retryFailed 
   ctx.run.model_ids = Object.fromEntries(described.map((m) => [m.id, mode === 'fixture' ? `fixture:${m.id}` : m.model_id]));
   ctx.run.model_hosts = Object.fromEntries(described.map((m) => [m.id, mode === 'fixture' ? null : m.host]));
   ctx.run.model_facts = Object.fromEntries(described.map((m) => [m.id, modelFacts(m.model_id, ctx.config.modelFacts || {})]));
+  // The check is recorded on the run before the gate: a refused run shows why generation never started.
+  ctx.run.privacy = checkPrivateCorpus({ config: ctx.config, slots: models, env: process.env, mode });
+  if (ctx.run.privacy.refused.length) await ctx.setStage('generation', 'blocked', { reason: `private corpus: refused slot(s) ${ctx.run.privacy.refused.join(', ')}` });
+  assertPrivateCorpus({ config: ctx.config, slots: models, env: process.env, mode });
+  if (ctx.run.privacy.enforced) ctx.log(`private corpus: every slot resolves to an allowed host (${ctx.run.privacy.slots.map((s) => `${s.slot}@${s.host}`).join(', ')})`);
   const genOpts = { system: SYSTEM_PROMPT, temperature: ctx.config.generation.temperature, effort: ctx.config.generation.effort ?? null, maxTokens: ctx.config.generation.maxTokens, timeoutMs: ctx.config.generation.timeoutMs, retries: ctx.config.generation.retries ?? 4, baseDelayMs: ctx.config.generation.retryBaseDelayMs ?? 2000, maxDelayMs: ctx.config.generation.retryMaxDelayMs ?? 60000, providerConcurrency: ctx.config.generation.providerConcurrency ?? 1, extraSampling: samplingExtras(ctx.config.generation) };
   ctx.run.selection = { papers: papers.map((p) => p.paper_id), models, targets: kinds };
   for (const s of ['generation', 'compilation', 'audit', 'comparison']) await ctx.setStage(s, 'running');

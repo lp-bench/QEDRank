@@ -59,6 +59,10 @@ overrides them:
 - `leanProject`: the pinned Lean project (Lean 4.33.1, Mathlib, Matroid fork) for `--regrade`.
 - `python`, `bash`: optional overrides (defaults: the harness `.venv`; Git's bash on Windows).
 - `pricing`: USD per million tokens per model id; without it cost is "unavailable", never 0.
+- `privacy`: `{ "privateCorpus": true, "allowedHosts": [...] }` refuses any model slot whose endpoint
+  is not an allowed host (loopback always is) before a run or an agent run sends anything, and
+  records the resolved hosts on the run. On for ProofBench; the pilot's hosted slots (GWDG, Moonshot)
+  are refused unless their hosts are added deliberately.
 
 The model keys stay in the environment (`scripts/set-llm-keys.ps1`); the driver passes the key of
 each selected slot to the harness process only, under the name Inspect expects (`QWEN_API_KEY`,
