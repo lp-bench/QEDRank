@@ -11,6 +11,7 @@
 import path from 'node:path';
 import { spawn, execFile } from 'node:child_process';
 import { getProvider, resolveModelId, resolveBaseUrl, resolveApiKey } from '../../../lib/providers.js';
+import { assertPrivateCorpus } from '../privacy.js';
 import { isoNow, readJson, writeJson } from '../util.js';
 import { readEvalLogs } from './evallog.js';
 import { attemptLogDir, importProofbenchLogs, MAX_ATTEMPTS } from './proofbench.js';
@@ -134,6 +135,8 @@ export async function runAttempts({ config, runId, slots, problems, attempts = 1
   const statementsCommit = await new Promise((resolve) => execFile('git', ['-C', settings.statements, 'rev-parse', 'HEAD'], { timeout: 15000, windowsHide: true }, (err, out) => resolve(err ? null : String(out).trim())));
   if (datasetRef && statementsCommit && !statementsCommit.startsWith(datasetRef)) throw new Error(`the statements clone is at ${statementsCommit.slice(0, 10)}, not at the pinned commit ${datasetRef}: check it out first (git -C "${settings.statements}" checkout ${datasetRef})`);
   const models = slots.map((s) => inspectModelFor(s));
+  const privacy = assertPrivateCorpus({ config, slots, env: process.env });
+  if (privacy.enforced) log(`private corpus: every slot resolves to an allowed host (${privacy.slots.map((s) => `${s.slot}@${s.host}`).join(', ')})`);
   for (const m of models) if (!m.configured) throw new Error(`${m.slot}: no API key in the environment (${getProvider(m.slot).envKey})`);
   const runDir = path.join(config.runsDir, runId);
   const state = { child: null, stopped: false };
@@ -143,7 +146,7 @@ export async function runAttempts({ config, runId, slots, problems, attempts = 1
   process.once('SIGTERM', onSig);
   process.once('SIGINT', onSig);
   const planFile = path.join(runDir, 'attempts-plan.json');
-  const plan = { schema: 'qedrank-attempts-plan-v1', run_id: runId, harness: 'proofbench', harness_dir: settings.dir, statements_commit: statementsCommit, dataset_ref: datasetRef, problems, models: models.map((m) => ({ slot: m.slot, model: m.model })), attempts, limits, effort, search, network, comparator, max_cost_usd: maxCostUsd, started_at: isoNow(), events: [] };
+  const plan = { schema: 'qedrank-attempts-plan-v1', run_id: runId, privacy, harness: 'proofbench', harness_dir: settings.dir, statements_commit: statementsCommit, dataset_ref: datasetRef, problems, models: models.map((m) => ({ slot: m.slot, model: m.model })), attempts, limits, effort, search, network, comparator, max_cost_usd: maxCostUsd, started_at: isoNow(), events: [] };
   const importAll = async () => {
     const sources = [];
     for (let a = 1; a <= attempts; a += 1) sources.push({ dir: attemptLogDir(settings.dir, runId, a), attempt: a });
@@ -199,6 +202,7 @@ export async function runAttempts({ config, runId, slots, problems, attempts = 1
   const run = await readJson(path.join(runDir, 'run.json'), null);
   if (run) {
     for (const st of final) if (run.attempts?.by_attempt?.[st.attempt]) run.attempts.by_attempt[st.attempt].status = st.status === 'partial' && stopReason !== 'completed' ? 'cancelled' : st.status === 'interrupted' ? 'cancelled' : st.status;
+    run.privacy = privacy;
     run.attempts = { ...(run.attempts || {}), stop_reason: stopReason, plan_file: 'attempts-plan.json' };
     run.updated_at = isoNow();
     await writeJson(path.join(runDir, 'run.json'), run);

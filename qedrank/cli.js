@@ -8,12 +8,12 @@
 //       --repo accepts https://github.com/<owner>/<repo>[/tree/<branch>] (private: --token <PAT> or GITHUB_TOKEN)
 //       or git@github.com:<owner>/<repo>.git (private over SSH, uses your SSH agent / deploy key)
 //       --subdir <folder> restricts discovery to one folder (a /tree/<branch>/<folder> link sets it too)
-//   node qedrank/cli.js run --repo <url> [--ref R] [--run-id ID] [--models a,b] [--papers p1,p2] [--targets main_theorem,...] [--limit N]
+//   node qedrank/cli.js run --repo <url> [--ref R] [--run-id ID] [--models a,b] [--papers p1,p2] [--targets main_theorem,...] [--limit N] [--private] [--allow-host h1,h2]
 //                          [--task formalize|prove] [--lean-project DIR] [--fixtures DIR] [--attempts K] [--repair-rounds R] [--config file] [--dry-run]
 //       --task formalize (default): the model writes statement and proof from the paper text; the statement is compared with the reference
 //       --task prove: the model gets the challenge file and fills in its sorry; the file is judged by the independent check (no PDF needed)
 //       --lean-project: the Lean project whose toolchain, Mathlib and libraries compile the files (default lean/; a built ProofBench checkout for its statement library)
-//   node qedrank/cli.js resume --run-id ID [--retry-failed] [--reevaluate [--no-generate]] [--lean-project DIR]
+//   node qedrank/cli.js resume --run-id ID [--retry-failed] [--reevaluate [--no-generate]] [--lean-project DIR] [--private] [--allow-host h1,h2]
 //       --reevaluate grades the stored answers again (e.g. in another --lean-project); --no-generate never calls a
 //       model, so items whose answer is missing or a provider error keep their record
 //   node qedrank/cli.js stats --run-id ID
@@ -32,7 +32,7 @@
 //       probe of its statements, measured with Lean in each project (runs/_compare/proof-metrics.json, shown on Head-to-head)
 //   node qedrank/cli.js harnesses [--json]
 //       the evaluation harnesses this machine can run, with their integration state
-//   node qedrank/cli.js agent-run --run-id ID --models slot[,slot] --problems P001,P002 [--attempts 1..16] [--harness proofbench]
+//   node qedrank/cli.js agent-run --run-id ID --models slot[,slot] --problems P001,P002 [--attempts 1..16] [--harness proofbench] [--private] [--allow-host h1,h2]
 //                          [--sessions N] [--session-output-tokens N] [--session-tokens N] [--session-working-time S] [--note-tokens N]
 //                          [--max-tokens N] [--request-timeout S] [--attempt-timeout S] [--time-limit S] [--message-limit N] [--max-samples N]
 //                          [--max-cost-usd X] [--effort low|high|max] [--comparator on|off] [--search] [--ref COMMIT] [--retry-infra] [--regrade [--lean-project DIR]]
@@ -48,6 +48,7 @@
 import path from 'node:path';
 import { promises as fs } from 'node:fs';
 import { loadConfig } from './lib/config.js';
+import { checkPrivateCorpus } from './lib/privacy.js';
 import { openSource } from './lib/source.js';
 import { discoverCorpus } from './lib/corpus.js';
 import { detectToolchain } from './lib/lean.js';
@@ -121,7 +122,9 @@ async function main() {
   if (args['runs-dir']) overrides.runsDir = args['runs-dir'];
   if (typeof args.task === 'string') overrides.task = args.task;
   if (typeof args['lean-project'] === 'string') overrides.leanDir = path.resolve(args['lean-project']);
+  if (args.private) overrides.privacy = { ...(overrides.privacy || {}), privateCorpus: true };
   const config = await loadConfig({ configFile: args.config || null, overrides });
+  if (typeof args['allow-host'] === 'string') config.privacy.allowedHosts = [...(config.privacy.allowedHosts || []), ...list(args['allow-host'])];
 
   switch (cmd) {
     case 'toolchain': {
@@ -134,6 +137,8 @@ async function main() {
       const ids = args.all ? PROVIDER_IDS : list(args.models).length ? list(args.models) : getRoster();
       const rows = listModels(process.env, ids);
       if (args.json) { console.log(JSON.stringify(rows, null, 2)); return; }
+      const pol = checkPrivateCorpus({ config, slots: ids, env: process.env });
+      if (pol.enforced) console.log(`private corpus: allowed hosts ${pol.allowed_hosts.join(', ')}; refused slots: ${pol.refused.length ? pol.slots.filter((r) => !r.allowed).map((r) => `${r.slot} (${r.host || 'unknown host'})`).join(', ') : 'none'}`);
       console.log('slot | id | provider | model | key | status');
       rows.forEach((m, i) => console.log(`${String(i + 1).padStart(2)} | ${m.id} | ${m.label} | ${m.model_id || '(set QEDRANK_CUSTOM_MODEL)'} | ${m.env_key} | ${m.retired ? 'retired' : m.configured ? 'configured' : 'no key'}`));
       return;
