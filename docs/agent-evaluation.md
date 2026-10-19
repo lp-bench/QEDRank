@@ -194,7 +194,16 @@ Executed on this PC (Windows 11, Docker Desktop):
   filter, drawer fetching the proof, grading and attempt records from the run server, pass@k
   table with unavailable cells shown as dashes, protocol block, item filters, exports, and the
   Evaluate Models form with the ProofBench harness selected (budgets, command preview); 30/30
-  checks, no console errors.
+  checks, no console errors;
+- `lean-bench` on P001 and P002 of the pinned ProofBench project (about 40 s per compile, about
+  190 s per graded file on a 14-core PC). It exposed a grader false positive: `#qr_olean_diff`
+  instantiated the solution's universe parameters, which also simplifies levels (`max 1 (u+1)`
+  to `u+1`), but left the reference untouched, so a definition whose elaborated value carries
+  such a level (P001 `hadwigerNumber`) compared as `value_changed` even between byte-identical
+  object files. Fixed in `lean/QEDRank/Audit.lean` (both sides are instantiated and normalised);
+  re-grading P001 against itself now reports only `contains_sorry`. None of the 22 stored grading
+  records of earlier runs had been affected (checked), but any future submission to such a
+  problem would have been rejected.
 
 Not executed: a ProofBench run with a real model from QEDRank (needs the self-hosted Qwen3 server
 or a priced API key), `--regrade` on the DGX, MathArena (not integrated), `harness/` (fallback),

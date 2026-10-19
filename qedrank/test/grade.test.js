@@ -242,3 +242,29 @@ test('grade fixtures end to end (QEDRANK_LEAN_TESTS=1)', { skip: !process.env.QE
   }
   await fs.rm(scratch, { recursive: true, force: true });
 });
+
+// Regression: #qr_olean_diff instantiated the solution's universe parameters, which also
+// simplifies levels (max 1 (u+1) -> u+1), but not the reference's, so a definition whose
+// elaborated value carries such a level compared as value_changed between byte-identical
+// object files (ProofBench P001, hadwigerNumber). Core Lean normalises such levels away, so
+// the case needs a Mathlib-based statement: opt-in with QEDRANK_LEAN_TESTS=1 and
+// QEDRANK_PROOFBENCH_PROJECT=<built proofbench-statements checkout>; several minutes.
+test('grade: a ProofBench challenge graded against itself keeps its definitions (QEDRANK_PROOFBENCH_PROJECT)', { skip: !process.env.QEDRANK_LEAN_TESTS || !process.env.QEDRANK_PROOFBENCH_PROJECT }, async (t) => {
+  const project = process.env.QEDRANK_PROOFBENCH_PROJECT;
+  const toolchain = await detectToolchain(project);
+  assert.equal(toolchain.available, true, toolchain.reason);
+  const runner = new LeanRunner(toolchain, { timeoutMs: 900000 });
+  const scratch = await fs.mkdtemp(path.join(os.tmpdir(), 'qedrank-grade-levels-'));
+  try {
+    for (const id of (process.env.QEDRANK_PROOFBENCH_IDS || 'P001').split(',')) {
+      const src = await fs.readFile(path.join(project, 'ProofBench', 'PROBLEMS', id, `${id}.lean`), 'utf8');
+      const g = await gradeSubmission({ runner, toolchain, challengeSrc: src, solutionSrc: src, target: id, scratchDir: path.join(scratch, id), cacheDir: path.join(scratch, 'cache'), policy: { libraryPrefixes: ['ProofBench.Mathlib_Problems', 'Matroid', 'Archive.Sensitivity'], allowUnusedSorry: true, kernelReplay: false } });
+      t.diagnostic(`${id}: ${g.verdict} [${g.reasons.join(', ')}] ${JSON.stringify(g.checks.statement?.counts)}`);
+      assert.deepEqual(g.reasons, ['contains_sorry'], `${id}: ${JSON.stringify(g.checks.statement)}`);
+      assert.deepEqual(g.checks.statement.definitions_changed, [], id);
+      assert.equal(g.checks.statement.target_status, 'same', id);
+    }
+  } finally {
+    await fs.rm(scratch, { recursive: true, force: true });
+  }
+});
