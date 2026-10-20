@@ -37,7 +37,7 @@ rc = int(open("/tmp/l2.rc").read())
 out = open("/tmp/l2.out").read().strip()
 print(json.dumps({
     "case": sys.argv[1],
-    "layer1": {"ok": rep["ok"], "errors": [e[:300] for e in rep["errors"]], "completeness": rep.get("completeness")},
+    "layer1": {"ok": rep["ok"], "errors": [e[:300] for e in rep["errors"]]},
     "layer2": {"ok": rc == 0, "returncode": rc, "output": out[-600:]},
 }))
 PY

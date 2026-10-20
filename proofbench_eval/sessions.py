@@ -177,7 +177,6 @@ def handoff_sessions(
                 "total_tokens": int(all_limit.usage),
                 "working_seconds": round(work_limit.usage),
                 "passed": bool(report.get("ok")),
-                "completeness": report.get("completeness"),
                 "errors": report.get("errors", [])[:3],
             }
             transcript += messages

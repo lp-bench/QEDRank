@@ -2,12 +2,11 @@ Keep every item short: not much explanations.
 When an item is done, delete it. When part of it is done, delete only that part.
 
 # Roadmap
-- Decide the next pilot (model, problems). Last: `qwen3.8-27b` solved P109–P111 3/3 (sessions 4, 3, 3; 40k output tokens/session; Comparator off).
+- Decide the next pilot (model, problems). Last: `qwen3.8-27b` solved P109–P111 3/3 (sessions 4, 3, 3; 40k output tokens/session; Comparator off, so unverified until regraded with Comparator).
 - Prove-or-disprove for the 32 open problems: both files in the sandbox, "prove either", grade whichever passes, record the polarity. (needs your yes: changes the format)
 - Wider local run of free Qwen on more problems, exercising Matroid (P002/P015). (needs your yes: more problems go to the university endpoint)
 - When websearch is on, we must (?) allow the agent install Lean libraries and incorporate them in their proof. Checker must be adjusted accordingly because currently checker does not allow it. We should have this as a swtichable option. --libraries-on --libraries-off
 (Claude: a library's code runs at compile time inside the same containers as the agent's own code, so no new way to reach the host, but unaudited third-party code. Belongs to the search-on configuration: finding and using a library is a capability we measure; fair because every model gets the same switch.)
-- Layer 1 misses a statement whose text is unchanged but whose meaning changed: an `instance` or `variable [...]` added before the theorem (tests/grader_attacks: local_instance, global_instance, variable_hypothesis). Comparator catches all three; with COMPARATOR=off (as in the Qwen pilots) they pass. Fix: reject such lines before the theorem, as for `macro_rules`. (needs your yes)
 
 ## Claude not needed after this line. ##
 

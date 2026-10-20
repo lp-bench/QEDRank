@@ -44,8 +44,7 @@ HPC cluster with Apptainer, without root.
    commit, image, Lean and Mathlib versions, problem commit, model, reasoning
    effort, search, budgets), and [`scripts/analyze.py`](scripts/analyze.py)
    writes one row per attempt to `results.csv`: verdict, sessions used, tokens,
-   total and working time, tool and model calls, proof length, axioms and
-   completeness (the share of proof steps without `sorry`, after every session).
+   total and working time, tool and model calls, proof length and axioms.
 6. **Statistics.** [`scripts/stats.py`](scripts/stats.py) turns one or more
    runs into the tables of a results section: solve rates with 95% bootstrap
    intervals (overall and per category), paired McNemar tests between models
@@ -144,6 +143,9 @@ tests/grader_attacks/        cheating attempts the grader must reject, and run.s
 - A submission is the main file `Submission/Pxxx.lean` plus every file under
   `Submission/` that it imports, transitively. All of them are checked and
   built before the main file compiles.
+- Layer 1 is a permissive pre-filter that picks promising candidates;
+  Comparator makes the final judgment. Keep it on (`COMPARATOR=on`) for every
+  graded run: some tricks pass layer 1 by design (see tests/grader_attacks).
 - Comparator needs Landlock in the host kernel; `scripts/hpc_preflight.sh`
   checks that it actually engages.
 - Claimed solutions of open problems are checked by hand before any claim is

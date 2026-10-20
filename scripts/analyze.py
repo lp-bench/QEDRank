@@ -4,11 +4,8 @@
 usage: scripts/analyze.py LOG_DIR [more LOG_DIRs]   -> writes LOG_DIR/results.csv and prints it
 Columns: run, model, problem, epoch, correct, sessions_used, session_ends,
 errors, tokens_in, tokens_out, tokens_total, total_time_s, working_time_s,
-tool_calls, tool_errors, model_calls, lines, proof_lines, compile_s, axioms, limit,
-completeness, completeness_by_session.
-session_ends lists how each session ended (submit, token, working, error);
-completeness is that of the final file (share of proof steps without sorry,
-see image/check_proof.py), completeness_by_session the same after each session.
+tool_calls, tool_errors, model_calls, lines, proof_lines, compile_s, axioms, limit.
+session_ends lists how each session ended (submit, token, working, error).
 """
 
 import csv
@@ -20,7 +17,7 @@ from inspect_ai.log import list_eval_logs, read_eval_log
 
 COLS = ["run", "model", "problem", "epoch", "correct", "sessions_used", "session_ends", "errors", "tokens_in",
         "tokens_out", "tokens_total", "total_time_s", "working_time_s", "tool_calls", "tool_errors", "model_calls",
-        "lines", "proof_lines", "compile_s", "axioms", "limit", "completeness", "completeness_by_session"]
+        "lines", "proof_lines", "compile_s", "axioms", "limit"]
 
 
 def rows_for(log_dir: Path):
@@ -53,9 +50,6 @@ def rows_for(log_dir: Path):
                 "compile_s": md.get("compile_seconds", ""),
                 "axioms": " ".join(md.get("axioms", [])),
                 "limit": s.limit.type if s.limit else "",
-                "completeness": "" if md.get("completeness") is None else md["completeness"],
-                "completeness_by_session": " ".join("-" if r.get("completeness") is None else str(r["completeness"])
-                                                    for r in sessions),
             }
 
 

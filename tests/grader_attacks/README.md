@@ -34,7 +34,7 @@ solutions of the private development repository (`PB`, default
 | `solved_P110`, `solved_P014` | accept | the reference solution |
 | `reformatted_P110` | accept | a solution with other comments, blank lines, spacing and line breaks |
 | `untouched_P110` | reject | the problem file as given |
-| `partial_P110` | reject | lemmas, one still `sorry` (completeness 2/3) |
+| `partial_P110` | reject | lemmas, one still `sorry` |
 | `unused_sorry_P110` | reject | a solution plus an unused lemma with `sorry` |
 | `compile_error_P110` | reject | a proof that does not compile |
 | `changed_statement_P110` | reject | a weaker, trivial statement |
@@ -58,11 +58,14 @@ rewritten against ProofBench problems.
 
 ## Last run
 
-2026-10-19, image of 2026-10-12 (Lean 4.33.1): all 22 cases as expected.
+2026-10-20, image of 2026-10-12 (Lean 4.33.1): all 22 cases as expected, and
+every rejection by Comparator gives the intended reason.
 
 - Layer 1 alone accepts `local_instance`, `global_instance` and
   `variable_hypothesis`: their statement text is unchanged. Comparator rejects
-  all three ("Challenge and solution theorem statement do not match"), so a
-  run with Comparator off would accept them.
+  all three ("Challenge and solution theorem statement do not match"). This is
+  by design: layer 1 is a permissive pre-filter, since a valid proof it
+  rejected could not be recovered, and Comparator makes the final judgment.
+  A run with Comparator off would accept these three.
 - Comparator alone accepts `unused_sorry`: it checks only the main theorem.
   Layer 1 rejects it (no `sorry` anywhere).

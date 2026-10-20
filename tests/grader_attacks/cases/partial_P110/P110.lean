@@ -1,5 +1,5 @@
 -- expect: reject
--- Work in progress: the proof is split into lemmas, one still `sorry` (completeness 2/3).
+-- Work in progress: the proof is split into lemmas, one still `sorry`.
 import Mathlib.Data.Fintype.Pigeonhole
 import Mathlib.Algebra.BigOperators.Intervals
 import Mathlib.Data.ZMod.Basic

@@ -6,8 +6,7 @@ import Mathlib.Data.ZMod.Basic
 
 set_option debug.skipKernelTC true in
 run_cmd Lean.Elab.Command.liftCoreM do
-  Lean.addDecl (.thmDecl { name := `cheat, levelParams := [], type := Lean.mkConst ``False,
-    value := Lean.mkConst ``True.intro })
+  Lean.addDecl (.thmDecl { name := `cheat, levelParams := [], type := Lean.mkConst ``False, value := Lean.mkConst ``True.intro })
 
 /-- **A Zero-Sum Block of Consecutive Integers.** Among any `n` integers some block of
 consecutive terms has sum divisible by `n`. -/

@@ -129,12 +129,9 @@ def main() -> None:
     for m in models:
         ps = by_mp[m]
         vals = [solved(rs) for rs in ps.values()]
-        unsolved_c = [float(r["completeness"]) for rs in ps.values() for r in rs
-                      if not int(r["correct"]) and str(r.get("completeness", "")) not in ("", "None")]
         row = {"model": m, "problems": len(ps), "attempts": sum(map(len, ps.values())),
                "solved": sum(int(r["correct"]) for rs in ps.values() for r in rs),
                "rate": sum(vals) / len(vals), "ci": ci(vals, rng),
-               "completeness_unsolved": sum(unsolved_c) / len(unsolved_c) if unsolved_c else None,
                "by_category": {}}
         for c in sorted({cat(p) for p in ps}):
             v = [solved(rs) for p, rs in ps.items() if cat(p) == c]
@@ -142,11 +139,11 @@ def main() -> None:
         rates.append(row)
     report["solve_rates"] = rates
     print(f"{len(scored)} scored attempts ({len(rows) - len(scored)} without a score) over {len(models)} models\n")
-    print(f"{'model':40} {'problems':>8} {'solved':>6} {'rate %':>7} {'95% CI':>13} {'compl. unsolved':>15}")
+    print(f"{'model':40} {'problems':>8} {'solved':>6} {'rate %':>7} {'95% CI':>13}")
     for r in rates:
         lo, hi = r["ci"]
         print(f"{r['model']:40} {r['problems']:>8} {r['solved']:>6} {pct(r['rate']):>7} "
-              f"{pct(lo):>6}-{pct(hi):<6} {pct(r['completeness_unsolved']):>15}")
+              f"{pct(lo):>6}-{pct(hi):<6}")
         for c, v in r["by_category"].items():
             print(f"  {c:38} {v['problems']:>8} {'':>6} {pct(v['rate']):>7} {pct(v['ci'][0]):>6}-{pct(v['ci'][1]):<6}")
 
