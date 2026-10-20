@@ -22,7 +22,7 @@ WAITING for DECISION/HPC ACCESS/OTHER REASON
 
 ## CHANGES for me NOW
 - data/problem_dates.csv: check the drafted years (82 unchecked, 28 of them empty; the year the proof first became public), then set status to `checked`. Draft rule in scripts/prefill_problem_dates.py.
-- data/model_facts.csv: check training cutoffs and sizes against the vendor pages, then set status to `checked`.
+- data/model_facts.csv (25 models, vendor sources, conflicts in `note`): check, then set status to `checked`. DeepSeek, Kimi and Qwen state no training cutoff, so they are left out of the contamination split.
 - Model choice: see notes/model_availability_2026-10-08.md. Closed 2025 models are retired; o3 and GPT-5 shut down 11 Dec 2026.
 - Reference solutions (only used by scripts/check_statements.sh): P011_sol is incomplete (sorry) and its statement differs from P011; P098_sol no longer compiles (Mathlib API). 8 pass both layers, 7 need the proctor library.
 - ProofBench's `Hypergraph` (Mathlib_Problems/Combinatorics/Hypergraph/Basic.lean, used by P008, P029–P036, P043) clashes with Mathlib's new `Hypergraph` (v4.33): both in one file fails. Rename ours (e.g. namespace `ProofBench`) so agents can `import Mathlib`.
