@@ -1,10 +1,20 @@
 """Independent check of a submitted Lean proof.  Runs inside the sandbox.
 
-usage: python3 check_proof.py PROJECT_DIR SUBMISSION REFERENCE THEOREM
+usage: python3 check_proof.py [--no-completeness] PROJECT_DIR SUBMISSION REFERENCE THEOREM
 The submission may import further files under Submission/ (module
 Submission.X.Y is Submission/X/Y.lean); they are checked and built too.
 Prints one JSON line: {ok, errors, files, lines, nonblank_lines, proof_lines,
-axioms, compile_seconds}.
+axioms, compile_seconds, completeness, open_steps}.
+
+Completeness measures progress on a file that is not yet a solution: a file
+whose only fault is `sorry` is still compiled, and completeness is the share
+of proof steps whose own proof has no `sorry`.  The steps are the main
+theorem and every theorem or axiom of the submission files that its proof
+reaches; a definition is not a step, its `sorry` counts for the step that
+uses it.  It is 1 for a solution and null when the file does not compile or
+breaks another rule.  The agent chooses how to split the proof, so compare it
+only within a problem.  --no-completeness skips that compilation (fast static
+check of files with `sorry`).
 """
 
 import json
@@ -49,6 +59,48 @@ SCOPED_SYNTAX = re.compile(r"^\s*(?:local|scoped)\s+(?:macro_rules|unif_hint)\b|
 OPENS = re.compile(r"^\s*(?:noncomputable\s+)?(?:section|namespace)\b")
 CLOSES = re.compile(r"^\s*end\b")
 MAX_FILES = 100
+# Appended after the submission (before `#print axioms`): walks the proof of the
+# main theorem through the submission's own declarations and prints the steps
+# and those whose own proof reaches `sorryAx`.
+COMPLETENESS_CMD = """
+open Lean in
+#eval show Elab.Command.CommandElabM Unit from do
+  let env ← getEnv
+  let target := `{theorem}
+  let mine (n : Name) : Bool := match env.getModuleIdxFor? n with
+    | none => true
+    | some i => (`Submission).isPrefixOf env.header.moduleNames[i.toNat]!
+  let isStep (n : Name) : Bool := n == target || (mine n && !n.isInternal &&
+    match env.find? n with | some (.thmInfo _) | some (.axiomInfo _) => true | _ => false)
+  let mut steps : Array Name := #[target]
+  let mut openSteps : Array Name := #[]
+  let mut i := 0
+  while i < steps.size do
+    let s := steps[i]!
+    i := i + 1
+    let mut seen : NameSet := {{}}
+    let mut todo : Array Name := #[s]
+    let mut hasSorry := false
+    while todo.size > 0 do
+      let c := todo.back!
+      todo := todo.pop
+      if seen.contains c then continue
+      seen := seen.insert c
+      match env.find? c with
+      | some (.axiomInfo _) => if c == s then hasSorry := true
+      | some ci =>
+        if let some v := ci.value? (allowOpaque := true) then
+          for d in v.getUsedConstants do
+            if d == ``sorryAx then
+              hasSorry := true
+            else if isStep d then
+              unless steps.contains d do steps := steps.push d
+            else if mine d then
+              todo := todo.push d
+      | none => pure ()
+    if hasSorry then openSteps := openSteps.push s
+  logInfo m!"PB_COMPLETENESS {{steps.size}} {{steps.size - openSteps.size}} {{openSteps.toList}}"
+"""
 
 
 def norm(line: str) -> str:
@@ -91,14 +143,16 @@ def closure(project: Path, main: Path) -> tuple[dict[Path, str], list[str]]:
 
 
 def main() -> None:
-    project, submission, reference, theorem = sys.argv[1:5]
+    with_completeness = "--no-completeness" not in sys.argv
+    project, submission, reference, theorem = [a for a in sys.argv[1:] if a != "--no-completeness"][:4]
     project_p, main_p = Path(project), Path(submission)
     short = theorem.split(".")[-1]
     errors: list[str] = []
     files, missing = closure(project_p, main_p)
     if main_p not in files:
         print(json.dumps({"ok": False, "errors": ["cannot read submission"], "files": [], "lines": 0,
-                          "nonblank_lines": 0, "proof_lines": 0, "axioms": [], "compile_seconds": None}))
+                          "nonblank_lines": 0, "proof_lines": 0, "axioms": [], "compile_seconds": None,
+                          "completeness": None, "open_steps": []}))
         return
     rel = lambda f: str(f.relative_to(project_p)) if f.is_relative_to(project_p) else str(f)
     helpers = [".".join(f.relative_to(project_p).with_suffix("").parts) for f in files if f != main_p]
@@ -165,10 +219,14 @@ def main() -> None:
         if proof_lines == 0:
             errors.append("no proof after the statement")
 
-    # 4. compile (helper modules first, through lake) and 5. axioms
+    # 4. compile (helper modules first, through lake) and 5. axioms.  A file
+    #    whose only fault is `sorry` is compiled too, for its completeness.
+    has_sorry = any(e.startswith("contains sorry") for e in errors)
+    blocking = [e for e in errors if not e.startswith("contains sorry")]
     axioms: list[str] = []
     compile_seconds = None
-    if not errors:
+    completeness, open_steps = None, []
+    if not blocking and (with_completeness or not has_sorry):
         t0 = time.time()
         out, rc = "", 0
         if helpers:
@@ -181,7 +239,10 @@ def main() -> None:
             errors.append("helper build error: " + out.strip()[-1500:])
         else:
             tmp = project_p / "Submission" / f"_check_{short}.lean"
-            tmp.write_text(sub_text.rstrip("\n") + f"\n\n#print axioms {theorem}\n", encoding="utf-8")
+            tmp.write_text(
+                sub_text.rstrip("\n") + "\n" + COMPLETENESS_CMD.format(theorem=theorem) + f"\n#print axioms {theorem}\n",
+                encoding="utf-8",
+            )
             try:
                 r = subprocess.run(
                     ["lake", "env", "lean", str(tmp)], cwd=project, capture_output=True, text=True, timeout=900
@@ -190,10 +251,17 @@ def main() -> None:
             except subprocess.TimeoutExpired:
                 r, out = None, "compile timeout"
             tmp.unlink(missing_ok=True)
-            if r is None or r.returncode != 0 or re.search(r"^.*: error:", out, re.M):
+            compiled = r is not None and r.returncode == 0 and not re.search(r"^.*: error:", out, re.M)
+            if not compiled:
                 errors.append("compile error: " + out.strip()[-1500:])
-            if "declaration uses 'sorry'" in out or "declaration uses `sorry`" in out:
+            if not has_sorry and ("declaration uses 'sorry'" in out or "declaration uses `sorry`" in out):
                 errors.append("declaration uses sorry")
+            # our command runs after the submission, so its line is the last one
+            steps = re.findall(r"^PB_COMPLETENESS (\d+) (\d+) \[(.*)\]$", out, re.M)
+            if compiled and steps:
+                total, done, names = steps[-1]
+                completeness = round(int(done) / int(total), 3)
+                open_steps = [n.strip() for n in names.split(",") if n.strip()][:50]
             # The last report for our theorem: `#print axioms` is the file's last
             # command, so nothing in the submission can print after it.
             found = re.findall(rf"^'{re.escape(theorem)}' depends on axioms: \[(.*?)\]", out, re.M)
@@ -201,9 +269,12 @@ def main() -> None:
                 axioms = [a.strip() for a in found[-1].split(",") if a.strip()]
             elif r is not None and f"'{theorem}' does not depend on any axioms" not in out and not errors:
                 errors.append("could not read axioms")
-            bad = sorted(set(axioms) - ALLOWED_AXIOMS)
+            bad = sorted(set(axioms) - ALLOWED_AXIOMS - ({"sorryAx"} if has_sorry else set()))
             if bad:
                 errors.append("non-standard axioms: " + ", ".join(bad))
+            sorry_only = ("declaration uses sorry", "non-standard axioms: sorryAx")
+            if any(not e.startswith("contains sorry") and e not in sorry_only for e in errors):
+                completeness, open_steps = None, []
         compile_seconds = round(time.time() - t0, 1)
         # Build products made here (as root under Docker) must stay usable by the
         # unprivileged verifier user that runs Comparator next.
@@ -220,6 +291,8 @@ def main() -> None:
         "proof_lines": proof_lines,
         "axioms": axioms,
         "compile_seconds": compile_seconds,
+        "completeness": completeness,
+        "open_steps": open_steps,
     }))
 
 

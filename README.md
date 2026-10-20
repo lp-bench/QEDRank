@@ -44,7 +44,15 @@ HPC cluster with Apptainer, without root.
    commit, image, Lean and Mathlib versions, problem commit, model, reasoning
    effort, search, budgets), and [`scripts/analyze.py`](scripts/analyze.py)
    writes one row per attempt to `results.csv`: verdict, sessions used, tokens,
-   total and working time, tool and model calls, proof length and axioms.
+   total and working time, tool and model calls, proof length, axioms and
+   completeness (the share of proof steps without `sorry`, after every session).
+6. **Statistics.** [`scripts/stats.py`](scripts/stats.py) turns one or more
+   runs into the tables of a results section: solve rates with 95% bootstrap
+   intervals (overall and per category), paired McNemar tests between models
+   with Holm correction, a contamination split (proof public before or after
+   the model's training cutoff), solve rate by release date, and per problem
+   the earliest and the smallest model that solved it. Problem dates and model
+   facts are in [`data/`](data/).
 
 ## Quick start on a PC with Docker
 
@@ -124,6 +132,11 @@ scripts/run.sh               one run: manifest, evaluation, results.csv
 scripts/slurm_eval.sbatch    one run as a Slurm job with the Apptainer sandbox
 scripts/hpc_preflight.sh     day-one checks on a cluster
 scripts/analyze.py           logs -> results.csv
+scripts/stats.py             runs -> intervals, model comparisons, contamination split, difficulty
+scripts/prefill_problem_dates.py  draft of data/problem_dates.csv from the development repository
+data/problem_dates.csv       when each problem's proof became public (year; status checked/unchecked/open)
+data/model_facts.csv         release date, training cutoff and size of each model, with sources
+tests/grader_attacks/        cheating attempts the grader must reject, and run.sh to check both layers
 ```
 
 ## Good to know
@@ -140,3 +153,7 @@ scripts/analyze.py           logs -> results.csv
 - `scripts/check_statements.sh`, `scripts/verify_comparator.sh` and
   `scripts/solution_to_submission.py` test the grading against our reference
   proofs; they need the private development repository.
+- `tests/grader_attacks/run.sh` grades known cheating attempts (changed
+  statements or definitions, axioms, instances or `variable`s that change what
+  the statement means, kernel bypasses, ...) with each layer separately; see
+  [its README](tests/grader_attacks/README.md).

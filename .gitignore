@@ -14,3 +14,5 @@ image/context/
 journal-submission/
 # scratch for apptainer build
 .apptainer-tmp/
+# output of tests/grader_attacks/run.sh
+tests/grader_attacks/results.jsonl

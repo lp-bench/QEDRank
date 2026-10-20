@@ -7,7 +7,7 @@ When an item is done, delete it. When part of it is done, delete only that part.
 - Wider local run of free Qwen on more problems, exercising Matroid (P002/P015). (needs your yes: more problems go to the university endpoint)
 - When websearch is on, we must (?) allow the agent install Lean libraries and incorporate them in their proof. Checker must be adjusted accordingly because currently checker does not allow it. We should have this as a swtichable option. --libraries-on --libraries-off
 (Claude: a library's code runs at compile time inside the same containers as the agent's own code, so no new way to reach the host, but unaudited third-party code. Belongs to the search-on configuration: finding and using a library is a capability we measure; fair because every model gets the same switch.)
-
+- Layer 1 misses a statement whose text is unchanged but whose meaning changed: an `instance` or `variable [...]` added before the theorem (tests/grader_attacks: local_instance, global_instance, variable_hypothesis). Comparator catches all three; with COMPARATOR=off (as in the Qwen pilots) they pass. Fix: reject such lines before the theorem, as for `macro_rules`. (needs your yes)
 
 ## Claude not needed after this line. ##
 
@@ -21,6 +21,8 @@ WAITING for DECISION/HPC ACCESS/OTHER REASON
 - push the statements repo (now `proofbench`) to private GitHub repo.
 
 ## CHANGES for me NOW
+- data/problem_dates.csv: check the drafted years (82 unchecked, 28 of them empty; the year the proof first became public), then set status to `checked`. Draft rule in scripts/prefill_problem_dates.py.
+- data/model_facts.csv: check training cutoffs and sizes against the vendor pages, then set status to `checked`.
 - Model choice: see notes/model_availability_2026-10-08.md. Closed 2025 models are retired; o3 and GPT-5 shut down 11 Dec 2026.
 - Reference solutions (only used by scripts/check_statements.sh): P011_sol is incomplete (sorry) and its statement differs from P011; P098_sol no longer compiles (Mathlib API). 8 pass both layers, 7 need the proctor library.
 - ProofBench's `Hypergraph` (Mathlib_Problems/Combinatorics/Hypergraph/Basic.lean, used by P008, P029–P036, P043) clashes with Mathlib's new `Hypergraph` (v4.33): both in one file fails. Rename ours (e.g. namespace `ProofBench`) so agents can `import Mathlib`.

@@ -38,7 +38,7 @@ for pid, thm in names.items():
     f = f"/problems/{pid}/{pid}.lean"
     if thm.startswith("ERROR"):
         print(f"{pid}: {thm}"); bad += 1; continue
-    r = subprocess.run(["python3", "/in/check_proof.py", "/opt/proofbench", f, f, thm], capture_output=True, text=True)
+    r = subprocess.run(["python3", "/in/check_proof.py", "--no-completeness", "/opt/proofbench", f, f, thm], capture_output=True, text=True)
     try:
         rep = json.loads(r.stdout.strip().splitlines()[-1])
     except Exception:
