@@ -95,7 +95,8 @@ From: $BASE
     export ELAN_HOME=/opt/elan PATH=/opt/elan/bin:\$PATH
     cp -a /opt/context-update/. /opt/proofbench/
     rm -rf /opt/context-update
-    cd /opt/proofbench && xargs lake build < modules.txt
+    cd /opt/proofbench
+    xargs lake build < modules.txt
 DEF
   # the base image is unpacked to APPTAINER_TMPDIR: about twice its size on disk
   export APPTAINER_TMPDIR=${APPTAINER_TMPDIR:-$HERE/.apptainer-tmp}; mkdir -p "$APPTAINER_TMPDIR"
