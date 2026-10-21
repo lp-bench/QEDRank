@@ -1,7 +1,7 @@
 problem,category,proof_public,status,candidate_years,note
 P001,research,2026-10,unchecked,1993 2024,resolved in October 2026 (database note)
 P002,open,,open,1958 1971 1979 2000 2014,no public proof
-P003,open,,open,1930 1947 1990 2024 2026,no public proof
+P003,open,,open,1970 1978 1983 1987 1988 2002 2006 2007 2017,no public proof
 P004,research,2026-10,unchecked,1993,resolved in October 2026 (database note)
 P005,open,,open,1989 2026,no public proof
 P006,open,,open,,no public proof
@@ -113,3 +113,5 @@ P111,calibration,2018,unchecked,1993 2018,latest dated reference
 P112,open,,open,1998 2013 2015 2018 2021 2025 2026,no public proof
 P113,open,,open,2013 2015 2021 2024 2026,no public proof
 P114,research,2025,unchecked,1998 2013 2015 2018 2021 2025 2026,year in the database note
+P115,open,,open,2003 2007,no public proof
+P116,open,,open,1930 1947 1990 2024 2026,no public proof
