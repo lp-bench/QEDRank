@@ -28,7 +28,7 @@ these models for ProofBench testing, resumably.
 
 ## 2. State (update this section when it changes)
 
-Last update: 2026-10-23, session 1, after the user entered the new key.
+Last update: 2026-10-23, session 1, after publish and deploy.
 
 Done and verified:
 
@@ -68,14 +68,21 @@ Done and verified:
   `chat-ai.academiccloud.de`, so the four GWDG slots pass the private-corpus guard for ProofBench;
   Anthropic and OpenAI slots stay refused. (Reversible: remove the host.)
 
+Published 2026-10-23 with the user's go-ahead:
+
+- Commit `28162d1` on branch `QEDRank` (pushed), merged into `main` as `18af26d` with
+  `git merge -X subtree=QEDRank_java --no-ff` in a temporary worktree (pushed; 20 files, all under
+  `QEDRank_java/`). The stale root checkout `C:\QEDRank` (main@1f477d4) was not touched.
+- `GWDG_API_KEY` copied into the Vercel project (`set-llm-keys.ps1 -Target Vercel -FromUserEnv
+  -Only qwen -Redeploy`) and production redeployed: https://qedrank.vercel.app
+  (deployment `dpl_ESZ7ccEktZN4jPgnXVbmqWDMvfLE`).
+- Still uncommitted and NOT part of this task (older session): modified
+  `paper/benchmark-comparison.tex` and untracked `paper/performance-metrics-methodology.*`,
+  `paper/proofbench-measures.*`, `paper/proofbench-performance-matrix.*`.
+
 Not done:
 
-- Nothing is committed. `git status` shows the files above modified/untracked on branch `QEDRank`.
-  Also present and NOT part of this task (older session): modified `paper/benchmark-comparison.tex`
-  and untracked `paper/performance-metrics-methodology.*`, `paper/proofbench-measures.*`,
-  `paper/proofbench-performance-matrix.*`.
-- Nothing is deployed (4B); the Vercel copy of the key (last box of 4A) waits for 4B.
-- No ProofBench run with the new models (4C).
+- No ProofBench run with the new models yet (4C). Next step: the smoke runs.
 
 ## 3. Facts needed for the runs
 
@@ -122,13 +129,14 @@ Not done:
   ```
 
   Write the numbers into section 3 and choose k / concurrency accordingly (4C).
-- [ ] Deployed web app (Convert a Problem runs on Vercel): copy the key and redeploy, only after
-  4B so the new roster is deployed too:
+- [x] Deployed web app (Convert a Problem runs on Vercel): copy the key and redeploy, only after
+  4B so the new roster is deployed too. Done 2026-10-23:
   `.\scripts\set-llm-keys.ps1 -Target Vercel -FromUserEnv -Only qwen -Redeploy`
 
 ### 4B. Publish the roster change (needs the user's go-ahead for push and deploy)
 
-- [ ] Commit on branch `QEDRank` (leave the `paper/` changes out unless the user wants them):
+- [x] Commit on branch `QEDRank` (leave the `paper/` changes out unless the user wants them).
+  Done 2026-10-23: `28162d1`, pushed:
 
   ```powershell
   cd C:\QEDRank\QEDRank_java
@@ -136,7 +144,7 @@ Not done:
   git commit -m "Roster: GWDG-served Qwen3.5 397B-A17B, GLM-5.3 Flash and DeepSeek V4 Flash replace Leanstral, Kimi K3, Llama 3.1 8B and deepseek-v4-pro"
   git push origin QEDRank
   ```
-- [ ] Merge into `main` (one-folder layout, app under `QEDRank_java/`) without touching the stale
+- [x] Merge into `main` (one-folder layout, app under `QEDRank_java/`) without touching the stale
   root checkout `C:\QEDRank` (still at `main@1f477d4`; switching it is a separate, pending user
   decision):
 
@@ -146,9 +154,10 @@ Not done:
   git -C "$env:TEMP\qedrank-main" push origin HEAD:main
   git worktree remove "$env:TEMP\qedrank-main"
   ```
-- [ ] Deploy: `vercel deploy --prod --yes --archive=tgz` (from `QEDRank_java`; `.vercelignore` keeps
-  the harness out), then 4A's Vercel key step. Check https://qedrank.vercel.app/convert shows the
-  ten cards.
+- [x] Deploy: `vercel deploy --prod --yes --archive=tgz` (from `QEDRank_java`; `.vercelignore` keeps
+  the harness out), then 4A's Vercel key step. Done 2026-10-23 through the key script's `-Redeploy`
+  (merge `18af26d` pushed to main first). Later app changes: repeat commit → push → subtree merge →
+  deploy; the key stays in the Vercel project.
 
 ### 4C. ProofBench prove task with the new models (single-call protocol, pass@k)
 
@@ -252,3 +261,12 @@ not said.
 - 2026-10-23 (session 1, evening): effort probe (section 6). Result: `deepseek_flash` now sends
   only low | max (`lib/providers.js` effortValues, test added) and its config uses `max`; docs
   updated. Roughly 45 of the day's 1,000 requests were spent on pings and probes.
+- 2026-10-23 (session 1, night): user decided k = 4 and gave the go-ahead for publish and deploy;
+  GLM effort set to `max` (uniform with DeepSeek), configs renamed to `*-prove-pass4.json` with a
+  65,536-token budget for the two `max` models. Committed `28162d1` and pushed; merged into main as
+  `18af26d` and pushed; `GWDG_API_KEY` copied to Vercel; production redeployed and aliased to
+  https://qedrank.vercel.app. Verified live: `GET https://qedrank.vercel.app/api/models` returns
+  the ten slots with qwen, qwen35, glm and deepseek_flash `configured` via `GWDG_API_KEY` (the
+  Anthropic slots have no key there; the four GPT slots do). This handoff update was committed as
+  a second commit on `QEDRank` and merged into `main` the same way. Next: 4C smoke runs, after
+  asking about the hidden-definitions question (section 5, item 3).
