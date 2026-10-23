@@ -32,6 +32,29 @@ TIME_LIMIT=${TIME_LIMIT:-$((SESSIONS * SESSION_WORKING_TIME * 3))}  # wall clock
 IDS=${IDS:?problems to run, e.g. IDS="P083 P088 P090"}
 RUN_ID=${RUN_ID:-$(date -u +%Y%m%dT%H%M%SZ)_$(echo "$MODEL" | tr '/:' '__')_search-${SEARCH}}
 LOG_DIR=logs/$RUN_ID
+# One folder per run.
+if [ -e "$LOG_DIR" ]; then echo "error: $LOG_DIR already exists; choose another RUN_ID" >&2; exit 1; fi
+
+# At exit: checksums of the run's files, then the Zenodo archive (README, "Records").
+checksums() {
+  local status=$?
+  if [ -d "$LOG_DIR" ]; then
+    (
+      cd "$LOG_DIR"
+      files=()
+      for f in manifest.json *.eval results.csv; do [ -e "$f" ] && files+=("$f"); done
+      if [ ${#files[@]} -gt 0 ]; then
+        sha256sum "${files[@]}" > SHA256SUMS
+        echo "== checksums written to $LOG_DIR/SHA256SUMS (exit status $status):"
+        cat SHA256SUMS
+      fi
+    )
+    # Archive the run on Zenodo (skipped without a token).
+    [ -e "$LOG_DIR/SHA256SUMS" ] && python3 scripts/zenodo_publish.py "$LOG_DIR" "$RUN_ID" || true
+  fi
+  exit "$status"
+}
+trap checksums EXIT
 
 python3 scripts/manifest.py "$LOG_DIR" model="$MODEL" effort="$EFFORT" search="$SEARCH" \
   search_provider="$SEARCH_PROVIDER" network="$NETWORK" epochs="$EPOCHS" sessions="$SESSIONS" \

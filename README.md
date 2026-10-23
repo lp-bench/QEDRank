@@ -45,6 +45,22 @@ HPC cluster with Apptainer, without root.
    effort, search, budgets), and [`scripts/analyze.py`](scripts/analyze.py)
    writes one row per attempt to `results.csv`: verdict, sessions used, tokens,
    total and working time, tool and model calls, proof length and axioms.
+   When a run ends, `run.sh` writes the SHA-256 checksums of these files to
+   `SHA256SUMS` in the same folder and archives the run, the zipped folder and
+   its checksums, as a new version of the project's Zenodo record
+   ([`scripts/zenodo_publish.py`](scripts/zenodo_publish.py)); the receipt
+   goes to `ZENODO.json`. The record's files stay restricted until
+   publication. If the upload fails, the run is unaffected and the message
+   says how to retry.
+
+   One-time setup: a published Zenodo record with restricted files (any
+   file, for example a short README, is needed to publish it), and a
+   personal access token with the scopes `deposit:write` and
+   `deposit:actions`. Add to `.env`: `ZENODO_TOKEN=<token>` and
+   `ZENODO_CONCEPT=<concept record ID>` (the number in the record's "Cite all
+   versions" DOI). Without them the step is skipped. A record holds 100 files,
+   about 50 runs. For a test, use https://sandbox.zenodo.org with its own
+   token and `ZENODO_API=https://sandbox.zenodo.org/api`.
 6. **Statistics.** [`scripts/stats.py`](scripts/stats.py) turns one or more
    runs into the tables of a results section: solve rates with 95% bootstrap
    intervals (overall and per category), paired McNemar tests between models
