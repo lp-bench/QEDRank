@@ -27,23 +27,25 @@ Nothing is echoed; only the first four characters are printed back; nothing is w
 .\scripts\set-llm-keys.ps1 -Target User
 
 # just the slots you have keys for today — press Enter to skip the rest
-.\scripts\set-llm-keys.ps1 -Target User -Only gpt54,deepseek,llama
+.\scripts\set-llm-keys.ps1 -Target User -Only gpt54,qwen
+
+# the one GWDG Chat AI key (serves qwen, qwen35, glm and deepseek_flash)
+.\scripts\set-llm-keys.ps1 -Target User -Only qwen
 
 # a model served from your own endpoint (Azure AI Foundry, a gateway, Groq, NVIDIA NIM…)
-.\scripts\set-llm-keys.ps1 -Target User -Only llama -Advanced
+.\scripts\set-llm-keys.ps1 -Target User -Only glm -Advanced
 ```
 
-The eleven slots and their key variables:
+The ten slots and their key variables:
 
 | Slot id | Model | Key variable |
 |---|---|---|
 | `fable`, `opus` | Claude Fable 5.1, Claude Opus 5.5 | `ANTHROPIC_API_KEY` (asked once) |
-| `qwen` | Qwen3 30B-A3B Instruct (GWDG Chat AI / AcademicCloud) | `GWDG_API_KEY` (asked once, shared with `llama`; an existing `LLAMA_API_KEY` works) |
-| `mistral` | Leanstral | `MISTRAL_API_KEY` |
+| `qwen`, `qwen35`, `glm`, `deepseek_flash` | Qwen3 30B-A3B Instruct, Qwen3.5 397B-A17B, GLM-5.3 Flash, DeepSeek V4 Flash (all GWDG Chat AI / AcademicCloud, `https://chat-ai.academiccloud.de/v1`) | `GWDG_API_KEY` (asked once; an existing `LLAMA_API_KEY` works) |
 | `gpt6_astra`, `gpt6_sol`, `gpt56_terra`, `gpt54` | GPT-6 Astra, GPT-6 Sol, GPT-5.6 Terra, GPT-5.4 | `OPENAI_API_KEY` (asked once) |
-| `kimi` | Kimi K3 (Moonshot) | `MOONSHOT_API_KEY` |
-| `llama` | Llama 3.1 8B Instruct (GWDG Chat AI / AcademicCloud by default) | `GWDG_API_KEY` (or `LLAMA_API_KEY`) |
-| `deepseek` | DeepSeek V4 | `DEEPSEEK_API_KEY` |
+
+Former roster slots, still available with `QEDRANK_MODELS=…` or `-Optional`: `kimi` (`MOONSHOT_API_KEY`),
+`mistral` (`MISTRAL_API_KEY`), `llama` (`GWDG_API_KEY`), `deepseek` (`DEEPSEEK_API_KEY`, DeepSeek's own API).
 
 Prefer a file? `cp .env.example .env.local` and fill it in (used by `vercel dev`). Per-slot
 overrides (`QEDRANK_API_KEY_<ID>`, `QEDRANK_BASEURL_<ID>`, `QEDRANK_MODEL_<ID>`,

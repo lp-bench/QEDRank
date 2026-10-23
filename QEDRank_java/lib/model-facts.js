@@ -4,7 +4,9 @@
 // Keyed by API model id, not by roster slot: a slot whose model is overridden with
 // QEDRANK_MODEL_<ID> must not inherit another model's dates. Every value was read from the
 // page listed under `sources` on 2026-10-06; a value that no vendor page or model card
-// states is null. Closed models do not publish parameter counts.
+// states is null (the three GWDG-served models added on 2026-10-23 were read the same way from
+// the GWDG model table and the Hugging Face model cards). Closed models do not publish
+// parameter counts.
 //
 // Override or extend without code changes: "modelFacts" in qedrank.config.json, same shape.
 
@@ -63,6 +65,21 @@ export const MODEL_FACTS = Object.freeze({
     released: '2026-08-13', training_cutoff: null, parameters_b: 1600, active_parameters_b: 49,
     sources: { released: 'https://api-docs.deepseek.com/updates', parameters_b: 'https://api-docs.deepseek.com/news/news260424' },
     note: 'Mixture of experts. The API id served a preview from 2026-04-24 and the general-availability weights (0813) from 2026-08-13; the date here is the weights served now. The parameter count is the vendor\'s figure for the preview. No vendor-stated training cutoff.',
+  },
+  'qwen3.5-397b-a17b': {
+    released: '2026-02', training_cutoff: null, parameters_b: 397, active_parameters_b: 17,
+    sources: { released: 'https://docs.hpc.gwdg.de/services/ai-services/chat-ai/models/index.html', parameters_b: 'https://huggingface.co/Qwen/Qwen3.5-397B-A17B' },
+    note: 'Mixture of experts; thinks by default (<think> blocks). Release month from the GWDG model table and the model card\'s citation (February 2026); no day is published. No vendor-stated training cutoff.',
+  },
+  'glm-5.3-flash': {
+    released: '2026-02', training_cutoff: null, parameters_b: 320, active_parameters_b: 18,
+    sources: { released: 'https://docs.hpc.gwdg.de/services/ai-services/chat-ai/models/index.html', parameters_b: 'https://huggingface.co/zai-org/GLM-5.3-Flash' },
+    note: 'Hybrid-attention mixture of experts; reasoning_effort low | high | max (default max). Release month from the GWDG model table; the model card prints no date. No vendor-stated training cutoff.',
+  },
+  'deepseek-v4-flash-0731': {
+    released: '2026-07', training_cutoff: null, parameters_b: 304, active_parameters_b: null,
+    sources: { released: 'https://docs.hpc.gwdg.de/services/ai-services/chat-ai/models/index.html', parameters_b: 'https://huggingface.co/deepseek-ai/DeepSeek-V4-Flash-0731' },
+    note: 'Official release of DeepSeek V4 Flash superseding the April 2026 preview; "0731" is the weights date and the GWDG table says July 2026. The total is the Hugging Face figure; the active count is not stated for this release. reasoning_effort low | high | max. No vendor-stated training cutoff.',
   },
 });
 

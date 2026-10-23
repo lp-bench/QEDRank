@@ -3,7 +3,9 @@
 const SLOT_COLOR = {
   fable: 'var(--s2)', opus: 'var(--s2)', anthropic: 'var(--s2)',
   gpt6_astra: 'var(--s1)', gpt6_sol: 'var(--s1)', gpt56_terra: 'var(--s1)', gpt54: 'var(--s1)', openai: 'var(--s1)',
-  qwen: 'var(--s3)', mistral: 'var(--s4)', kimi: 'var(--s5)', llama: 'var(--s7)', deepseek: 'var(--s6)',
+  qwen: 'var(--s3)', qwen35: 'var(--s4)', glm: 'var(--s5)', deepseek_flash: 'var(--s6)',
+  // former roster slots (optional since 2026-10-23)
+  mistral: 'var(--s4)', kimi: 'var(--s5)', llama: 'var(--s7)', deepseek: 'var(--s6)',
 }
 
 export function slotColor(id) {
