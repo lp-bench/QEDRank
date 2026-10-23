@@ -1,0 +1,17 @@
+{
+  "task": "prove",
+  "generation": {
+    "attempts": 4,
+    "temperature": 0.6,
+    "topP": 0.95,
+    "topK": 20,
+    "maxTokens": 32768,
+    "timeoutMs": 1800000,
+    "retries": 6,
+    "retryBaseDelayMs": 15000,
+    "retryMaxDelayMs": 120000,
+    "providerConcurrency": 2
+  },
+  "lean": { "concurrency": 3 },
+  "concurrency": { "items": 6 }
+}

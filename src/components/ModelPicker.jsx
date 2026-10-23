@@ -33,7 +33,7 @@ export default function ModelPicker({ compact = false }) {
               <input type="checkbox" checked={on} onChange={() => toggle(m.id)} aria-label={`Select ${m.label}`} />
               <span className="mc-stripe" aria-hidden="true" />
               <div className="mc-body">
-                <div className="mc-top"><span className="mc-vendor">{m.vendor}</span>{m.reasoning && <span className="mc-tag" title="Reasoning model: an effort level is sent instead of a temperature">reasoning</span>}</div>
+                <div className="mc-top"><span className="mc-vendor">{m.vendor}</span>{m.reasoning && <span className="mc-tag" title="Reasoning model: its thinking is separated from the answer and counted; an effort level is sent where the API has one (Claude and GPT take no temperature)">reasoning</span>}</div>
                 <div className="mc-name">{m.label}</div>
                 <code className="mc-id" title={m.host ? `${m.model_id} @ ${m.host}` : m.model_id}>{m.model_id}</code>
               </div>

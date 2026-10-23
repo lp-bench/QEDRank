@@ -120,7 +120,7 @@ evaluator commands, replay); its `grader_error` field says which step.
 
 ```powershell
 node qedrank/cli.js models                     # which slots have a key
-node qedrank/cli.js ping --models kimi --show   # one short Lean task; shows the answer
+node qedrank/cli.js ping --models glm --show    # one short Lean task; shows the answer
 node qedrank/cli.js ping --compile              # every configured model; compiles each answer with Lean
 ```
 
@@ -162,7 +162,8 @@ node qedrank/cli.js run --path qedrank/test/fixtures/corpus-prove --fixtures qed
 
 Canned answers (one solved, one partial, one abstention) go through the whole prove pipeline
 with real Lean on the dependency-free project: expect `verified 1/1` for `qwen`, `0/1` with
-`contains_sorry` and completeness 2/3 for `kimi`, and an abstention for `llama`. A few minutes.
+`contains_sorry` and completeness 2/3 for `kimi`, and an abstention for `llama` (fixture slot ids;
+`kimi` and `llama` are former roster slots and still resolve). A few minutes.
 Load `prove-fixture` on the Evaluation page afterwards to see a prove run rendered.
 
 ## 6. Small live run

@@ -17,8 +17,9 @@ function errResponse(status, body = '{}', headers = {}) {
 const completion = (content, extra = {}) => okResponse({ model: 'served-model', choices: [{ message: { content, ...extra.message }, finish_reason: extra.finish || 'stop' }], usage: { prompt_tokens: 11, completion_tokens: 22, completion_tokens_details: { reasoning_tokens: 7 } } });
 const anthropicMessage = (blocks, extra = {}) => okResponse({ id: 'msg_1', type: 'message', role: 'assistant', model: 'claude-opus-5-5', content: blocks, stop_reason: extra.stop || 'end_turn', stop_details: extra.stop_details ?? null, usage: { input_tokens: 40, output_tokens: 900 } });
 
-test('the default roster has the eleven models in UI order; optional and retired slots sit outside it', () => {
-  assert.deepEqual(DEFAULT_ROSTER, ['fable', 'opus', 'qwen', 'mistral', 'gpt6_astra', 'gpt6_sol', 'gpt56_terra', 'gpt54', 'kimi', 'llama', 'deepseek']);
+test('the default roster has the ten models in UI order; optional, former and retired slots sit outside it', () => {
+  assert.deepEqual(DEFAULT_ROSTER, ['fable', 'opus', 'qwen', 'qwen35', 'gpt6_astra', 'gpt6_sol', 'gpt56_terra', 'gpt54', 'glm', 'deepseek_flash']);
+  for (const former of ['kimi', 'mistral', 'llama', 'deepseek']) assert.ok(!DEFAULT_ROSTER.includes(former) && PROVIDERS.find((p) => p.id === former), `${former} is still a slot, outside the roster`);
   assert.ok(!DEFAULT_ROSTER.includes('github'));
   assert.ok(!DEFAULT_ROSTER.includes('custom'));
   assert.ok(PROVIDERS.find((p) => p.id === 'github').retired);
@@ -258,4 +259,61 @@ test('extra sampling settings go to models whose temperature is set, never to Ki
   assert.deepEqual(k.sampling, { temperature: null, effort: 'high' });
   await callProvider('kimi', { prompt: 'P', effort: 'medium', env: { MOONSHOT_API_KEY: 'm' }, fetchImpl, sleep: noSleep });
   assert.equal('reasoning_effort' in bodies[2], false); // not a level Kimi accepts: the API default applies
+});
+
+test('the GWDG slots share one endpoint and one key; GLM and DeepSeek V4 Flash get an effort they accept, Qwen3.5 none; thinking is separated', async () => {
+  for (const id of ['qwen', 'qwen35', 'glm', 'deepseek_flash']) {
+    assert.equal(resolveBaseUrl(id, {}), 'https://chat-ai.academiccloud.de/v1', id);
+    assert.deepEqual(resolveApiKey(id, { GWDG_API_KEY: 'g', LLAMA_API_KEY: 'l' }), { key: 'g', source: 'GWDG_API_KEY' }, id);
+    assert.deepEqual(resolveApiKey(id, { LLAMA_API_KEY: 'l' }), { key: 'l', source: 'LLAMA_API_KEY' }, id);
+    assert.deepEqual(resolveApiKey(id, { MOONSHOT_API_KEY: 'm', DEEPSEEK_API_KEY: 'd', MISTRAL_API_KEY: 'x' }), { key: null, source: null }, `${id}: no other vendor's key is sent to GWDG`);
+  }
+  assert.equal(resolveModelId('qwen35', {}), 'qwen3.5-397b-a17b');
+  assert.equal(resolveModelId('glm', {}), 'glm-5.3-flash');
+  assert.equal(resolveModelId('deepseek_flash', {}), 'deepseek-v4-flash-0731');
+  assert.equal(resolveModelId('deepseek_flash', { QEDRANK_MODEL_DEEPSEEK_FLASH: 'deepseek-v4-flash' }), 'deepseek-v4-flash');
+  assert.equal(resolveModelId('deepseek', {}), 'deepseek-v4-pro', 'the former direct-API slot keeps its model');
+
+  const bodies = [];
+  const fetchImpl = async (url, init) => { bodies.push({ url, body: JSON.parse(init.body) }); return completion('answer', { message: { reasoning_content: 'hidden plan' } }); };
+  const env = { GWDG_API_KEY: 'gwdg-key-123456' };
+  const g = await callProvider('glm', { prompt: 'P', temperature: 1.0, extraSampling: { top_p: 0.95 }, effort: 'high', maxTokens: 32000, env, fetchImpl, sleep: noSleep });
+  assert.equal(bodies[0].url, 'https://chat-ai.academiccloud.de/v1/chat/completions');
+  assert.equal(bodies[0].body.model, 'glm-5.3-flash');
+  assert.equal(bodies[0].body.temperature, 1, 'GWDG serves GLM with a temperature of our choosing');
+  assert.equal(bodies[0].body.top_p, 0.95);
+  assert.equal(bodies[0].body.reasoning_effort, 'high');
+  assert.equal(bodies[0].body.max_tokens, 32000);
+  assert.deepEqual(g.sampling, { temperature: 1, effort: 'high', top_p: 0.95 });
+  assert.equal(g.text, 'answer');
+  assert.equal(g.reasoningChars, 'hidden plan'.length);
+  assert.equal(g.baseUrlHost, 'chat-ai.academiccloud.de');
+
+  const d = await callProvider('deepseek_flash', { prompt: 'P', temperature: 1.0, effort: 'max', env, fetchImpl, sleep: noSleep });
+  assert.equal(bodies[1].body.model, 'deepseek-v4-flash-0731');
+  assert.equal(bodies[1].body.reasoning_effort, 'max');
+  assert.equal(d.sampling.effort, 'max');
+  // GWDG answers reasoning_effort "high" for DeepSeek V4 Flash with HTTP 500 (probed 2026-10-23): high is not sent and is recorded as null.
+  const dh = await callProvider('deepseek_flash', { prompt: 'P', effort: 'high', env, fetchImpl, sleep: noSleep });
+  assert.equal('reasoning_effort' in bodies[2].body, false);
+  assert.equal(dh.sampling.effort, null);
+
+  // Qwen3.5 has no effort levels: a requested effort is not sent and is recorded as null; <think> blocks are separated.
+  const think = async (url, init) => { bodies.push({ url, body: JSON.parse(init.body) }); return completion('<think>try induction</think>\n```lean\nright\n```'); };
+  const q = await callProvider('qwen35', { prompt: 'P', temperature: 0.6, extraSampling: { top_p: 0.95, top_k: 20 }, effort: 'high', env, fetchImpl: think, sleep: noSleep });
+  assert.equal(bodies[3].body.model, 'qwen3.5-397b-a17b');
+  assert.equal('reasoning_effort' in bodies[3].body, false);
+  assert.equal(bodies[3].body.top_k, 20);
+  assert.deepEqual(q.sampling, { temperature: 0.6, effort: null, top_p: 0.95, top_k: 20 });
+  assert.equal(q.text, '```lean\nright\n```');
+  assert.equal(q.reasoningChars, 'try induction'.length);
+
+  for (const id of ['qwen35', 'glm', 'deepseek_flash']) {
+    const desc = describeProvider(id, env);
+    assert.equal(desc.configured, true, id);
+    assert.equal(desc.reasoning, true, id);
+    assert.equal(desc.host, 'chat-ai.academiccloud.de', id);
+    assert.ok(desc.facts.parameters_b > 100, `${id}: model facts present`);
+    assert.doesNotMatch(JSON.stringify(desc), /gwdg-key-123456/);
+  }
 });

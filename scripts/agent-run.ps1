@@ -9,8 +9,9 @@
 
   Model names are Inspect's: moonshot/kimi-k3, anthropic/claude-opus-5-5, openai/gpt-5.4, and any
   OpenAI-compatible endpoint as openai-api/<name>/<model> with <NAME>_API_KEY and <NAME>_BASE_URL.
-  The GWDG endpoint is pre-wired: openai-api/gwdg/qwen3-30b-a3b-instruct-2507 or
-  openai-api/gwdg/meta-llama-3.1-8b-instruct use GWDG_API_KEY (or the stored LLAMA_API_KEY).
+  The GWDG endpoint is pre-wired: openai-api/gwdg/qwen3-30b-a3b-instruct-2507, openai-api/gwdg/qwen3.5-397b-a17b,
+  openai-api/gwdg/glm-5.3-flash and openai-api/gwdg/deepseek-v4-flash-0731 use GWDG_API_KEY (or the
+  stored LLAMA_API_KEY). The QEDRank driver (node qedrank/cli.js agent-run --models glm,...) does the same mapping.
 
 .EXAMPLE
   # smoke test: one problem, one session

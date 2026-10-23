@@ -15,33 +15,37 @@ Six pages, one shared model selection:
 | **Evaluation** (`/evaluation`) | The complete evaluation matrix and analysis for the loaded run: leaderboard with 95% paper-cluster CIs, models × targets heatmap, the full matrix table, statement-match distribution, time, tokens & cost, calibration diagrams, the k-model comparison (Cochran's Q, exact McNemar with Holm correction, paired-difference matrix), subgroups, coverage, reference audit and the filterable item table. Every chart has a table twin; the run downloads as Summary JSON, Matrix CSV, Items JSON and a LaTeX report (metadata, models, result tables, item outcomes; compiles with pdflatex). Light and dark themes. |
 | **Compare Benchmarks** (`/versus`) | Your benchmark (the corpus link used on Evaluate Models, ProofBench by default) against the benchmarks you pick from a dropdown: public ones are measured from their own repositories at pinned commits; not-public ones (AMBER, FormalProofBench) and any other benchmark from a URL you give (GitHub repo/folder, HuggingFace dataset, JSON/JSONL file). Shows a colour-coded performance matrix and charts, with JSON, CSV and LaTeX downloads. Runs on the local run server (`npm run qedrank:serve`, `POST /compare`): clones, tokens and measurements stay on your computer. |
 | **Benchmark Landscape** (`/compare`) | ProofBench against all nine Lean benchmarks for the paper: characteristics with sources, headroom (size vs best reported result and its sampling budget), statement length with and without definitions, own-definition dependence, subject heatmap, level composition. Built by `node qedrank/cli.js compare --repo <corpus> --subdir <folder> --ref <commit> --pdf`, which also writes `paper/benchmark-comparison.tex/.pdf`. |
-| **Convert a Problem** (`/convert`) | Pick any number of the eleven roster models (cards show vendor, model id and whether a key is set), state a problem, get Lean 4 from every selected model side by side with latency, tokens and a 1–5 rating, plus a performance snapshot (latency chart + table) of the models you chose. Answers are not compiled here. |
+| **Convert a Problem** (`/convert`) | Pick any number of the ten roster models (cards show vendor, model id and whether a key is set), state a problem, get Lean 4 from every selected model side by side with latency, tokens and a 1–5 rating, plus a performance snapshot (latency chart + table) of the models you chose. Answers are not compiled here. |
 
 ## Model roster
 
-Eleven models, offered in this order. Nine use the OpenAI-compatible chat-completions protocol
+Ten models, offered in this order. Eight use the OpenAI-compatible chat-completions protocol
 and two the Anthropic Messages API; everything goes through one client (`lib/providers.js`)
 that both the single-problem page and the benchmark use. Ids and endpoints were checked on
-2026-10-01.
+2026-10-01; the four GWDG Chat AI slots (one endpoint, one key) on 2026-10-23.
 
 | # | Slot id | Model | Vendor / endpoint | Default model id | Key |
 |---|---|---|---|---|---|
 | 1 | `fable` | Claude Fable 5.1 | Anthropic Messages API | `claude-fable-5-1` | `ANTHROPIC_API_KEY` |
 | 2 | `opus` | Claude Opus 5.5 | Anthropic Messages API | `claude-opus-5-5` | `ANTHROPIC_API_KEY` |
-| 3 | `qwen` | Qwen3 30B-A3B Instruct | GWDG Chat AI / AcademicCloud (`https://chat-ai.academiccloud.de/v1`) | `qwen3-30b-a3b-instruct-2507` | `GWDG_API_KEY` (shared with `llama`; an existing `LLAMA_API_KEY` works) |
-| 4 | `mistral` | Leanstral | Mistral AI | `labs-leanstral-2603` | `MISTRAL_API_KEY` |
+| 3 | `qwen` | Qwen3 30B-A3B Instruct | GWDG Chat AI / AcademicCloud (`https://chat-ai.academiccloud.de/v1`) | `qwen3-30b-a3b-instruct-2507` | `GWDG_API_KEY` (shared by the four GWDG slots; an existing `LLAMA_API_KEY` works) |
+| 4 | `qwen35` | Qwen3.5 397B-A17B | GWDG Chat AI / AcademicCloud | `qwen3.5-397b-a17b` | `GWDG_API_KEY` |
 | 5 | `gpt6_astra` | GPT-6 Astra | OpenAI | `gpt-6-astra` | `OPENAI_API_KEY` |
 | 6 | `gpt6_sol` | GPT-6 Sol | OpenAI | `gpt-6-sol` | `OPENAI_API_KEY` |
 | 7 | `gpt56_terra` | GPT-5.6 Terra | OpenAI | `gpt-5.6-terra` | `OPENAI_API_KEY` |
 | 8 | `gpt54` | GPT-5.4 | OpenAI | `gpt-5.4` | `OPENAI_API_KEY` |
-| 9 | `kimi` | Kimi K3 | Moonshot AI | `kimi-k3` | `MOONSHOT_API_KEY` |
-| 10 | `llama` | Llama 3.1 8B Instruct | GWDG Chat AI / AcademicCloud (`https://chat-ai.academiccloud.de/v1`) | `meta-llama-3.1-8b-instruct` | `GWDG_API_KEY` (or `LLAMA_API_KEY`) |
-| 11 | `deepseek` | DeepSeek V4 | DeepSeek | `deepseek-v4-pro` | `DEEPSEEK_API_KEY` |
+| 9 | `glm` | GLM-5.3 Flash | GWDG Chat AI / AcademicCloud | `glm-5.3-flash` | `GWDG_API_KEY` |
+| 10 | `deepseek_flash` | DeepSeek V4 Flash | GWDG Chat AI / AcademicCloud | `deepseek-v4-flash-0731` | `GWDG_API_KEY` |
 
 A slot without a key is shown as “no key” and skipped (benchmark items are recorded as
 infrastructure failures, never as successes). Reasoning models (Claude, GPT-5.x/6) do not accept
-a temperature; they receive an effort level instead and every record stores what was actually
-sent.
+a temperature; they receive an effort level instead. The GWDG-served thinking models (Qwen3.5,
+GLM-5.3 Flash, DeepSeek V4 Flash) take a temperature and return their reasoning separately; GLM
+also takes `reasoning_effort` low | high | max, DeepSeek V4 Flash low | max (GWDG rejects `high`
+and, without the field, answers without thinking). Every record stores what was actually
+sent. The former slots `kimi` (Kimi K3), `mistral` (Leanstral), `llama` (Llama 3.1 8B) and
+`deepseek` (DeepSeek's own API, `deepseek-v4-pro`) stay available outside the roster through
+`QEDRANK_MODELS`, so older runs and fixtures still resolve.
 
 **Every slot can be re-pointed without code changes** (`<ID>` = slot id upper-cased, e.g.
 `GPT54`, `GPT6_ASTRA`, `LLAMA`):

@@ -25,7 +25,7 @@ export const DEFAULT_CONFIG = Object.freeze({
   task: 'formalize',
   // Policy of the independent check used by the prove task (see grade.js DEFAULT_GRADE_POLICY).
   grade: { libraryPrefixes: ['ProofBench.Mathlib_Problems'], allowExtraImports: false, allowUnusedSorry: false, kernelReplay: true },
-  models: getRoster(), // the eleven default slots, or QEDRANK_MODELS
+  models: getRoster(), // the ten default slots, or QEDRANK_MODELS
   generation: {
     temperature: 0,       // not sent to reasoning models (Claude, GPT-5.x/6); each record stores what was sent
     effort: 'high',       // reasoning effort for reasoning models; QEDRANK_EFFORT_<ID> overrides per slot

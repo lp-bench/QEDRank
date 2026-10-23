@@ -23,6 +23,13 @@ test('inspectModelFor maps QEDRank slots to Inspect model strings and child-only
   assert.deepEqual(inspectModelFor('fable', env).env, { ANTHROPIC_API_KEY: 'k-ant' });
   assert.equal(inspectModelFor('gpt54', env).model, 'openai/gpt-5.4');
   assert.equal(inspectModelFor('kimi', {}).configured, false);
+  // The GWDG slots added on 2026-10-23: the slot id becomes Inspect's openai-api service name and the variable prefix.
+  const f = inspectModelFor('deepseek_flash', env);
+  assert.equal(f.model, 'openai-api/deepseek_flash/deepseek-v4-flash-0731');
+  assert.deepEqual(f.env, { DEEPSEEK_FLASH_API_KEY: 'k-gwdg', DEEPSEEK_FLASH_BASE_URL: 'https://chat-ai.academiccloud.de/v1' });
+  assert.equal(inspectModelFor('glm', env).model, 'openai-api/glm/glm-5.3-flash');
+  assert.equal(inspectModelFor('qwen35', env).model, 'openai-api/qwen35/qwen3.5-397b-a17b');
+  assert.equal(inspectModelFor('qwen35', { LLAMA_API_KEY: 'old' }).env.QWEN35_API_KEY, 'old', 'the older GWDG key name still works');
 });
 
 test('attemptEnv carries budgets as the harness variables, the key only in the child env, no secrets in RUN_ID or IDS', () => {

@@ -10,7 +10,8 @@ export default function KeyHint() {
       <pre>{`# PowerShell, from the project folder — input is hidden
 .\\scripts\\set-llm-keys.ps1 -Target User            # local CLI / runner
 .\\scripts\\set-llm-keys.ps1 -Target Vercel -Redeploy # deployed web app
-.\\scripts\\set-llm-keys.ps1 -Only gpt54,deepseek,llama -Advanced  # custom endpoint per model`}</pre>
+.\\scripts\\set-llm-keys.ps1 -Target User -Only qwen      # one GWDG key for qwen, qwen35, glm, deepseek_flash
+.\\scripts\\set-llm-keys.ps1 -Only gpt54,glm -Advanced     # custom endpoint per model`}</pre>
     </details>
   )
 }

@@ -62,7 +62,9 @@ overrides them:
 - `privacy`: `{ "privateCorpus": true, "allowedHosts": [...] }` refuses any model slot whose endpoint
   is not an allowed host (loopback always is) before a run or an agent run sends anything, and
   records the resolved hosts on the run. On for ProofBench; the pilot's hosted slots (GWDG, Moonshot)
-  are refused unless their hosts are added deliberately.
+  are refused unless their hosts are added deliberately. Since 2026-10-23 this machine's config allows
+  `chat-ai.academiccloud.de`, so the four GWDG slots (`qwen`, `qwen35`, `glm`, `deepseek_flash`) can
+  run ProofBench; the plan and state of that evaluation are in `docs/handoff-proofbench-gwdg.md`.
 
 The model keys stay in the environment (`scripts/set-llm-keys.ps1`); the driver passes the key of
 each selected slot to the harness process only, under the name Inspect expects (`QWEN_API_KEY`,

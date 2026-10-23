@@ -38,7 +38,7 @@ export default function HomePage() {
     <main className="page home">
       <section className="hero">
         <div className="hero-text">
-          <span className="eyebrow"><span className="dot ok" /> Lean 4 · Mathlib · {roster.length || 11} frontier models</span>
+          <span className="eyebrow"><span className="dot ok" /> Lean 4 · Mathlib · {roster.length || 10} frontier models</span>
           <h1>Formal Mathematics <span className="grad">Benchmark Evaluation</span></h1>
           <p>QEDRank provides two complementary benchmark evaluation workflows. You can evaluate how effectively language models solve a selected corpus of formal mathematics problems, or compare different benchmark datasets to understand their scope, difficulty, coverage, and model performance.</p>
           <div className="hero-cta">
@@ -48,7 +48,7 @@ export default function HomePage() {
           </div>
         </div>
         <div className="hero-stats">
-          <div className="stat" style={{ '--stat-color': 'var(--s1)' }}><div className="label">Models in the roster</div><div className="value">{roster.length || '—'}</div><div className="sub">Claude, GPT, Qwen, Leanstral, Kimi, Llama, DeepSeek</div></div>
+          <div className="stat" style={{ '--stat-color': 'var(--s1)' }}><div className="label">Models in the roster</div><div className="value">{roster.length || '—'}</div><div className="sub">Claude, GPT, Qwen, GLM, DeepSeek</div></div>
           <div className="stat" style={{ '--stat-color': 'var(--s7)' }}><div className="label">Selected now</div><div className="value">{selected.length}</div><div className="sub">one selection shared by every page</div></div>
           <div className="stat" style={{ '--stat-color': 'var(--s3)' }}><div className="label">Benchmark targets</div><div className="value">4</div><div className="sub">main theorem · upper · lower · disproof</div></div>
         </div>
