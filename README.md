@@ -44,7 +44,8 @@ HPC cluster with Apptainer, without root.
    commit, image, Lean and Mathlib versions, problem commit, model, reasoning
    effort, search, budgets), and [`scripts/analyze.py`](scripts/analyze.py)
    writes one row per attempt to `results.csv`: verdict, sessions used, tokens,
-   total and working time, tool and model calls, proof length and axioms.
+   total and working time, tool and model calls, the largest context a single
+   call needed, proof length and axioms.
    When a run ends, `run.sh` writes the SHA-256 checksums of these files to
    `SHA256SUMS` in the same folder and archives the run, the zipped folder and
    its checksums, as a new version of the project's Zenodo record

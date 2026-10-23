@@ -4,8 +4,11 @@
 usage: scripts/analyze.py LOG_DIR [more LOG_DIRs]   -> writes LOG_DIR/results.csv and prints it
 Columns: run, model, problem, epoch, correct, sessions_used, session_ends,
 errors, tokens_in, tokens_out, tokens_total, total_time_s, working_time_s,
-tool_calls, tool_errors, model_calls, lines, proof_lines, compile_s, axioms, limit.
+tool_calls, tool_errors, model_calls, max_context, lines, proof_lines, compile_s,
+axioms, limit.
 session_ends lists how each session ended (submit, token, working, error).
+max_context is the largest prompt of a single model call (input tokens, cached
+or not): the context window a model needs for the attempt.
 """
 
 import csv
@@ -17,7 +20,18 @@ from inspect_ai.log import list_eval_logs, read_eval_log
 
 COLS = ["run", "model", "problem", "epoch", "correct", "sessions_used", "session_ends", "errors", "tokens_in",
         "tokens_out", "tokens_total", "total_time_s", "working_time_s", "tool_calls", "tool_errors", "model_calls",
-        "lines", "proof_lines", "compile_s", "axioms", "limit"]
+        "max_context", "lines", "proof_lines", "compile_s", "axioms", "limit"]
+
+
+def max_context(sample) -> int:
+    """Largest prompt of a single model call in the sample, in tokens."""
+    largest = 0
+    for e in sample.events:
+        if isinstance(e, ModelEvent) and e.output and e.output.usage:
+            u = e.output.usage
+            largest = max(largest, (u.input_tokens or 0) + (u.input_tokens_cache_read or 0)
+                          + (u.input_tokens_cache_write or 0))
+    return largest
 
 
 def rows_for(log_dir: Path):
@@ -45,6 +59,7 @@ def rows_for(log_dir: Path):
                 "tool_calls": sum(isinstance(e, ToolEvent) for e in s.events),
                 "tool_errors": sum(isinstance(e, ToolEvent) and e.error is not None for e in s.events),
                 "model_calls": sum(isinstance(e, ModelEvent) for e in s.events),
+                "max_context": max_context(s),
                 "lines": md.get("lines", ""),
                 "proof_lines": md.get("proof_lines", ""),
                 "compile_s": md.get("compile_seconds", ""),
