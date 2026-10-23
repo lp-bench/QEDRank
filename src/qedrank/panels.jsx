@@ -265,7 +265,7 @@ export function RunLauncher({ manifest, selectedModels = [], onLoaded = null }) 
           </>
         ) : (
           <>
-            <label>Lean project on this machine (optional)<input value={leanProject} onChange={(e) => setLeanProject(e.target.value)} placeholder="default: this repository's lean/ (Mathlib only); for ProofBench.Mathlib_Problems imports give a built ProofBench checkout, e.g. C:\proofbench-statements" /></label>
+            <label>Lean project on this machine (optional)<input value={leanProject} onChange={(e) => setLeanProject(e.target.value)} placeholder="default for the prove task: the built ProofBench checkout named in qedrank.config.json (harnesses.proofbench.leanProject, e.g. C:\QEDRank\proofbench-statements); for formalize: this repository's lean/ (Mathlib only). The run stops before any model call if the challenges import a library the project lacks." /></label>
             <label className="qr-check"><input type="checkbox" checked={dryRun} onChange={(e) => setDryRun(e.target.checked)} /> Dry run: discovery and preparation only, no model calls</label>
           </>
         )}

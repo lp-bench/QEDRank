@@ -15,6 +15,7 @@ import { preparePrelude, prepareReference, evaluateAttempt } from './evaluate.js
 import { renderPrompt, PROMPT_TEMPLATE_VERSION, SYSTEM_PROMPT } from './prompt.js';
 import { generateOnce, listModels, loadFixtureProvider, providerHalt } from './models.js';
 import { assertPrivateCorpus, checkPrivateCorpus } from './privacy.js';
+import { checkChallengeImports } from './preflight.js';
 import { buildSummary } from './metrics.js';
 import { writeExports } from './export.js';
 import { findDeclarations } from './leansrc.js';
@@ -516,6 +517,51 @@ export async function stagePreparationProve(ctx, { selection = null, force = fal
   return { done, errors };
 }
 
+/**
+ * Before any model call in the prove task: every module the challenge files import must resolve
+ * in the grader's Lean project (qedrank/lib/preflight.js). A whole prefix that is absent, e.g.
+ * `ProofBench` when the run was left on the audit project lean/, means the wrong project: the run
+ * stops here (or warns with --allow-missing-imports). Single missing modules, a project behind the
+ * corpus commit, are listed; those items are recorded later as challenge_import_unavailable. The
+ * result is stored on the run as `import_check`. Fixture runs and --no-generate skip the check.
+ */
+export async function stagePreflightProve(ctx, { selection = null, papers = null, kinds = null, mode = null } = {}) {
+  if (ctx.config.preflight?.importCheck === false) return null;
+  if ((mode || ctx.run.mode) === 'fixture') return null;
+  await initLean(ctx);
+  if (!ctx.toolchain.available) return null; // detectToolchain has already said why; items will say so too
+  const manifest = ctx.manifest || (await stageDiscovery(ctx));
+  const list = papers || selectPapers(manifest, selection);
+  const ks = kinds || (selection?.targets?.length ? selection.targets : TARGET_KINDS);
+  const challenges = [];
+  for (const paper of list) {
+    for (const kind of ks) {
+      const file = ctx.p('prepared', slug(paper.paper_id), `challenge__${kind}.lean`);
+      if (await exists(file)) challenges.push({ paper_id: paper.paper_id, kind, src: await fs.readFile(file, 'utf8') });
+    }
+  }
+  const check = await checkChallengeImports({ challenges, toolchain: ctx.toolchain });
+  ctx.run.import_check = {
+    checked_at: isoNow(), lean_project: ctx.toolchain.lean_dir, challenge_files: challenges.length, challenge_papers: check.challenge_papers,
+    modules: check.modules, available: check.available, missing: check.missing.slice(0, 50), missing_total: check.missing.length,
+    missing_prefixes: check.missing_prefixes, fatal: check.fatal, enforced: !ctx.config.preflight?.allowMissingImports,
+  };
+  await ctx.saveRun();
+  if (check.fatal) {
+    const builtHint = ctx.config.harnesses?.proofbench?.leanProject ? ` This machine's built ProofBench project is ${ctx.config.harnesses.proofbench.leanProject}.` : '';
+    const msg = `${check.message}${builtHint} Pass --lean-project <built checkout of the statement library>, or --allow-missing-imports to run the remaining items anyway.`;
+    if (ctx.config.preflight?.allowMissingImports) { ctx.log(`WARNING: ${msg}`); return check; }
+    await ctx.setStage('generation', 'blocked', { reason: `import check: module prefix ${check.missing_prefixes.map((p) => `'${p.prefix}'`).join(', ')} missing from ${ctx.toolchain.lean_dir}` });
+    throw new Error(msg);
+  }
+  if (check.missing.length) {
+    ctx.log(`import check: ${check.missing.length} of ${check.modules} imported modules are missing from ${ctx.toolchain.lean_dir} (${check.missing.slice(0, 5).map((m) => m.module).join(', ')}${check.missing.length > 5 ? ', …' : ''}); their items will be recorded as challenge_import_unavailable. Is the project behind the corpus commit?`);
+  } else {
+    ctx.log(`import check: all ${check.modules} modules imported by ${challenges.length} challenge files resolve in ${ctx.toolchain.lean_dir}`);
+  }
+  return check;
+}
+
 export async function stageGenerationProve(ctx, { selection = null, retryFailed = false, reevaluate = false, noGenerate = false, fixtureDir = null } = {}) {
   await initLean(ctx);
   const manifest = ctx.manifest || (await stageDiscovery(ctx));
@@ -523,6 +569,7 @@ export async function stageGenerationProve(ctx, { selection = null, retryFailed 
   const models = selection?.models?.length ? selection.models : ctx.run.models;
   const kinds = selection?.targets?.length ? selection.targets : TARGET_KINDS;
   const mode = ctx.run.mode;
+  if (!noGenerate) await stagePreflightProve(ctx, { papers, kinds, mode });
   const fixture = mode === 'fixture' ? await loadFixtureProvider(fixtureDir || ctx.run.fixture_dir) : null;
   if (mode === 'fixture') ctx.run.fixture_dir = fixture.dir;
   const described = listModels(process.env, models);
