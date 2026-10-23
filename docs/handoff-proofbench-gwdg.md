@@ -270,3 +270,6 @@ not said.
   Anthropic slots have no key there; the four GPT slots do). This handoff update was committed as
   a second commit on `QEDRank` and merged into `main` the same way. Next: 4C smoke runs, after
   asking about the hidden-definitions question (section 5, item 3).
+- 2026-10-23 (session 1, night, 2): `qedrank/README.md` (roster table and ten-slot wording) had been left
+  out of the first commit; committed and merged separately. Working tree is now clean apart from the
+  older `paper/` files.
