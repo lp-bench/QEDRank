@@ -2,7 +2,7 @@
 
 QEDRank extends the single-problem ProofBench workflow (one natural-language
 problem → any set of models) into a batch benchmark over a corpus of research papers.
-For every paper it evaluates each model in the project's roster (eleven model slots by
+For every paper it evaluates each model in the project's roster (ten model slots by
 default, see [Model roster](#model-roster)) on the
 **main theorem**, **upper bound**, **lower bound** and an optional **disproof**
 target, always against that paper's audited ground-truth Lean statement.
@@ -78,25 +78,30 @@ node qedrank/cli.js run --path qedrank/test/fixtures/corpus-a \
 
 ## Model roster
 
-Eleven slots, offered in this order in the web app. Nine are called through the OpenAI-compatible
+Ten slots, offered in this order in the web app. Eight are called through the OpenAI-compatible
 chat-completions protocol and two through the Anthropic Messages API, all from one client
 (`lib/providers.js`) that both the single-problem page and the benchmark use. Every model receives
 the same system message (*"You are an expert Lean 4 formal verification agent. Provide valid Lean 4
-code."*). Model ids and endpoints were checked against the vendors' documentation on 2026-10-01.
+code."*). Model ids and endpoints were checked against the vendors' documentation on 2026-10-01; the
+four GWDG Chat AI slots against `docs.hpc.gwdg.de` on 2026-10-23.
 
 | # | Slot id | Model | Endpoint | Default model id | Key | Notes |
 |---|---|---|---|---|---|---|
 | 1 | `fable` | Claude Fable 5.1 | `https://api.anthropic.com/v1` (Messages API) | `claude-fable-5-1` | `ANTHROPIC_API_KEY` | reasoning; thinking always on, effort sent (default high); no temperature |
 | 2 | `opus` | Claude Opus 5.5 | `https://api.anthropic.com/v1` (Messages API) | `claude-opus-5-5` | `ANTHROPIC_API_KEY` | reasoning; same key as Fable |
-| 3 | `qwen` | Qwen3 30B-A3B Instruct | `https://chat-ai.academiccloud.de/v1` (GWDG Chat AI / AcademicCloud) | `qwen3-30b-a3b-instruct-2507` | `GWDG_API_KEY` (shared with `llama`; an existing `LLAMA_API_KEY` works) | the service also offers `qwen3-coder-next` (`QEDRANK_MODEL_QWEN`); for Alibaba Model Studio: `QEDRANK_BASEURL_QWEN=https://dashscope-intl.aliyuncs.com/compatible-mode/v1`, `QEDRANK_API_KEY_QWEN=<DashScope key>` |
-| 4 | `mistral` | Leanstral | `https://api.mistral.ai/v1` | `labs-leanstral-2603` | `MISTRAL_API_KEY` | Lean 4 specialist; `labs-leanstral-1-5` retired 2026-09-30 |
+| 3 | `qwen` | Qwen3 30B-A3B Instruct | `https://chat-ai.academiccloud.de/v1` (GWDG Chat AI / AcademicCloud) | `qwen3-30b-a3b-instruct-2507` | `GWDG_API_KEY` (shared by the four GWDG slots; an existing `LLAMA_API_KEY` works) | non-thinking; GWDG recommends T 0.6 / top_p 0.95; the service also offers `qwen3-coder-next` (`QEDRANK_MODEL_QWEN`) |
+| 4 | `qwen35` | Qwen3.5 397B-A17B | GWDG Chat AI | `qwen3.5-397b-a17b` | `GWDG_API_KEY` | thinks by default (`<think>` / `reasoning_content` separated); no effort levels; T 0.6 / top_p 0.95 / top_k 20 |
 | 5 | `gpt6_astra` | GPT-6 Astra | `https://api.openai.com/v1` | `gpt-6-astra` | `OPENAI_API_KEY` | reasoning; `max_completion_tokens` + `reasoning_effort`, no temperature |
 | 6 | `gpt6_sol` | GPT-6 Sol | `https://api.openai.com/v1` | `gpt-6-sol` | `OPENAI_API_KEY` | reasoning |
 | 7 | `gpt56_terra` | GPT-5.6 Terra | `https://api.openai.com/v1` | `gpt-5.6-terra` | `OPENAI_API_KEY` | reasoning (OpenAI spells it "Terra") |
 | 8 | `gpt54` | GPT-5.4 | `https://api.openai.com/v1` | `gpt-5.4` | `OPENAI_API_KEY` | reasoning |
-| 9 | `kimi` | Kimi K3 | `https://api.moonshot.ai/v1` | `kimi-k3` | `MOONSHOT_API_KEY` | China platform: `https://api.moonshot.cn/v1` |
-| 10 | `llama` | Llama 3.1 8B Instruct | `https://chat-ai.academiccloud.de/v1` (GWDG Chat AI / AcademicCloud) | `meta-llama-3.1-8b-instruct` | `LLAMA_API_KEY` | academic access; re-point with `QEDRANK_BASEURL_LLAMA` / `QEDRANK_MODEL_LLAMA` for OpenRouter, Groq, NVIDIA NIM or Azure AI Foundry |
-| 11 | `deepseek` | DeepSeek V4 | `https://api.deepseek.com` | `deepseek-v4-pro` | `DEEPSEEK_API_KEY` | `reasoning_content` separated from the answer |
+| 9 | `glm` | GLM-5.3 Flash | GWDG Chat AI | `glm-5.3-flash` | `GWDG_API_KEY` | reasoning; `reasoning_effort` low/high/max sent when configured (model default max); temperature sent; T 1.0 / top_p 0.95 |
+| 10 | `deepseek_flash` | DeepSeek V4 Flash | GWDG Chat AI | `deepseek-v4-flash-0731` | `GWDG_API_KEY` | reasoning; `reasoning_effort` low/max (GWDG rejects `high` with HTTP 500; without the field the model does not think); reasoning separated; T 1.0 / top_p 1.0 |
+
+Former roster slots (until 2026-10-23), outside the roster but still resolvable so stored runs
+and fixtures keep working: `kimi` (Kimi K3, `MOONSHOT_API_KEY`), `mistral` (Leanstral,
+`MISTRAL_API_KEY`), `llama` (Llama 3.1 8B Instruct on GWDG), `deepseek` (DeepSeek's own API,
+`deepseek-v4-pro`, `DEEPSEEK_API_KEY`).
 
 Change anything without code edits (`<ID>` = slot id upper-cased, e.g. `GPT54`, `GPT6_ASTRA`):
 `QEDRANK_MODELS=gpt54,deepseek,…` picks and orders the roster; `QEDRANK_API_KEY_<ID>`,
@@ -545,7 +550,7 @@ The original and corrected reference versions both stay in the run directory
 95% intervals are percentile cluster bootstraps by paper (all targets and all
 models of a paper stay together in a resample). The k-model comparison
 uses Cochran's Q on the common eligible papers and exact McNemar tests for the
-k(k-1)/2 model pairs (55 for eleven models) with Holm correction, reporting paired percentage-point differences
+k(k-1)/2 model pairs (45 for ten models) with Holm correction, reporting paired percentage-point differences
 with bootstrap CIs. Rankings are descriptive; only pairs listed in
 `statistically_supported_pairs` differ after correction. Subgroups with fewer
 than `exploratoryThreshold` papers are labelled exploratory. No confidence
