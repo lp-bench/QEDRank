@@ -9,10 +9,13 @@
 //       or git@github.com:<owner>/<repo>.git (private over SSH, uses your SSH agent / deploy key)
 //       --subdir <folder> restricts discovery to one folder (a /tree/<branch>/<folder> link sets it too)
 //   node qedrank/cli.js run --repo <url> [--ref R] [--run-id ID] [--models a,b] [--papers p1,p2] [--targets main_theorem,...] [--limit N] [--private] [--allow-host h1,h2]
-//                          [--task formalize|prove] [--lean-project DIR] [--fixtures DIR] [--attempts K] [--repair-rounds R] [--config file] [--dry-run]
+//                          [--task formalize|prove] [--lean-project DIR] [--fixtures DIR] [--attempts K] [--repair-rounds R] [--config file] [--dry-run] [--allow-missing-imports]
 //       --task formalize (default): the model writes statement and proof from the paper text; the statement is compared with the reference
 //       --task prove: the model gets the challenge file and fills in its sorry; the file is judged by the independent check (no PDF needed)
-//       --lean-project: the Lean project whose toolchain, Mathlib and libraries compile the files (default lean/; a built ProofBench checkout for its statement library)
+//       --lean-project: the Lean project whose toolchain, Mathlib and libraries compile the files (default lean/; for --task prove the built
+//                       ProofBench checkout from qedrank.config.json harnesses.proofbench.leanProject when it exists)
+//       before the first model call of a prove run, every module the challenges import must resolve in that project; a whole
+//       prefix missing (e.g. ProofBench in lean/) stops the run, --allow-missing-imports makes it a warning; --dry-run runs the same check
 //   node qedrank/cli.js resume --run-id ID [--retry-failed] [--reevaluate [--no-generate]] [--lean-project DIR] [--private] [--allow-host h1,h2]
 //       --reevaluate grades the stored answers again (e.g. in another --lean-project); --no-generate never calls a
 //       model, so items whose answer is missing or a provider error keep their record
@@ -55,7 +58,7 @@ import { detectToolchain } from './lib/lean.js';
 import { listModels } from './lib/models.js';
 import { pingModels } from './lib/ping.js';
 import { getRoster, PROVIDER_IDS } from '../lib/providers.js';
-import { createRun, openRun, runAll, stageDiscovery, stagePreparation, stageGeneration, stageStatistics } from './lib/run.js';
+import { stagePreflightProve, createRun, openRun, runAll, stageDiscovery, stagePreparation, stageGeneration, stageStatistics } from './lib/run.js';
 import { createServer } from './lib/serve.js';
 import { readJson, writeJson } from './lib/util.js';
 import { TARGET_KINDS } from './lib/schema.js';
@@ -123,6 +126,7 @@ async function main() {
   if (typeof args.task === 'string') overrides.task = args.task;
   if (typeof args['lean-project'] === 'string') overrides.leanDir = path.resolve(args['lean-project']);
   if (args.private) overrides.privacy = { ...(overrides.privacy || {}), privateCorpus: true };
+  if (args['allow-missing-imports']) overrides.preflight = { ...(overrides.preflight || {}), allowMissingImports: true };
   const config = await loadConfig({ configFile: args.config || null, overrides });
   if (typeof args['allow-host'] === 'string') config.privacy.allowedHosts = [...(config.privacy.allowedHosts || []), ...list(args['allow-host'])];
 
@@ -179,12 +183,14 @@ async function main() {
       ctx.sourceToken = args.token || null;
       if (mode === 'fixture') { ctx.run.fixture_dir = path.resolve(args.fixtures); await ctx.saveRun(); }
       log(`run ${ctx.run.run_id} at ${ctx.runDir}`);
+      if (config.leanDirDefault) log(`lean project: ${config.leanDir} (default for the prove task from ${config.leanDirDefault}; --lean-project overrides)`);
       const selection = { papers: list(args.papers), models, targets: list(args.targets).filter((t) => TARGET_KINDS.includes(t)), limit: args.limit ? Number(args.limit) : null };
       const annotations = args.annotations ? await readJson(args.annotations) : null;
       if (args['dry-run']) {
         await stageDiscovery(ctx, { annotations });
         await stagePreparation(ctx, { selection });
-        log('dry run: discovery and preparation complete; no model calls made');
+        if (config.task === 'prove') await stagePreflightProve(ctx, { selection, mode });
+        log(`dry run: discovery${config.task === 'prove' ? ', preparation and the import check' : ' and preparation'} complete; no model calls made`);
         return;
       }
       const { summary } = await runAll(ctx, { selection, annotations, fixtureDir: args.fixtures ? path.resolve(args.fixtures) : null });

@@ -52,6 +52,10 @@ export const DEFAULT_CONFIG = Object.freeze({
   // Private corpus (ProofBench): refuse a model slot whose endpoint is not on the allow-list
   // (loopback is always allowed), before any request is sent. qedrank/lib/privacy.js.
   privacy: { privateCorpus: false, allowedHosts: [] },
+  // Prove task: before the first model call, every module the challenges import must resolve in the
+  // Lean project (qedrank/lib/preflight.js). A whole prefix missing (wrong project) stops the run;
+  // allowMissingImports turns that into a warning (CLI: --allow-missing-imports).
+  preflight: { importCheck: true, allowMissingImports: false },
   primaryEndpoint: {
     id: 'verified_pass1_main_theorem',
     description: 'Strict verified success at pass@1 on the main_theorem target: original model file compiles under the pinned toolchain, its target declaration depends only on the allowed axioms, its statement is an accepted match to the audited reference, and the paper claim is established.',
@@ -94,6 +98,13 @@ export async function loadConfig({ configFile = null, cwd = process.cwd(), overr
   else if (configFile) throw new Error(`Config file not found: ${configFile}`);
   const cfg = deepMerge(deepMerge(DEFAULT_CONFIG, fileCfg), overrides);
   cfg.runsDir = path.resolve(cwd, cfg.runsDir);
+  // The prove task grades inside the statement library the challenges import (ProofBench.*). When no
+  // Lean project is named (neither --lean-project nor leanDir in the file), use the built ProofBench
+  // checkout this machine knows instead of the audit project lean/, which has Mathlib only.
+  if (cfg.task === 'prove' && !overrides.leanDir && !fileCfg.leanDir) {
+    const built = cfg.harnesses?.proofbench?.leanProject;
+    if (built && existsSync(path.resolve(cwd, built))) { cfg.leanDir = built; cfg.leanDirDefault = 'harnesses.proofbench.leanProject'; }
+  }
   cfg.leanDir = path.resolve(cwd, cfg.leanDir);
   cfg.configFile = loaded ? file : null;
   for (const m of cfg.models) if (!PROVIDER_IDS.includes(m)) throw new Error(`Unknown model id in config: ${m}`);

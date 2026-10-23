@@ -148,7 +148,12 @@ you expect, `source.subdir` is the problem folder (not the whole repository), ev
 target you will run is not).
 
 `--dry-run` additionally compiles every reference in the pinned Lean project and builds the
-statement-only modules. Afterwards `runs/<id>/prepared/<paper>/done.json` says per target
+statement-only modules (formalize task). For the prove task it runs the import check instead:
+every module the challenge files import must resolve to an `.olean` on the project's LEAN_PATH.
+A whole prefix that is absent (`ProofBench` when the run was left on `lean/`) stops the run,
+and so does the live run before its first model call; single missing modules (project behind the
+corpus commit) are listed and their items end as `challenge_import_unavailable`. Without
+`--lean-project`, a prove run uses `harnesses.proofbench.leanProject` from `qedrank.config.json`. Afterwards `runs/<id>/prepared/<paper>/done.json` says per target
 whether the reference compiled (`reference_proof_status`) and whether its statement is
 available (`statement_available`). A reference that does not compile under the runner's Mathlib
 is a corpus/toolchain mismatch, not a model failure: fix it before the live run, because those
