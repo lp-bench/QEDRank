@@ -8,7 +8,8 @@
 #     modules copied in and rebuilt (no Docker, no network; toolchain, Mathlib and tools
 #     come from BASE). For new or changed problems on a machine without Docker.
 # Only the statement-layer modules (and challenge statements) the selected problems
-# import, transitively, enter the image; anything else is an error.
+# import, transitively, enter the image; anything else is an error.  For an open
+# problem the negation Pxxx_DISPROVE and what it imports are staged as well.
 set -euo pipefail
 MODE=docker
 if [ "${1:-}" = "--apptainer" ]; then MODE=apptainer; shift; fi
@@ -30,18 +31,26 @@ cp "$PB/lean-toolchain" "$PB/lakefile.toml" "$PB/lake-manifest.json" "$CTX/"
 # The agent's files form the `Submission` library (Submission/Pxxx.lean -> module
 # Submission.Pxxx), which the verifier resolves through lake.
 printf '\n[[lean_lib]]\nname = "Submission"\n' >> "$CTX/lakefile.toml"
+# Statement files carry no module docstring, by design.  Mathlib's header linter
+# (in the project's mathlibStandardSet) would flag each of them, and the agent's
+# files, in every `lake build` and in the language server.
+sed -i 's/^\[leanOptions\]$/[leanOptions]\nweak.linter.style.header = false/' "$CTX/lakefile.toml"
+grep -q '^weak.linter.style.header = false$' "$CTX/lakefile.toml" || { echo "no [leanOptions] in lakefile.toml" >&2; exit 1; }
 : > "$CTX/ProofBench.lean"
 python3 - "$PB" "$CTX" $IDS <<'PY'
 import json, re, shutil, sys
 from pathlib import Path
 pb, ctx, ids = Path(sys.argv[1]), Path(sys.argv[2]), sys.argv[3:]
 IMPORT = re.compile(r"^(?:public\s+)?import\s+(\S+)", re.M)
-STATEMENT = re.compile(r"ProofBench\.(Mathlib_Problems\..+|PROBLEMS\.P\d{3}\.P\d{3})$")
+STATEMENT = re.compile(r"ProofBench\.(Mathlib_Problems\..+|PROBLEMS\.P\d{3}\.P\d{3}(_DISPROVE)?)$")
 def imports(f):
     return IMPORT.findall(f.read_text(encoding="utf-8"))
 # The selected problems' own statement modules are staged too: Comparator grades
-# against them as the trusted Challenge modules.
+# against them as the trusted Challenge modules (for an open problem, also the
+# negation Pxxx_DISPROVE, which a disproof is graded against).
 problems = [f"ProofBench.PROBLEMS.{i}.{i}" for i in ids]
+problems += [f"ProofBench.PROBLEMS.{i}.{i}_DISPROVE" for i in ids
+             if (pb / "ProofBench/PROBLEMS" / i / f"{i}_DISPROVE.lean").exists()]
 top = sorted({m for i in ids for m in imports(pb / "ProofBench/PROBLEMS" / i / f"{i}.lean")} | set(problems))
 seen, todo, staged = set(top), [m for m in top if m.startswith("ProofBench.")], set()
 while todo:

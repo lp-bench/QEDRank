@@ -9,7 +9,9 @@ and working time as safety caps.  After every session the Lean check of
 scorer.py runs; the first session that passes ends the chain.  When a session
 ends without a proof, the model writes a handoff note in a fixed format
 (proved, open, failed, unsaved draft), outside the session's budget.  Per-session records go to the sample store
-under "sessions".
+under "sessions".  For an open problem each session shows both files, the
+statement and its negation (`Pxxx_DISPROVE.lean`), and the chain ends as soon
+as either passes.
 """
 
 from typing import Any
@@ -27,7 +29,7 @@ from inspect_ai.solver import Generate, Solver, TaskState, solver
 from inspect_ai.tool import Tool, ToolSource
 from inspect_ai.util import sandbox, token_limit, working_limit
 
-from proofbench_eval.scorer import check_submission, collect_submission, helper_modules
+from proofbench_eval.scorer import check_submission, collect_submission, helper_modules, pick, targets
 
 SYSTEM = (
     "You are an expert in Lean 4 and Mathlib. Work carefully: check goals and "
@@ -38,7 +40,7 @@ SESSION = """
 This is session {k} of at most {n}.  A session ends when you call submit(),
 or after {budget:,} output tokens from you (reasoning included).  If it ends
 without a complete proof, you will be asked for a short handoff note, and the
-next session starts fresh from the current file, its Lean output and that note.
+next session starts fresh from {start} and that note.
 
 Work incrementally and keep the files compiling: state helper lemmas with
 `sorry` first, check that the main theorem compiles from them, then replace
@@ -46,9 +48,12 @@ the `sorry`s one at a time, compiling after each change.  Files that compile
 with a few `sorry`s are progress the next session can build on; only the
 final submission must be free of `sorry`.
 
-When the file compiles with the complete proof, call submit() with the text
+When {which} compiles with the complete proof, call submit() with the text
 "done".
+{files}"""
 
+# One per target file (two for an open problem).
+FILE = """
 Current content of `{submission}`:
 ```lean
 {file}
@@ -133,23 +138,31 @@ def handoff_sessions(
         note: str | None = None
         records: list[dict[str, Any]] = []
         transcript: list[ChatMessage] = []
+        rel = lambda p: p[len(md["project_dir"]) + 1 :]
+        both = len(targets(md)) > 1
         for k in range(1, sessions + 1):
-            files = await collect_submission(sandbox(), md)
-            rel = lambda p: p[len(md["project_dir"]) + 1 :]
-            helpers = [rel(p) for p in files if p != md["submission"]]
-            others = (
-                f"\nFiles that `{rel(md['submission'])}` imports (read them as needed): " + ", ".join(helpers) + "\n"
-                if helpers
-                else ""
-            )
+            blocks = []
+            for t in targets(md):
+                files = await collect_submission(sandbox(), t)
+                helpers = [rel(p) for p in files if p != t["submission"]]
+                others = (
+                    f"\nFiles that `{rel(t['submission'])}` imports (read them as needed): " + ", ".join(helpers) + "\n"
+                    if helpers
+                    else ""
+                )
+                blocks.append(FILE.format(
+                    submission=t["submission"],
+                    file=files.get(t["submission"], "(file missing)"),
+                    others=others,
+                    lean=await _lean_output(t, files),
+                ))
             prompt = state.input_text + SESSION.format(
                 k=k,
                 n=sessions,
                 budget=output_tokens,
-                submission=md["submission"],
-                file=files.get(md["submission"], "(file missing)"),
-                others=others,
-                lean=await _lean_output(md, files),
+                start="the current files, their Lean output" if both else "the current file, its Lean output",
+                which="either file" if both else "the file",
+                files="".join(blocks),
             )
             if note is not None:
                 prompt += NOTE.format(prev=k - 1, note=note)
@@ -166,18 +179,25 @@ def handoff_sessions(
                 ended_by = exceeded.type if exceeded else "submit"
             except Exception as ex:
                 ended_by = f"error: {type(ex).__name__}: {str(ex)[:200]}"
-            try:  # layer 1 only, to decide whether to stop
-                report = await check_submission(sandbox(), md, state.sample_id)
-            except Exception as ex:
-                report = {"ok": False, "errors": [f"check failed: {type(ex).__name__}: {str(ex)[:200]}"]}
+            graded = []  # layer 1 only, to decide whether to stop
+            for t in targets(md):
+                try:
+                    report = await check_submission(sandbox(), t)
+                except Exception as ex:
+                    report = {"ok": False, "errors": [f"check failed: {type(ex).__name__}: {str(ex)[:200]}"]}
+                graded.append({"target": t, "layer1": report, "ok": bool(report.get("ok"))})
+                if graded[-1]["ok"]:
+                    break
+            main = pick(graded)
             record = {
                 "session": k,
                 "ended_by": ended_by,
                 "output_tokens": int(out_limit.usage),
                 "total_tokens": int(all_limit.usage),
                 "working_seconds": round(work_limit.usage),
-                "passed": bool(report.get("ok")),
-                "errors": report.get("errors", [])[:3],
+                "passed": main["ok"],
+                "polarity": main["target"]["polarity"],
+                "errors": main["layer1"].get("errors", [])[:3],
             }
             transcript += messages
             if not record["passed"] and k < sessions:

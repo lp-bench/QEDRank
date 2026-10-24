@@ -6,7 +6,7 @@
 [Apptainer sandbox](https://github.com/proof-bench/inspect-apptainer)
 
 This harness runs AI agents on [ProofBench](https://github.com/proof-bench/proofbench),
-a benchmark of 114 research-level problems stated in Lean 4, and grades their
+a benchmark of 116 research-level problems stated in Lean 4, and grades their
 proofs with Lean alone. Every model gets the same agent loop, the same tools,
 the same budget and the same sandbox, so differences in the results come from
 the models and not from their tooling. It is built on
@@ -39,11 +39,15 @@ HPC cluster with Apptainer, without root.
      adversarial proof checker, which rebuilds statement and proof in a
      Landlock sandbox and replays the proof through the Lean kernel.
 
-   The first session that passes ends the attempt.
+   The first session that passes ends the attempt. For an open problem, a
+   proof of its negation (the theorem `Pxxx_disprove` in
+   `Pxxx_DISPROVE.lean`) counts as well: the agent sees both files, either
+   one solves the problem, and each is graded against its own statement.
 5. **Records.** Each run freezes its configuration in `manifest.json` (harness
    commit, image, Lean and Mathlib versions, problem commit, model, reasoning
    effort, search, budgets), and [`scripts/analyze.py`](scripts/analyze.py)
-   writes one row per attempt to `results.csv`: verdict, sessions used, tokens,
+   writes one row per attempt to `results.csv`: verdict, polarity (prove or
+   disprove), sessions used, tokens,
    total and working time, tool and model calls, the largest context a single
    call needed, proof length and axioms.
    When a run ends, `run.sh` writes the SHA-256 checksums of these files to
@@ -153,6 +157,7 @@ scripts/prefill_problem_dates.py  draft of data/problem_dates.csv from the devel
 data/problem_dates.csv       when each problem's proof became public (year; status checked/unchecked/open)
 data/model_facts.csv         release date, training cutoff and size of each model, with sources
 tests/grader_attacks/        cheating attempts the grader must reject, and run.sh to check both layers
+tests/test_targets.py        proof or disproof: which file is graded and reported (fake sandbox, seconds)
 ```
 
 ## Good to know

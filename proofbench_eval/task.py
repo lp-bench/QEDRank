@@ -1,11 +1,13 @@
 """ProofBench evaluation task for Inspect AI.
 
 Each sample is one challenge file `Pxxx.lean` whose `sorry` (rarely several)
-the agent must replace; it may add helper files under `Submission/`.  The agent works inside a sandbox that holds the ProofBench
-statement layer (Mathlib plus `ProofBench.Mathlib_Problems`), with bash,
-python, the Lean MCP tools, and optionally web search.  Grading is a fresh
-Lean check performed by the scorer (see scorer.py): statement unchanged, no
-`sorry`, standard axioms only.
+the agent must replace; it may add helper files under `Submission/`.  For an
+open problem the agent may instead prove the negation stated in
+`Pxxx_DISPROVE.lean`: either proof solves the sample.  The agent works inside
+a sandbox that holds the ProofBench statement layer (Mathlib plus
+`ProofBench.Mathlib_Problems`), with bash, python, the Lean MCP tools, and
+optionally web search.  Grading is a fresh Lean check performed by the scorer
+(see scorer.py): statement unchanged, no `sorry`, standard axioms only.
 
 Task parameters (pass with `-T name=value`):
   ids         problems to run, e.g. P083,P088,P090 (required)
@@ -57,7 +59,7 @@ You are proving a theorem in Lean 4 with Mathlib.
 
 The file `{submission}` states the theorem `{theorem}` with its proof
 replaced by `sorry`.  Replace every `sorry` in it with a complete proof.
-
+{open_problem}
 Rules, checked automatically after you submit:
 1. The theorem statement, every definition in the file, and their order must
    stay exactly as given.  You may add helper lemmas and definitions above
@@ -81,6 +83,18 @@ Rules, checked automatically after you submit:
    SageMath with GAP and nauty (`sage`, `gap`), and the SAT solver `cadical`.
    The Lean language-server tools (goal state, diagnostics, search) are
    available when present; the file path for them is `{submission_rel}`.
+"""
+
+# Added to INSTRUCTIONS for an open problem, which has a Pxxx_DISPROVE.lean.
+OPEN_PROBLEM = """
+This is an open problem: it is not known whether `{theorem}` is true.  The
+file `{dis_submission}` states its negation, the theorem `{dis_theorem}`, with
+its proof replaced by `sorry` as well.  A complete proof of either theorem
+solves the problem, so work on the one you believe is true; you may switch.
+The rules below apply to both files.  The proof of `{dis_theorem}` stays in
+`{dis_submission}`; compile it with
+`cd {project_dir} && lake build Submission.{pid}_DISPROVE`; its path for the
+language-server tools is `{dis_submission_rel}`.
 """
 
 
@@ -129,6 +143,32 @@ def load_samples(
         entry = db.get(pid[1:], {})
         submission_rel = f"Submission/{pid}.lean"
         submission = f"{project_dir}/{submission_rel}"
+        files = {submission: str(src)}
+        # An open problem also counts as solved by a proof of its negation.
+        disprove: dict | None = None
+        open_problem = ""
+        dis_src = src.with_name(f"{pid}_DISPROVE.lean")
+        if dis_src.exists():
+            dis_reference = dis_src.read_text(encoding="utf-8")
+            dis_sorries = len(re.findall(r"\bsorry\b", strip_comments(dis_reference)))
+            if dis_sorries == 0:
+                raise ValueError(f"{pid}: the DISPROVE file has no sorry to replace")
+            dis_rel = f"Submission/{pid}_DISPROVE.lean"
+            disprove = {
+                "theorem": qualified_theorem(dis_reference, f"{pid}_disprove"),
+                "submission": f"{project_dir}/{dis_rel}",
+                "reference": dis_reference,
+                "sorries": dis_sorries,
+            }
+            files[disprove["submission"]] = str(dis_src)
+            open_problem = OPEN_PROBLEM.format(
+                theorem=theorem,
+                dis_theorem=disprove["theorem"],
+                dis_submission=disprove["submission"],
+                dis_submission_rel=dis_rel,
+                project_dir=project_dir,
+                pid=pid,
+            )
         samples.append(
             Sample(
                 id=pid,
@@ -138,9 +178,10 @@ def load_samples(
                     submission_rel=submission_rel,
                     theorem=theorem,
                     project_dir=project_dir,
+                    open_problem=open_problem,
                 ),
                 target=theorem,
-                files={submission: str(src)},
+                files=files,
                 metadata={
                     "name": entry.get("name", ""),
                     "difficulty": entry.get("difficulty", ""),
@@ -149,6 +190,7 @@ def load_samples(
                     "project_dir": project_dir,
                     "reference": reference,
                     "sorries": n_sorry,
+                    "disprove": disprove,
                     "statements_commit": commit,
                     "proofbench_commit": pb_commit,
                     "comparator": comparator,

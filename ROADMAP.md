@@ -3,7 +3,6 @@ When an item is done, delete it. When part of it is done, delete only that part.
 
 # Roadmap
 - Decide the next pilot (model, problems). Last: `qwen3.8-27b` solved P109–P111 3/3 (sessions 4, 3, 3; 40k output tokens/session; Comparator off, so unverified until regraded with Comparator).
-- Prove-or-disprove for the 32 open problems: both files in the sandbox, "prove either", grade whichever passes, record the polarity. (needs your yes: changes the format)
 - Wider local run of free Qwen on more problems, exercising Matroid (P002/P015). (needs your yes: more problems go to the university endpoint)
 - When websearch is on, we must (?) allow the agent install Lean libraries and incorporate them in their proof. Checker must be adjusted accordingly because currently checker does not allow it. We should have this as a swtichable option. --libraries-on --libraries-off
 (Claude: a library's code runs at compile time inside the same containers as the agent's own code, so no new way to reach the host, but unaudited third-party code. Belongs to the search-on configuration: finding and using a library is a capability we measure; fair because every model gets the same switch.)
@@ -25,7 +24,7 @@ WAITING for DECISION/HPC ACCESS/OTHER REASON
 - Model choice: see notes/model_availability_2026-10-08.md. Closed 2025 models are retired; o3 and GPT-5 shut down 11 Dec 2026.
 - Reference solutions (only used by scripts/check_statements.sh): P011_sol is incomplete (sorry) and its statement differs from P011; P098_sol no longer compiles (Mathlib API). 8 pass both layers, 7 need the proctor library.
 - ProofBench's `Hypergraph` (Mathlib_Problems/Combinatorics/Hypergraph/Basic.lean, used by P008, P029–P036, P043) clashes with Mathlib's new `Hypergraph` (v4.33): both in one file fails. Rename ours (e.g. namespace `ProofBench`) so agents can `import Mathlib`.
-- P015 (4 `sorry`s), P017 (2), P070 (3): decide whether the agent must prove every `sorry` (current rule) or some are given facts.
+- P017 (2 `sorry`s), P070 (3): decide whether the agent must prove every `sorry` (current rule) or some are given facts.
 - Ask ZIH: is rootless Podman available on Capella? (then use inspect-podman)
 (Claude: Podman = a Docker-compatible container tool that can run without root. A ready-made Inspect sandbox for it exists (VectorInstitute/inspect-podman). If Capella offers it, we could use that instead of our own inspect-apptainer. One question in the ZIH email.)
 - Paper: allowed imports also include Matroid, `Archive.Sensitivity`, imported statements.
