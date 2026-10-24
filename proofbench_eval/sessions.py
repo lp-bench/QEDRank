@@ -17,6 +17,8 @@ as either passes.
 from typing import Any
 
 from inspect_ai.agent import AgentPrompt, react, run
+from inspect_ai.event import ModelEvent
+from inspect_ai.log import transcript
 from inspect_ai.model import (
     ChatMessage,
     ChatMessageAssistant,
@@ -113,10 +115,22 @@ async def _lean_output(md: dict[str, Any], files: dict[str, str]) -> str:
     return out if len(out) <= 6000 else out[:3000] + "\n... (truncated) ...\n" + out[-3000:]
 
 
+def _last_model_call() -> ModelEvent | None:
+    """The most recent model call of the sample: the session's last one."""
+    return next((e for e in reversed(transcript().events) if isinstance(e, ModelEvent)), None)
+
+
 async def _handoff_note(messages: list[ChatMessage], max_tokens: int) -> str:
+    # The request repeats the session's last call (same tools, same tool
+    # choice) with the handoff request appended: Anthropic rejects a history
+    # with tool calls but no tool definitions, and an unchanged prefix is read
+    # from the prompt cache instead of being paid again in full.
+    call = _last_model_call()
     try:
         output = await get_model().generate(
             _complete_turns(messages) + [ChatMessageUser(content=HANDOFF_REQUEST)],
+            tools=call.tools if call else [],
+            tool_choice=call.tool_choice if call else None,
             config=GenerateConfig(max_tokens=max_tokens),
         )
         return output.completion.strip() or "(no note: the model returned no text)"

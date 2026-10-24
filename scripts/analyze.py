@@ -4,13 +4,15 @@
 usage: scripts/analyze.py LOG_DIR [more LOG_DIRs]   -> writes LOG_DIR/results.csv and prints it
 Columns: run, model, problem, epoch, correct, polarity, sessions_used, session_ends,
 errors, tokens_in, tokens_out, tokens_total, total_time_s, working_time_s,
-tool_calls, tool_errors, model_calls, max_context, lines, proof_lines, compile_s,
-axioms, limit.
+tool_calls, tool_errors, model_calls, max_tokens_stops, refusals, max_context,
+lines, proof_lines, compile_s, axioms, limit.
 polarity is `prove`, or `disprove` when the grade is for the negation of an open
 problem (Pxxx_DISPROVE.lean): the one that passed, else the one the agent edited.
 session_ends lists how each session ended (submit, token, working, error).
-max_context is the largest prompt of a single model call (input tokens, cached
-or not): the context window a model needs for the attempt.
+max_tokens_stops counts replies cut off by the per-reply cap (MAX_TOKENS in
+run.sh; thinking counts against it), refusals the replies a safety classifier
+declined.  max_context is the largest prompt of a single model call (input
+tokens, cached or not): the context window a model needs for the attempt.
 """
 
 import csv
@@ -22,7 +24,7 @@ from inspect_ai.log import list_eval_logs, read_eval_log
 
 COLS = ["run", "model", "problem", "epoch", "correct", "polarity", "sessions_used", "session_ends", "errors", "tokens_in",
         "tokens_out", "tokens_total", "total_time_s", "working_time_s", "tool_calls", "tool_errors", "model_calls",
-        "max_context", "lines", "proof_lines", "compile_s", "axioms", "limit"]
+        "max_tokens_stops", "refusals", "max_context", "lines", "proof_lines", "compile_s", "axioms", "limit"]
 
 
 def max_context(sample) -> int:
@@ -34,6 +36,10 @@ def max_context(sample) -> int:
             largest = max(largest, (u.input_tokens or 0) + (u.input_tokens_cache_read or 0)
                           + (u.input_tokens_cache_write or 0))
     return largest
+
+
+def stop_reasons(sample) -> list[str]:
+    return [e.output.stop_reason for e in sample.events if isinstance(e, ModelEvent) and e.output]
 
 
 def rows_for(log_dir: Path):
@@ -62,6 +68,8 @@ def rows_for(log_dir: Path):
                 "tool_calls": sum(isinstance(e, ToolEvent) for e in s.events),
                 "tool_errors": sum(isinstance(e, ToolEvent) and e.error is not None for e in s.events),
                 "model_calls": sum(isinstance(e, ModelEvent) for e in s.events),
+                "max_tokens_stops": stop_reasons(s).count("max_tokens"),
+                "refusals": stop_reasons(s).count("content_filter"),
                 "max_context": max_context(s),
                 "lines": md.get("lines", ""),
                 "proof_lines": md.get("proof_lines", ""),

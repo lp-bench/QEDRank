@@ -48,8 +48,9 @@ HPC cluster with Apptainer, without root.
    effort, search, budgets), and [`scripts/analyze.py`](scripts/analyze.py)
    writes one row per attempt to `results.csv`: verdict, polarity (prove or
    disprove), sessions used, tokens,
-   total and working time, tool and model calls, the largest context a single
-   call needed, proof length and axioms.
+   total and working time, tool and model calls, replies cut off at the token
+   cap and refused replies, the largest context a single call needed, proof
+   length and axioms.
    When a run ends, `run.sh` writes the SHA-256 checksums of these files to
    `SHA256SUMS` in the same folder and archives the run, the zipped folder and
    its checksums, as a new version of the project's Zenodo record
@@ -158,6 +159,7 @@ data/problem_dates.csv       when each problem's proof became public (year; stat
 data/model_facts.csv         release date, training cutoff and size of each model, with sources
 tests/grader_attacks/        cheating attempts the grader must reject, and run.sh to check both layers
 tests/test_targets.py        proof or disproof: which file is graded and reported (fake sandbox, seconds)
+tests/mock_run.py            a whole two-session run with a scripted mock model, no API (Apptainer, 1 min)
 ```
 
 ## Good to know
