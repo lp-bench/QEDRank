@@ -7,7 +7,8 @@ Reads the references of every problem from the development repository's
 Database.json and their years from its bibliography (or from a year in the
 reference key) and proposes, per problem:
   open problems                  no date (status `open`; left out of the contamination split)
-  resolved in October 2026       2026-10, from the database's difficulty note
+  resolved recently              year and month from the write-up ("Status (October
+                                 2026)", "open until October 2026", "claimed in July 2026")
   everything else                the latest dated reference (the proof usually
                                  follows the conjecture), status `unchecked`
 Only years are written, never the references: this repository may become
@@ -24,6 +25,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 OUT = ROOT / "data" / "problem_dates.csv"
 COLS = ["problem", "category", "proof_public", "status", "candidate_years", "note"]
+MONTHS = "January February March April May June July August September October November December".split()
+RESOLVED = re.compile(r"(?:Status \(|open until |claimed in |appeared in )(" + "|".join(MONTHS) + r") (\d{4})")
 
 
 def category(difficulty: str) -> str:
@@ -55,13 +58,15 @@ def main() -> None:
         if pid in kept:
             rows.append(kept[pid]); continue
         diff = e.get("difficulty", "")
+        resolved = RESOLVED.search(" ".join(e.get("informal_statement") or []))
         years = sorted({y for y in map(ref_year, e.get("references", [])) if y})
         row = {"problem": pid, "category": category(diff), "proof_public": "", "status": "unchecked",
                "candidate_years": " ".join(map(str, years)), "note": ""}
         if row["category"] == "open":
             row.update(status="open", note="no public proof")
-        elif "Oct 2026" in diff:
-            row.update(proof_public="2026-10", note="resolved in October 2026 (database note)")
+        elif resolved:
+            month, y = resolved.groups()
+            row.update(proof_public=f"{y}-{MONTHS.index(month) + 1:02d}", note=f"{month} {y}, from the write-up")
         elif m := re.search(r"\((\d{4})\)", diff):
             row.update(proof_public=m.group(1), note="year in the database note")
         elif years:

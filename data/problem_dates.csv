@@ -1,12 +1,12 @@
 problem,category,proof_public,status,candidate_years,note
-P001,research,2026-10,unchecked,1993 2024,resolved in October 2026 (database note)
+P001,research,2026-10,unchecked,1993 2024,"October 2026, from the write-up"
 P002,research,2014,unchecked,1958 1971 1979 2000 2014,latest dated reference
 P003,open,,open,1970 1978 1983 1987 1988 2002 2006 2007 2017,no public proof
-P004,research,2026-10,unchecked,1993,resolved in October 2026 (database note)
+P004,research,2026-10,unchecked,1993,"October 2026, from the write-up"
 P005,open,,open,1989 2026,no public proof
 P006,open,,open,1937 2004,no public proof
 P007,open,,open,2005 2017,no public proof
-P008,research,2026-10,unchecked,2001 2020,resolved in October 2026 (database note)
+P008,research,2026-10,unchecked,2001 2020,"October 2026, from the write-up"
 P009,open,,open,2022 2023,no public proof
 P010,open,,open,1990,no public proof
 P011,research,2017,unchecked,2017,latest dated reference
@@ -25,7 +25,7 @@ P023,research,2022,unchecked,2022,latest dated reference
 P024,open,,open,1994 2020,no public proof
 P025,research,,unchecked,,no dated reference: fill in by hand
 P026,open,,open,1983 2014 2026,no public proof
-P027,research,2026-10,unchecked,,resolved in October 2026 (database note)
+P027,research,2026-10,unchecked,,"October 2026, from the write-up"
 P028,research,,unchecked,,no dated reference: fill in by hand
 P029,calibration,,unchecked,,no dated reference: fill in by hand
 P030,research,,unchecked,,no dated reference: fill in by hand
@@ -77,7 +77,7 @@ P075,open,,open,1984 2005 2006 2016,no public proof
 P076,open,,open,2004 2014 2022,no public proof
 P077,open,,open,1960 2010,no public proof
 P078,open,,open,1977 1999 2013,no public proof
-P079,research,2013,unchecked,2008 2013,latest dated reference
+P079,research,2026-07,unchecked,2008 2013,"July 2026, from the write-up"
 P080,open,,open,1957 1960 1988 1991 2026,no public proof
 P081,open,,open,1970 2025,no public proof
 P082,open,,open,1989 2024,no public proof
