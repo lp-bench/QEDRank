@@ -66,7 +66,8 @@ HPC cluster with Apptainer, without root.
    `ZENODO_CONCEPT=<concept record ID>` (the number in the record's "Cite all
    versions" DOI). Without them the step is skipped. A record holds 100 files,
    about 50 runs. For a test, use https://sandbox.zenodo.org with its own
-   token and `ZENODO_API=https://sandbox.zenodo.org/api`.
+   token and `ZENODO_API=https://sandbox.zenodo.org/api`. A test run that
+   should not be archived takes `ZENODO=off`.
 6. **Statistics.** [`scripts/stats.py`](scripts/stats.py) turns one or more
    runs into the tables of a results section: solve rates with 95% bootstrap
    intervals (overall and per category), paired McNemar tests between models

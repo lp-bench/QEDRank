@@ -24,6 +24,7 @@ REQUEST_TIMEOUT=${REQUEST_TIMEOUT:-1800}  # total seconds per model request, ret
 ATTEMPT_TIMEOUT=${ATTEMPT_TIMEOUT:-600}   # seconds per single attempt of a request
 MAX_SAMPLES=${MAX_SAMPLES:-4}             # problems in parallel
 TAGS=${TAGS:-proofbench}                  # Inspect log tags, e.g. TAGS=proofbench,pilot
+ZENODO=${ZENODO:-on}                      # on | off: archive the run on Zenodo when it ends
 # INSPECT_DISPLAY=conversation makes Inspect run one sample at a time; use `inspect view` to follow runs.
 export INSPECT_DISPLAY=${INSPECT_DISPLAY:-plain}
 [ "$INSPECT_DISPLAY" = conversation ] && echo "note: conversation display runs one sample at a time" >&2
@@ -49,8 +50,12 @@ checksums() {
         cat SHA256SUMS
       fi
     )
-    # Archive the run on Zenodo (skipped without a token).
-    [ -e "$LOG_DIR/SHA256SUMS" ] && python3 scripts/zenodo_publish.py "$LOG_DIR" "$RUN_ID" || true
+    # Archive the run on Zenodo (skipped without a token, or with ZENODO=off).
+    if [ "$ZENODO" = off ]; then
+      echo "== Zenodo: skipped (ZENODO=off)"
+    elif [ -e "$LOG_DIR/SHA256SUMS" ]; then
+      python3 scripts/zenodo_publish.py "$LOG_DIR" "$RUN_ID" || true
+    fi
   fi
   exit "$status"
 }
