@@ -2,7 +2,7 @@
 """Summarise Inspect logs as a CSV: one row per sample attempt.
 
 usage: scripts/analyze.py LOG_DIR [more LOG_DIRs]   -> writes LOG_DIR/results.csv and prints it
-Columns: run, model, problem, epoch, correct, polarity, sessions_used, session_ends,
+Columns: run, model, search, problem, epoch, correct, polarity, sessions_used, session_ends,
 errors, tokens_in, tokens_out, tokens_total, total_time_s, working_time_s,
 tool_calls, tool_errors, model_calls, max_tokens_stops, refusals, max_context,
 lines, proof_lines, compile_s, axioms, limit.
@@ -22,7 +22,7 @@ from pathlib import Path
 from inspect_ai.event import ModelEvent, ToolEvent
 from inspect_ai.log import list_eval_logs, read_eval_log
 
-COLS = ["run", "model", "problem", "epoch", "correct", "polarity", "sessions_used", "session_ends", "errors", "tokens_in",
+COLS = ["run", "model", "search", "problem", "epoch", "correct", "polarity", "sessions_used", "session_ends", "errors", "tokens_in",
         "tokens_out", "tokens_total", "total_time_s", "working_time_s", "tool_calls", "tool_errors", "model_calls",
         "max_tokens_stops", "refusals", "max_context", "lines", "proof_lines", "compile_s", "axioms", "limit"]
 
@@ -53,6 +53,7 @@ def rows_for(log_dir: Path):
             yield {
                 "run": log_dir.name,
                 "model": log.eval.model,
+                "search": str(bool((log.eval.task_args or {}).get("search", False))).lower(),
                 "problem": s.id,
                 "epoch": s.epoch,
                 "correct": int(sc.value == "C") if sc else "",

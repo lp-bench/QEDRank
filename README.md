@@ -69,7 +69,9 @@ HPC cluster with Apptainer, without root.
    token and `ZENODO_API=https://sandbox.zenodo.org/api`. A test run that
    should not be archived takes `ZENODO=off`.
 6. **Statistics.** [`scripts/stats.py`](scripts/stats.py) turns one or more
-   runs into the tables of a results section: solve rates with 95% bootstrap
+   runs into the tables of a results section, one row per configuration
+   (model, search on or off; a configuration run in parts is pooled, with a
+   warning when parts differ in their settings): solve rates with 95% bootstrap
    intervals (overall and per category), paired McNemar tests between models
    with Holm correction, a contamination split (proof public before or after
    the model's training cutoff), solve rate by release date, and per problem

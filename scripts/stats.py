@@ -7,7 +7,12 @@ usage: scripts/stats.py [--release YYYY-MM] [--out FILE] LOG_DIR|results.csv [..
                later may have seen the problems themselves
   --out        JSON with every table (default: stats.json next to the first input)
 
-Tables, one row per model unless stated:
+A configuration is a model with search on or off (`<model> +search`): runs of the
+same configuration, e.g. one full run done in parts, are pooled.  A warning names
+problems attempted more than once in a configuration and parts whose manifests
+differ in a setting that must be equal (harness, image, statements, budgets).
+
+Tables, one row per configuration unless stated:
   solve rates   solved / attempted with a 95% interval: percentile bootstrap
                 over problems (all epochs of a problem stay together), also
                 per category (open / research / calibration)
@@ -54,7 +59,47 @@ def read_csv(path: Path) -> list[dict]:
 
 
 def short(model: str) -> str:
-    return model.split("/")[-1].lower()
+    return model.split("/")[-1].removesuffix(" +search").lower()
+
+
+def configuration(r: dict) -> str:
+    return r["model"] + (" +search" if str(r.get("search", "")).lower() == "true" else "")
+
+
+# Settings that every part of one configuration must share (from manifest.json).
+SAME = ["harness_commit", "harness_dirty", "inspect_version", "image_id", "lean_toolchain",
+        "statements_commit", "effort", "search_provider", "sessions", "session_output_tokens",
+        "session_tokens", "session_working_time", "note_tokens", "max_tokens", "comparator"]
+
+
+def manifests(path: Path) -> list[dict]:
+    """manifest.json of a run folder, of the run folders below it, or next to a results.csv."""
+    found = [path / "manifest.json"] if path.is_dir() else [path.parent / "manifest.json"]
+    if path.is_dir():
+        found += sorted(path.glob("*/manifest.json"))
+    return [json.loads(f.read_text(encoding="utf-8")) for f in found if f.exists()]
+
+
+def warnings(rows: list[dict], inputs: list[Path]) -> list[str]:
+    out = []
+    seen: dict[tuple[str, str], int] = defaultdict(int)
+    for r in rows:
+        seen[(configuration(r), str(r["problem"]))] += 1
+    dup = defaultdict(list)
+    for (c, p), n in seen.items():
+        if n > 1:
+            dup[c].append(p)
+    out += [f"{c}: attempted more than once: {' '.join(sorted(ps))}" for c, ps in sorted(dup.items())]
+    by_config = defaultdict(list)
+    for m in (m for p in inputs for m in manifests(p)):
+        c = m.get("model", "") + (" +search" if str(m.get("search", "")).lower() == "true" else "")
+        by_config[c].append(m)
+    for c, ms in sorted(by_config.items()):
+        for k in SAME:
+            values = sorted({str(m.get(k, "")) for m in ms})
+            if len(values) > 1:
+                out.append(f"{c}: parts differ in {k}: {', '.join(values)}")
+    return out
 
 
 def date(s: str) -> tuple[int, ...] | None:
@@ -117,12 +162,15 @@ def main() -> None:
     scored = [r for r in rows if str(r.get("correct", "")) != ""]
     by_mp: dict[str, dict[str, list[dict]]] = defaultdict(lambda: defaultdict(list))
     for r in scored:
-        by_mp[r["model"]][str(r["problem"])].append(r)
+        by_mp[configuration(r)][str(r["problem"])].append(r)
     models = sorted(by_mp)
     solved = lambda rs: sum(int(r["correct"]) for r in rs) / len(rs)
     cat = lambda p: dates.get(p, {}).get("category", "?")
     report: dict = {"inputs": [str(p) for p in inputs], "attempts": len(rows),
-                    "unscored_attempts": len(rows) - len(scored), "bootstrap": {"B": B, "seed": SEED}}
+                    "unscored_attempts": len(rows) - len(scored), "bootstrap": {"B": B, "seed": SEED},
+                    "warnings": warnings(rows, inputs)}
+    for w in report["warnings"]:
+        print("WARNING:", w, file=sys.stderr)
 
     # 1. solve rates, overall and per category
     rates = []
@@ -165,10 +213,10 @@ def main() -> None:
         p["p_holm"], p["differ"] = adj, adj < ALPHA
     report["pairs"] = pairs
     if pairs:
-        print(f"\n{'model A':32} {'model B':32} {'common':>6} {'A only':>6} {'B only':>6} {'A-B pp':>7} "
+        print(f"\n{'configuration A':40} {'configuration B':40} {'common':>6} {'A only':>6} {'B only':>6} {'A-B pp':>7} "
               f"{'95% CI':>13} {'p':>7} {'p Holm':>7}")
         for p in pairs:
-            print(f"{p['a'][:32]:32} {p['b'][:32]:32} {p['common']:>6} {p['only_a']:>6} {p['only_b']:>6} "
+            print(f"{p['a'][:40]:40} {p['b'][:40]:40} {p['common']:>6} {p['only_a']:>6} {p['only_b']:>6} "
                   f"{pct(p['diff']):>7} {pct(p['ci'][0]):>6}-{pct(p['ci'][1]):<6} {p['p']:>7.3f} {p['p_holm']:>7.3f}"
                   + ("  differ" if p["differ"] else ""))
         n = sum(p["differ"] for p in pairs)
