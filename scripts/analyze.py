@@ -3,9 +3,15 @@
 
 usage: scripts/analyze.py LOG_DIR [more LOG_DIRs]   -> writes LOG_DIR/results.csv and prints it
 Columns: run, model, search, problem, epoch, correct, polarity, sessions_used, session_ends,
-errors, tokens_in, tokens_out, tokens_total, total_time_s, working_time_s,
-tool_calls, tool_errors, model_calls, max_tokens_stops, refusals, max_context,
-lines, proof_lines, compile_s, axioms, limit.
+errors, tokens_in, tokens_cached, tokens_out, tokens_total, cost_usd, total_time_s,
+working_time_s, tool_calls, tool_errors, model_calls, max_tokens_stops, refusals,
+max_context, lines, proof_lines, compile_s, axioms, limit.
+tokens_in counts every input token, cached or not (Inspect's input_tokens leaves out
+the cache reads and writes that providers such as Anthropic report separately), so it
+means the same for every model; tokens_cached is the part read from the prompt cache.
+cost_usd is the cost Inspect computed per call at the list prices of
+data/model_prices.yml (run.sh passes the file); empty when a model has no price
+there (e.g. the free GWDG models) and for logs from before 2026-10-26.
 polarity is `prove`, or `disprove` when the grade is for the negation of an open
 problem (Pxxx_DISPROVE.lean): the one that passed, else the one the agent edited.
 session_ends lists how each session ended (submit, token, working, error).
@@ -23,8 +29,13 @@ from inspect_ai.event import ModelEvent, ToolEvent
 from inspect_ai.log import list_eval_logs, read_eval_log
 
 COLS = ["run", "model", "search", "problem", "epoch", "correct", "polarity", "sessions_used", "session_ends", "errors", "tokens_in",
-        "tokens_out", "tokens_total", "total_time_s", "working_time_s", "tool_calls", "tool_errors", "model_calls",
-        "max_tokens_stops", "refusals", "max_context", "lines", "proof_lines", "compile_s", "axioms", "limit"]
+        "tokens_cached", "tokens_out", "tokens_total", "cost_usd", "total_time_s", "working_time_s", "tool_calls", "tool_errors",
+        "model_calls", "max_tokens_stops", "refusals", "max_context", "lines", "proof_lines", "compile_s", "axioms", "limit"]
+
+
+def all_input(u) -> int:
+    """Input tokens of a usage record, cached or not."""
+    return (u.input_tokens or 0) + (u.input_tokens_cache_read or 0) + (u.input_tokens_cache_write or 0)
 
 
 def max_context(sample) -> int:
@@ -32,10 +43,14 @@ def max_context(sample) -> int:
     largest = 0
     for e in sample.events:
         if isinstance(e, ModelEvent) and e.output and e.output.usage:
-            u = e.output.usage
-            largest = max(largest, (u.input_tokens or 0) + (u.input_tokens_cache_read or 0)
-                          + (u.input_tokens_cache_write or 0))
+            largest = max(largest, all_input(e.output.usage))
     return largest
+
+
+def cost(usage: dict) -> float | str:
+    """Cost of all model calls at the prices Inspect was given; empty if a model had none."""
+    costs = [u.total_cost for u in usage.values()]
+    return round(sum(costs), 4) if costs and None not in costs else ""
 
 
 def stop_reasons(sample) -> list[str]:
@@ -61,9 +76,11 @@ def rows_for(log_dir: Path):
                 "sessions_used": len(sessions),
                 "session_ends": " ".join(str(r.get("ended_by", "")).split(":")[0] for r in sessions),
                 "errors": " | ".join(md.get("errors", []))[:200] if md else (sc.explanation if sc else ""),
-                "tokens_in": sum(u.input_tokens for u in usage.values()),
+                "tokens_in": sum(all_input(u) for u in usage.values()),
+                "tokens_cached": sum(u.input_tokens_cache_read or 0 for u in usage.values()),
                 "tokens_out": sum(u.output_tokens for u in usage.values()),
                 "tokens_total": sum(u.total_tokens for u in usage.values()),
+                "cost_usd": cost(usage),
                 "total_time_s": round(s.total_time or 0),
                 "working_time_s": round(s.working_time or 0),
                 "tool_calls": sum(isinstance(e, ToolEvent) for e in s.events),

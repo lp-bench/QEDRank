@@ -76,6 +76,7 @@ inspect eval proofbench_eval/task.py@proofbench \
   -T note_tokens="$NOTE_TOKENS" -T comparator=$([ "$COMPARATOR" = on ] && echo true || echo false) \
   --epochs "$EPOCHS" --max-tokens "$MAX_TOKENS" --timeout "$REQUEST_TIMEOUT" --attempt-timeout "$ATTEMPT_TIMEOUT" --time-limit "$TIME_LIMIT" \
   --max-samples "$MAX_SAMPLES" --max-connections 4 --max-sandboxes 4 \
+  --model-cost-config data/model_prices.yml \
   --log-dir "$LOG_DIR" --tags "$TAGS" --metadata run_id="$RUN_ID"
 
 python3 scripts/analyze.py "$LOG_DIR"

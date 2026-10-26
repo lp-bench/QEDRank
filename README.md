@@ -47,8 +47,9 @@ HPC cluster with Apptainer, without root.
    commit, image, Lean and Mathlib versions, problem commit, model, reasoning
    effort, search, budgets), and [`scripts/analyze.py`](scripts/analyze.py)
    writes one row per attempt to `results.csv`: verdict, polarity (prove or
-   disprove), sessions used, tokens,
-   total and working time, tool and model calls, replies cut off at the token
+   disprove), sessions used, input tokens (cached or not) and output tokens,
+   cost at the list prices in [`data/model_prices.yml`](data/model_prices.yml)
+   (Anthropic models; the free GWDG models have none), total and working time, tool and model calls, replies cut off at the token
    cap and refused replies, the largest context a single call needed, proof
    length and axioms.
    When a run ends, `run.sh` writes the SHA-256 checksums of these files to
@@ -160,6 +161,7 @@ scripts/stats.py             runs -> intervals, model comparisons, contamination
 scripts/prefill_problem_dates.py  draft of data/problem_dates.csv from the development repository
 data/problem_dates.csv       when each problem's proof became public (year; status checked/unchecked/open)
 data/model_facts.csv         release date, training cutoff and size of each model, with sources
+data/model_prices.yml        list prices per million tokens, for Inspect's cost tracking
 tests/grader_attacks/        cheating attempts the grader must reject, and run.sh to check both layers
 tests/test_targets.py        proof or disproof: which file is graded and reported (fake sandbox, seconds)
 tests/mock_run.py            a whole two-session run with a scripted mock model, no API (Apptainer, 1 min)
