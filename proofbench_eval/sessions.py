@@ -125,15 +125,20 @@ async def _handoff_note(messages: list[ChatMessage], max_tokens: int) -> str:
     # choice) with the handoff request appended: Anthropic rejects a history
     # with tool calls but no tool definitions, and an unchanged prefix is read
     # from the prompt cache instead of being paid again in full.
+    # A reasoning model may spend the whole budget thinking and return no
+    # text; the request is then repeated once.
     call = _last_model_call()
     try:
-        output = await get_model().generate(
-            _complete_turns(messages) + [ChatMessageUser(content=HANDOFF_REQUEST)],
-            tools=call.tools if call else [],
-            tool_choice=call.tool_choice if call else None,
-            config=GenerateConfig(max_tokens=max_tokens),
-        )
-        return output.completion.strip() or "(no note: the model returned no text)"
+        for _ in range(2):
+            output = await get_model().generate(
+                _complete_turns(messages) + [ChatMessageUser(content=HANDOFF_REQUEST)],
+                tools=call.tools if call else [],
+                tool_choice=call.tool_choice if call else None,
+                config=GenerateConfig(max_tokens=max_tokens),
+            )
+            if output.completion.strip():
+                return output.completion.strip()
+        return "(no note: the model returned no text)"
     except Exception as ex:
         return f"(no note: {type(ex).__name__}: {str(ex)[:200]})"
 
@@ -145,7 +150,7 @@ def handoff_sessions(
     output_tokens: int = 40_000,
     total_tokens: int | None = 1_000_000,
     working_seconds: float | None = 1800,
-    note_tokens: int = 8000,
+    note_tokens: int = 32_000,
 ) -> Solver:
     async def solve(state: TaskState, generate: Generate) -> TaskState:
         md = state.metadata
