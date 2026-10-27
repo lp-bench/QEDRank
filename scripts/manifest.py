@@ -27,16 +27,27 @@ def _mathlib_commit(manifest: Path) -> str:
     return ""
 
 
+def _package_checkout(module: str) -> str:
+    """Folder of the git checkout an editable install of `module` runs from ("" otherwise)."""
+    src = sh([sys.executable, "-c", f"import os, {module}; print(os.path.dirname({module}.__file__))"])
+    return src if src and sh(["git", "-C", src, "rev-parse", "HEAD"]) else ""
+
+
 def main() -> None:
     run_dir = Path(sys.argv[1]); run_dir.mkdir(parents=True, exist_ok=True)
     kv = dict(a.split("=", 1) for a in sys.argv[2:])
     statements = Path(kv.get("statements", "proofbench"))
+    apptainer_src = _package_checkout("inspect_apptainer")
     manifest = {
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "host": platform.node(),
         "harness_commit": sh(["git", "rev-parse", "HEAD"]),
         "harness_dirty": bool(sh(["git", "status", "--porcelain"])),
         "inspect_version": sh([sys.executable, "-c", "import inspect_ai;print(inspect_ai.__version__)"]),
+        "inspect_apptainer_version": sh([sys.executable, "-c",
+                                         "from importlib.metadata import version;print(version('inspect-apptainer'))"]),
+        "inspect_apptainer_commit": sh(["git", "-C", apptainer_src, "rev-parse", "HEAD"]) if apptainer_src else "",
+        "inspect_apptainer_dirty": bool(apptainer_src and sh(["git", "-C", apptainer_src, "status", "--porcelain"])),
         "image_id": kv.get("image") or sh(["docker", "image", "inspect", "--format", "{{.Id}}", "proofbench-sandbox:latest"]),
         "lean_toolchain": (statements / "lean-toolchain").read_text().strip() if (statements / "lean-toolchain").exists() else "",
         "mathlib_commit": _mathlib_commit(statements / "lake-manifest.json"),

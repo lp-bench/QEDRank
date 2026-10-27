@@ -67,7 +67,7 @@ def configuration(r: dict) -> str:
 
 
 # Settings that every part of one configuration must share (from manifest.json).
-SAME = ["harness_commit", "harness_dirty", "inspect_version", "image_id", "lean_toolchain",
+SAME = ["harness_commit", "harness_dirty", "inspect_version", "inspect_apptainer_commit", "image_id", "lean_toolchain",
         "statements_commit", "effort", "search_provider", "sessions", "session_output_tokens",
         "session_tokens", "session_working_time", "note_tokens", "max_tokens", "comparator"]
 
