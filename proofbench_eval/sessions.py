@@ -142,7 +142,7 @@ async def _handoff_note(messages: list[ChatMessage], max_tokens: int) -> str:
 def handoff_sessions(
     tools: list[Tool | ToolSource],
     sessions: int = 10,
-    output_tokens: int = 30_000,
+    output_tokens: int = 40_000,
     total_tokens: int | None = 1_000_000,
     working_seconds: float | None = 1800,
     note_tokens: int = 8000,

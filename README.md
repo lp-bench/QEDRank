@@ -25,7 +25,7 @@ HPC cluster with Apptainer, without root.
    and nauty), sympy, networkx, python-sat and the SAT solver CaDiCaL are
    installed. A proof may be split over several files.
 3. **Sessions with handoff.** An attempt consists of up to 10 fresh sessions,
-   each with an output-token budget (30,000 by default). At the end of a
+   each with an output-token budget (40,000 by default). At the end of a
    session the agent writes a handoff note in a fixed format (proved lemmas,
    open goals, failed approaches, unsaved drafts) that starts the next one.
    Fresh sessions keep models with short and long context windows comparable.
@@ -137,7 +137,8 @@ everything the harness needs from the cluster; run it once on a compute node.
 | `SANDBOX`               | `docker`      | `docker` or `apptainer`                         |
 | `COMPARATOR`            | `on`          | second grading layer                            |
 | `SESSIONS`              | `10`          | sessions per problem                            |
-| `SESSION_OUTPUT_TOKENS` | `30000`       | output-token budget per session                 |
+| `SESSION_OUTPUT_TOKENS` | `40000`       | output-token budget per session                 |
+| `MAX_TOKENS`            | `32000`       | output-token cap per model reply                |
 | `MAX_SAMPLES`           | `4`           | problems in parallel                            |
 
 Changing any setting that `manifest.json` records makes a new run.
