@@ -10,6 +10,9 @@
 //       --subdir <folder> restricts discovery to one folder (a /tree/<branch>/<folder> link sets it too)
 //   node qedrank/cli.js run --repo <url> [--ref R] [--run-id ID] [--models a,b] [--papers p1,p2] [--targets main_theorem,...] [--limit N] [--private] [--allow-host h1,h2]
 //                          [--task formalize|prove] [--lean-project DIR] [--fixtures DIR] [--attempts K] [--repair-rounds R] [--config file] [--dry-run] [--allow-missing-imports]
+//                          [--temperature T] [--top-p P] [--effort low|medium|high|xhigh|max] [--max-tokens N] [--timeout-ms MS] [--provider-concurrency N]
+//       generation settings on the command line override the --config file; attempts above 1 need a temperature above 0 (pass@k is
+//       reported for every k from 1 to the attempts, 16 at most on the page)
 //       --task formalize (default): the model writes statement and proof from the paper text; the statement is compared with the reference
 //       --task prove: the model gets the challenge file and fills in its sorry; the file is judged by the independent check (no PDF needed)
 //       --lean-project: the Lean project whose toolchain, Mathlib and libraries compile the files (default lean/; for --task prove the built
@@ -45,7 +48,15 @@
 //       another QEDRank run's main-theorem records for a cross-harness comparison
 //   node qedrank/cli.js lean-bench [--project DIR] [--files N]
 //       time Lean on N challenge files of a project: the measurement to take before adding a persistent verification backend
+//   node qedrank/cli.js lean-env status [--json] [--lean-project DIR]
+//       the Lean environments this machine has (host project, Docker image, Apptainer .sif) and which one a run would use
+//   node qedrank/cli.js lean-env build --project DIR [--tag qedrank-lean:latest] [--modules ProofBench,Matroid] [--apptainer [--sif FILE]] [--no-cache] [--platform linux/amd64]
+//       the image of one Lean project (lean-env/Dockerfile): its toolchain, Mathlib from the cache, everything else from source;
+//       --modules limits the module sweep to these prefixes (default: every module of every library); a prefix naming a
+//       dependency package (e.g. Matroid) builds that package; `run … --dry-run --backend docker` checks the corpus's imports inside
 //
+// Every command that compiles Lean takes --backend auto|host|docker|apptainer [--image NAME] [--sif FILE]; the default is
+// verification.backend in qedrank.config.json (auto = the host project when it is built, else the Docker image, else the .sif).
 // A local directory can replace --repo with --path DIR (fixtures, offline review).
 
 import path from 'node:path';
@@ -54,7 +65,7 @@ import { loadConfig } from './lib/config.js';
 import { checkPrivateCorpus } from './lib/privacy.js';
 import { openSource } from './lib/source.js';
 import { discoverCorpus } from './lib/corpus.js';
-import { detectToolchain } from './lib/lean.js';
+import { selectToolchain, describeEnvironments, buildImage, verificationSettings } from './lib/leanenv.js';
 import { listModels } from './lib/models.js';
 import { pingModels } from './lib/ping.js';
 import { getRoster, PROVIDER_IDS } from '../lib/providers.js';
@@ -67,7 +78,7 @@ import os from 'node:os';
 import { LeanRunner } from './lib/lean.js';
 import { gradeSubmission, DEFAULT_GRADE_POLICY } from './lib/grade.js';
 import { importAgentBundles } from './lib/agent.js';
-import { JobManager } from './lib/jobs.js';
+import { JobManager, listRunConfigs } from './lib/jobs.js';
 import { fileURLToPath } from 'node:url';
 import { compareCommand } from './lib/compare/command.js';
 import { proofMetricsCommand } from './lib/proofmetrics.js';
@@ -99,6 +110,16 @@ function list(v) {
 
 const log = (m) => process.stderr.write(`[qedrank] ${m}\n`);
 
+function printLeanEnv(d) {
+  const line = (name, e, extra) => console.log(`${name.padEnd(10)} ${(e.usable ? 'usable' : 'not usable').padEnd(11)} ${e.usable ? `${e.lean_version || e.toolchain || '?'}; mathlib ${e.mathlib || 'none'}; built=${e.mathlib_built}; audit=${e.audit_built}` : e.reason || ''}${extra ? `\n${' '.repeat(22)}${extra}` : ''}`);
+  line('host', d.host, d.host.lean_project);
+  const warn = (e) => (e.build_warnings?.length ? `\n${' '.repeat(22)}${e.build_warnings.length} module(s) did not build: ${e.build_warnings.slice(0, 5).join(', ')}${e.build_warnings.length > 5 ? ', …' : ''}` : '');
+  line('docker', d.docker, `${d.docker.image}${d.docker.image_id ? ` ${d.docker.image_id.slice(0, 19)}` : ''}${d.docker.image_info?.project?.commit ? `; project ${d.docker.image_info.project.commit.slice(0, 10)}${d.docker.image_info.project.dirty ? ' (dirty)' : ''}, built ${d.docker.image_info.built_at}` : ''}${warn(d.docker)}`);
+  line('apptainer', d.apptainer, `${d.apptainer.sif || 'no .sif configured'}${d.apptainer.image_info?.project?.commit ? `; project ${d.apptainer.image_info.project.commit.slice(0, 10)}` : ''}${warn(d.apptainer)}`);
+  console.log(`requested ${d.backend_requested}; a run would use: ${d.selected || 'none (every compile would be an infrastructure failure)'}`);
+  console.log(`container mounts: ${d.mounts.map((m) => `${m.host} -> ${m.container}`).join(', ')}`);
+}
+
 /**
  * A resumed run keeps the settings it was started with (attempts, token budget, timeout, effort,
  * Lean project, grade policy), so the attempts it still has to ask are asked the same way. Flags
@@ -111,7 +132,7 @@ async function resumeConfig(config, overrides, args) {
   const pick = (k) => ({ ...(config[k] || {}), ...(stored[k] || {}), ...(file[k] || {}), ...(overrides[k] || {}) });
   const leanDir = overrides.leanDir || (file.leanDir ? path.resolve(file.leanDir) : null) || stored.leanDir || config.leanDir;
   if (leanDir !== config.leanDir) log(`resume: Lean project ${leanDir} (as the run was started; --lean-project overrides)`);
-  return { ...config, generation: pick('generation'), lean: pick('lean'), grade: pick('grade'), concurrency: pick('concurrency'), leanDir };
+  return { ...config, generation: pick('generation'), lean: pick('lean'), grade: pick('grade'), concurrency: pick('concurrency'), verification: pick('verification'), leanDir };
 }
 
 async function main() {
@@ -127,15 +148,42 @@ async function main() {
   if (typeof args['lean-project'] === 'string') overrides.leanDir = path.resolve(args['lean-project']);
   if (args.private) overrides.privacy = { ...(overrides.privacy || {}), privateCorpus: true };
   if (args['allow-missing-imports']) overrides.preflight = { ...(overrides.preflight || {}), allowMissingImports: true };
+  for (const [flag, key] of [['temperature', 'temperature'], ['top-p', 'topP'], ['max-tokens', 'maxTokens'], ['timeout-ms', 'timeoutMs'], ['provider-concurrency', 'providerConcurrency']]) {
+    if (args[flag] !== undefined && args[flag] !== true) overrides.generation = { ...(overrides.generation || {}), [key]: Number(args[flag]) };
+  }
+  if (typeof args.effort === 'string') overrides.generation = { ...(overrides.generation || {}), effort: args.effort };
+  if (typeof args.backend === 'string') overrides.verification = { ...(overrides.verification || {}), backend: args.backend };
+  if (typeof args.image === 'string') overrides.verification = { ...(overrides.verification || {}), image: args.image };
+  if (typeof args.sif === 'string') overrides.verification = { ...(overrides.verification || {}), sif: path.resolve(args.sif) };
   const config = await loadConfig({ configFile: args.config || null, overrides });
   if (typeof args['allow-host'] === 'string') config.privacy.allowedHosts = [...(config.privacy.allowedHosts || []), ...list(args['allow-host'])];
 
   switch (cmd) {
     case 'toolchain': {
-      const tc = await detectToolchain(config.leanDir, { log });
-      const { path_env, ...rest } = tc;
-      console.log(JSON.stringify(rest, null, 2));
+      const tc = await selectToolchain(config, { leanDir: config.leanDir, log });
+      const { path_env, environment, ...rest } = tc;
+      console.log(JSON.stringify({ ...rest, environment: environment ? { ...environment, mounts: (environment.mounts || []).map((m) => `${m.host}:${m.container}`) } : null }, null, 2));
       return;
+    }
+    case 'lean-env': {
+      const sub = args._[1] || 'status';
+      if (sub === 'status') {
+        const leanDir = typeof args['lean-project'] === 'string' ? path.resolve(args['lean-project']) : config.leanDir;
+        const d = await describeEnvironments(config, { leanDir, log });
+        if (args.json) console.log(JSON.stringify(d, null, 2));
+        else printLeanEnv(d);
+        return;
+      }
+      if (sub === 'build') {
+        const project = path.resolve(typeof args.project === 'string' ? args.project : config.leanDir);
+        const r = await buildImage({
+          project, tag: typeof args.tag === 'string' ? args.tag : verificationSettings(config).image, modules: list(args.modules), apptainer: Boolean(args.apptainer),
+          sif: typeof args.sif === 'string' ? path.resolve(args.sif) : null, noCache: Boolean(args['no-cache']), platform: typeof args.platform === 'string' ? args.platform : null, log,
+        });
+        console.log(JSON.stringify({ tag: r.tag, image_id: r.image_id, size_bytes: r.size_bytes, sif: r.sif, sif_archive: r.sif_archive, project: r.manifest.project, built_at: r.manifest.built_at }, null, 2));
+        return;
+      }
+      throw new Error('lean-env takes: status [--json] [--lean-project DIR]  |  build --project DIR [--tag NAME] [--modules Prefix.A,Prefix.B] [--apptainer [--sif FILE]] [--no-cache] [--platform linux/amd64]');
     }
     case 'models': {
       const ids = args.all ? PROVIDER_IDS : list(args.models).length ? list(args.models) : getRoster();
@@ -149,7 +197,7 @@ async function main() {
     }
     case 'ping': {
       const ids = list(args.models).length ? list(args.models) : getRoster();
-      const rows = await pingModels(ids, { compile: Boolean(args.compile), leanDir: config.leanDir, timeoutMs: Number(args.timeout || 120000), maxTokens: Number(args['max-tokens'] || config.generation.maxTokens), log });
+      const rows = await pingModels(ids, { compile: Boolean(args.compile), leanDir: config.leanDir, config, timeoutMs: Number(args.timeout || 120000), maxTokens: Number(args['max-tokens'] || config.generation.maxTokens), log });
       if (args.out) { await writeJson(args.out, rows); log(`wrote ${args.out}`); }
       console.log('\nmodel | status | latency | output tokens | attempts' + (args.compile ? ' | compile' : ''));
       for (const r of rows) {
@@ -179,6 +227,7 @@ async function main() {
         const missing = listModels().filter((m) => models.includes(m.id) && !m.configured).map((m) => m.id);
         if (missing.length) log(`WARNING: no API key for ${missing.join(', ')}; their items will be recorded as infrastructure failures`);
       }
+      if (config.generation.attempts > 1 && !(config.generation.temperature > 0)) log(`WARNING: ${config.generation.attempts} attempts at temperature ${config.generation.temperature}: the attempts will be near-identical and pass@k says nothing; pass --temperature (e.g. 1.0) or a --config file such as configs/glm-prove-pass4.json`);
       const ctx = await createRun({ config, runId: args['run-id'] || undefined, sourceOpts: { url: args.repo, path: args.path, ref: args.ref, subdir: args.subdir || null }, models, mode, log });
       ctx.sourceToken = args.token || null;
       if (mode === 'fixture') { ctx.run.fixture_dir = path.resolve(args.fixtures); await ctx.saveRun(); }
@@ -240,7 +289,7 @@ async function main() {
     case 'grade': {
       if (!args.challenge || !args.solution) throw new Error('grade requires --challenge <file> and --solution <file>');
       const leanDir = args['lean-project'] ? path.resolve(args['lean-project']) : config.leanDir;
-      const toolchain = await detectToolchain(leanDir, { log });
+      const toolchain = await selectToolchain(config, { leanDir, log });
       const runner = new LeanRunner(toolchain, { ...config.lean, log });
       const challengeSrc = await fs.readFile(args.challenge, 'utf8');
       const solutionSrc = await fs.readFile(args.solution, 'utf8').catch(() => null);
@@ -313,7 +362,7 @@ async function main() {
     case 'lean-bench': {
       const project = path.resolve(typeof args.project === 'string' ? args.project : config.leanDir);
       const n = Number(args.files || 3);
-      const toolchain = await detectToolchain(project, { log });
+      const toolchain = await selectToolchain(config, { leanDir: project, log });
       const runner = new LeanRunner(toolchain, { ...config.lean, log });
       const probDir = path.join(project, 'ProofBench', 'PROBLEMS');
       const ids = (await fs.readdir(probDir).catch(() => [])).filter((d) => /^P\d{3}$/.test(d)).sort().slice(0, n);
@@ -344,7 +393,7 @@ async function main() {
       const port = Number(args.port || 8787);
       const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
       const jobs = args['no-jobs'] ? null : new JobManager({ cwd: repoRoot, cliPath: fileURLToPath(import.meta.url), logDir: path.join(config.runsDir, '.jobs') });
-      const server = createServer({ runsDir: config.runsDir, jobs, allowOrigins: list(args['allow-origin']), harnesses: () => describeHarnesses(config) });
+      const server = createServer({ runsDir: config.runsDir, jobs, allowOrigins: list(args['allow-origin']), harnesses: () => describeHarnesses(config), configs: () => listRunConfigs(path.join(repoRoot, 'configs')) });
       server.listen(port, '127.0.0.1', () => log(`serving ${config.runsDir} at http://127.0.0.1:${port}/runs${jobs ? ' (the page can start runs here; --no-jobs disables that)' : ''}`));
       return;
     }

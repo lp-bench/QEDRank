@@ -80,9 +80,30 @@ Published 2026-10-23 with the user's go-ahead:
   `paper/benchmark-comparison.tex` and untracked `paper/performance-metrics-methodology.*`,
   `paper/proofbench-measures.*`, `paper/proofbench-performance-matrix.*`.
 
+Fixed 2026-10-23, late (commit `377a33e` on `QEDRank`, merged into main as `bef4a0c`; not deployed,
+only a page placeholder changed):
+
+- A prove run started from the Evaluate Models page without a Lean project (`runs/2026-10-23-515eb05`,
+  corpus `vaibhav-baj/ProofBench@515eb05`, models qwen35 + glm, run defaults) graded against the
+  audit project `lean/`, so 32 items were `challenge_does_not_compile` (`unknown module prefix
+  'ProofBench'`); only about five model requests were spent because the per-item challenge compile
+  runs before the model call. That run is invalid and can be deleted.
+- `qedrank/lib/preflight.js` + `stagePreflightProve` in `run.js`: before the first model call of a
+  prove run (and in `--dry-run`), every module the challenges import must resolve to an `.olean` on
+  the project's LEAN_PATH. A whole prefix missing stops the run with a message naming the project
+  and the built ProofBench checkout; single missing modules are listed (items end as
+  `challenge_import_unavailable`). `--allow-missing-imports` downgrades the stop to a warning;
+  the result is stored on the run as `import_check`.
+- `loadConfig`: a prove run without `--lean-project` (and no `leanDir` in the config file) uses
+  `harnesses.proofbench.leanProject` when it exists, so page-started runs cannot repeat the mistake.
+- Verified: negative dry run on `lean/` stops (also catches the `Matroid` dependency); positive
+  dry run over all 111 papers of `proofbench-statements@466b32a`: all 135 imported modules resolve
+  in `C:\QEDRank\proofbench-statements`. Tests 152 pass.
+
 Not done:
 
-- No ProofBench run with the new models yet (4C). Next step: the smoke runs.
+- Smoke runs `smoke-qwen35-20261023` and `smoke-glm-20261023` (P109, P110, 2 attempts each) were
+  started right after the fix; their outcome goes into the log below. Full runs after that.
 
 ## 3. Facts needed for the runs
 
@@ -166,6 +187,8 @@ the prove prompt should first include the hidden definitions (open question sinc
 changing it means re-running `qwen` for comparability). Ask before the full runs if the user has
 not said.
 
+- [x] Dry run with the import check over the whole corpus (done 2026-10-23: 135 modules, 111 files,
+  nothing missing). `--lean-project` is now optional for prove runs on this machine (section 2).
 - [ ] Smoke run per model: 2 problems × 2 attempts into a throw-away run id, then read
   `runs/<id>/summary.json` (`settings`, per-model `sampling`: temperature/effort as intended,
   `reasoning_chars` > 0 for the thinking models, no `empty_response`):
@@ -240,6 +263,12 @@ not said.
   stalled for the full 120 s timeout and one hung indefinitely without a timeout, so the endpoint
   stalls under load. The run configs' 30-minute timeout and 6 retries cover this, but every stalled
   or failed request still counts against the quota.
+- `infrastructure_failure` with `challenge_does_not_compile` means the Lean project cannot compile
+  the challenge (wrong project or project behind the corpus), never a network or compute problem;
+  an HPC node changes nothing about it. Since 2026-10-23 the run stops up front in that case.
+- The page's default corpus is `vaibhav-baj/ProofBench` at its newest commit; the built project
+  tracks `proofbench-statements@466b32a` (111 problems). Newer corpus commits need the project
+  synced and rebuilt first; the import check reports exactly which modules are missing.
 - The private-corpus guard refuses Anthropic/OpenAI slots for ProofBench by design; a run with
   them exits 1 before any request.
 - git prints "LF will be replaced by CRLF" warnings for the edited files; harmless (core.autocrlf).
@@ -273,3 +302,80 @@ not said.
 - 2026-10-23 (session 1, night, 2): `qedrank/README.md` (roster table and ten-slot wording) had been left
   out of the first commit; committed and merged separately. Working tree is now clean apart from the
   older `paper/` files.
+- 2026-10-23 (session 1, night, 3): the user's page-started run failed on the audit project (section
+  2, "Fixed"). Import check and default Lean project implemented, tested, committed `377a33e`, merged
+  `bef4a0c`. Full-corpus dry run clean. Smoke runs for qwen35 and glm started from the CLI with the
+  pass4 configs (2 papers × 2 attempts); results follow in the next log line.
+- 2026-10-23 16:07Z: the page-started job `job-1792769599642-1` (run `2026-10-23-515eb05`) was
+  stopped (run server status `stopped`, process gone). It had kept running next to the smoke runs
+  and was spending requests on the papers whose challenges import Mathlib only. Do not restart it
+  from the page: the page launcher uses the run defaults and the newest corpus commit, not the
+  pass4 configs and the built project's commit; start runs from the CLI commands in 4C.
+- Smoke `smoke-qwen35-20261023` finished: import check ok, 4 of 4 items graded in
+  `C:\QEDRank\proofbench-statements` (Lean 4.33.1), 0 infrastructure failures, 0 solved
+  (compile errors in the model's proofs), median 149 s per item. The pipeline works end to end.
+- 2026-10-26: the user started a GLM prove run from the page asking for 16 attempts (job
+  `job-1792981965489-1`, run `2026-10-26-515eb05`, corpus `vaibhav-baj/ProofBench@515eb05`, 116
+  papers). It ran with k = 1 because the page's single-call request (`src/qedrank/panels.jsx`,
+  `request` and `commandLine`) never sends `attempts`; only the agent-run branch does
+  (`jobs.js` would accept `--attempts` for `run`). The run also used the run defaults, not
+  `configs/glm-prove-pass4.json` (temperature 0, effort high, 16,384 tokens, 5-min timeout), and
+  `lake env` failed at start (`toolchain.available: false`; it works again from a shell the same
+  day, cause unknown). Result: 64 one-sentence "cannot complete" answers, 44 with the whole
+  budget spent on reasoning, 6 timeouts, 1 runner error, 1 file (P111) not graded; 0 proofs
+  checked; 136 GWDG requests spent. Run is invalid. Page fix not made yet (open user decision).
+- 2026-10-27: Lean environments (user's go-ahead for the plan "Part 1 steps 1–2 first, then the
+  Selenium e2e suite"): `qedrank/lib/leanenv.js` (host | docker | apptainer backends, `auto`
+  default = host when built), `LeanRunner` maps run-folder paths into the container and wraps each
+  compile in `docker run --rm --network none` / `apptainer exec`, the prove-task import check runs
+  inside the container, `lean-env/Dockerfile` + `.def` (benchmark-neutral image of any Lean
+  project), CLI `lean-env status|build`, `--backend/--image/--sif` on every Lean command,
+  `run.json.toolchain.environment`. Docs: qedrank/README (Quick start, Configuration, Isolation),
+  docs/agent-evaluation.md §9 and §10a (HPC re-grade split), TESTING.md §3 (container variant of
+  the grade fixtures), lean-env/README.md. Tests 165 pass. Uncommitted on branch QEDRank. Open:
+  the 116-problem corpus still needs the Lean project at the 24 Oct statements (P003, P112–P115).
+- 2026-10-27 (later): validated — image `qedrank-lean:lean-core` built from the fixture project by
+  `lean-env build`; the 14 grader fixtures give identical verdicts on the host and inside that
+  container (`QEDRANK_LEAN_BACKEND=docker`); one fix on the way: `#qr_olean_diff` / `#qr_replay`
+  scripts now receive container-mapped paths. Page launcher fixed (single-call request and command
+  preview carry `--attempts`). Selenium e2e suite (`npm run e2e`, `e2e/`, fixture runs
+  `qedrank/test/fixtures/runs/{e2e-prove,e2e-formalize}`, `.github/workflows/e2e.yml`). The e2e
+  servers scrub `*_API_KEY`/`GITHUB_TOKEN`/`QEDRANK_*` before loading the API functions: the first
+  local runs (before that guard) let the Convert test send real requests to the GWDG and OpenAI
+  slots configured on this PC (a few requests each, two runs + one debug run). e2e suite green
+  (11 tests, headless Chrome 155) against `e2e-prove`. Image of the ProofBench project started:
+  `qedrank-lean:proofbench-466b32a` (needs `sed` of CRLF in lean-toolchain — fixed in the Dockerfile).
+- 2026-10-27 (page, user request): no "2. Load a run" step anywhere. The run server address is one
+  shared setting (`qedrank.runServer` in localStorage, AppState `runServer`); the launcher loads
+  the finished job's run by itself; the Evaluation page loads the newest run with statistics by
+  itself and keeps a compact "Runs on this machine" row (server address + run files folded away);
+  `RunPanel` removed, `RunSwitcher` + `useAutoLoadRun` in `src/qedrank/panels.jsx`. e2e tests and
+  docs follow. Image build: `lake build` builds only library roots, so `lean-env/build-modules.sh`
+  sweeps every module (or `--modules` prefixes; ProofBench: `ProofBench.Mathlib_Problems`); the
+  build context is staged as `project/` + `qedrank/` so Mathlib layers stay cached.
+- 2026-10-27 (evening): `qedrank-lean:proofbench-466b32a` built (3.3 GB; sweep: 46 modules under
+  ProofBench.Mathlib_Problems, every module built). P001 graded against itself inside the image:
+  not_solved [contains_sorry], target same, 0 definitions changed — and the compiles took 3–6 s
+  against ~40 s on the Windows host (Linux Lean is far faster here): on this PC set
+  `"verification": { "backend": "docker", "image": "qedrank-lean:proofbench-466b32a" }` in
+  qedrank.config.json for grading, `auto` still picks the host. e2e green over both fixture runs
+  (12 tests). Corpus-wide import check inside the image: `run … --dry-run --backend docker`
+  (result below).
+- 2026-10-27 (night, user request "fix it and produce pass@k 1–16"): the page-started run
+  `2026-10-27-515eb05` (10 problems, glm+qwen, page defaults) had k=1, GLM 10× no file (5 one-line
+  refusals, 5 thinking exhausted 16k tokens), Qwen 8× cut off at 16,384 tokens → compile errors.
+  Fix: run server `GET /configs` lists `configs/*.json`; the launcher offers them plus temperature /
+  effort / max tokens / timeout / in-flight fields; requests carry `config`, `attempts` and the
+  settings (`jobs.js` validates: file name only, bounded numbers); CLI gained `--temperature
+  --top-p --effort --max-tokens --timeout-ms --provider-concurrency` (override `--config`) and
+  warns when attempts > 1 at temperature 0; the page sends temperature 1.0 in that case. pass@16
+  joined the prominent k (stats.js PASS_K_PROMINENT, page table/figure). ProofBench image rebuilt
+  with `--modules ProofBench.Mathlib_Problems,Matroid` (the Matroid package was missing; the
+  Docker import check caught it; `build-modules.sh` now builds dependency packages named as
+  prefixes). Tests 167; e2e 12/12. Docker import check with the statement-library-only image:
+  10 modules missing (the 3 genuinely newer ones + 7 `ProofBench.PROBLEMS.Pxxx` modules that other
+  challenges import), so the image is being rebuilt with `--modules ProofBench,Matroid`.
+- 2026-10-27 (late): today's work committed on `QEDRank`, merged into `main` and deployed to
+  Vercel with the user's go-ahead ("redeploy on vercel with updated branch"). Branch cleanup
+  (retire `QEDRank`, `one-folder`, `consolidate`; switch the root checkout to `main`) proposed,
+  not yet approved.

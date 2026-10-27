@@ -1,0 +1,43 @@
+{
+  "provider": "kimi",
+  "display_name": "fixture · Kimi K3",
+  "label": "Kimi K3",
+  "vendor": "Moonshot AI",
+  "model_id": "fixture:kimi",
+  "api_host": null,
+  "response_model": null,
+  "mode": "fixture",
+  "text": "I could prove the first part only.\n\n```lean\n/-- Twice a number, written as a sum. -/\ndef weight (n : Nat) : Nat := n + n\n\nprivate def shift (n : Nat) : Nat := n + 1\n\n/-- The successor, through a private helper. -/\ndef next (n : Nat) : Nat := shift n\n\nstructure Pair where\n  fst : Nat\n  snd : Nat\n\ntheorem weight_eq (n : Nat) : weight n = 2 * n := by\n  unfold weight\n  omega\n\ntheorem next_eq (n : Nat) : next n = n + 1 := sorry\n\ntheorem not_used (n : Nat) : n + 0 = n := rfl\n\n/-- The statement to prove. -/\ntheorem P900 (n : Nat) : weight n = 2 * n ∧ next n = n + 1 :=\n  ⟨weight_eq n, next_eq n⟩\n```\n",
+  "usage": null,
+  "sampling": null,
+  "reasoning_chars": null,
+  "observed_latency_ms": 4.848300009965897,
+  "working_ms": 4.848300009965897,
+  "http_status": null,
+  "finish_reason": "fixture",
+  "provider_attempts": 1,
+  "retry_wait_ms": null,
+  "error": null,
+  "started_at": "2026-10-27T10:44:14.408Z",
+  "started_mono_ms": 172175951.3017,
+  "ended_at": "2026-10-27T10:44:14.412Z",
+  "ended_mono_ms": 172175956.15,
+  "fixture_file": "kimi\\P900__main_theorem.md",
+  "facts": {
+    "released": "2026-07-16",
+    "training_cutoff": null,
+    "parameters_b": 2800,
+    "active_parameters_b": 104,
+    "sources": {
+      "released": "https://thenextweb.com/news/moonshot-kimi-k3-largest-open-model",
+      "parameters_b": "https://huggingface.co/moonshotai/Kimi-K3"
+    },
+    "note": "Mixture of experts. Release date is from press coverage of the API launch; no Moonshot page prints it. No vendor-stated training cutoff."
+  },
+  "prompt_hash": "52e14e9f4df3fef4a84f14bc218dc7b71d25a182f06b984a8bdbae40a6e9ea24",
+  "prompt_template_version": "qedrank-prove-v1",
+  "temperature": 0,
+  "effort": null,
+  "max_tokens": 16384,
+  "timeout_ms": 300000
+}

@@ -1,0 +1,43 @@
+{
+  "provider": "qwen",
+  "display_name": "fixture · Qwen3 30B-A3B Instruct",
+  "label": "Qwen3 30B-A3B Instruct",
+  "vendor": "Alibaba · served by GWDG Chat AI",
+  "model_id": "fixture:qwen",
+  "api_host": null,
+  "response_model": null,
+  "mode": "fixture",
+  "text": "Here is the completed file.\n\n```lean\n/-- Twice a number, written as a sum. -/\ndef weight (n : Nat) : Nat := n + n\n\nprivate def shift (n : Nat) : Nat := n + 1\n\n/-- The successor, through a private helper. -/\ndef next (n : Nat) : Nat := shift n\n\nstructure Pair where\n  fst : Nat\n  snd : Nat\n\ntheorem weight_eq (n : Nat) : weight n = 2 * n := by\n  unfold weight\n  omega\n\nprivate theorem next_eq (n : Nat) : next n = n + 1 := rfl\n\n/-- The statement to prove. -/\ntheorem P900 (n : Nat) : weight n = 2 * n ∧ next n = n + 1 :=\n  ⟨weight_eq n, next_eq n⟩\n```\n",
+  "usage": null,
+  "sampling": null,
+  "reasoning_chars": null,
+  "observed_latency_ms": 4.782900005578995,
+  "working_ms": 4.782900005578995,
+  "http_status": null,
+  "finish_reason": "fixture",
+  "provider_attempts": 1,
+  "retry_wait_ms": null,
+  "error": null,
+  "started_at": "2026-10-27T10:44:14.409Z",
+  "started_mono_ms": 172175952.6666,
+  "ended_at": "2026-10-27T10:44:14.414Z",
+  "ended_mono_ms": 172175957.4495,
+  "fixture_file": "qwen\\P900__main_theorem.md",
+  "facts": {
+    "released": "2025-07-30",
+    "training_cutoff": null,
+    "parameters_b": 30.5,
+    "active_parameters_b": 3.3,
+    "sources": {
+      "released": "https://github.com/QwenLM/Qwen3",
+      "parameters_b": "https://huggingface.co/Qwen/Qwen3-30B-A3B-Instruct-2507"
+    },
+    "note": "Mixture of experts. No vendor-stated training cutoff."
+  },
+  "prompt_hash": "52e14e9f4df3fef4a84f14bc218dc7b71d25a182f06b984a8bdbae40a6e9ea24",
+  "prompt_template_version": "qedrank-prove-v1",
+  "temperature": 0,
+  "effort": null,
+  "max_tokens": 16384,
+  "timeout_ms": 300000
+}

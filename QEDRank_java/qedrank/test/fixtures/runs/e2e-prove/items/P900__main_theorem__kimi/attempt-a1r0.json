@@ -1,0 +1,273 @@
+{
+  "schema": "qedrank-item-v1",
+  "item_key": "P900__main_theorem__kimi",
+  "paper_id": "P900",
+  "target_kind": "main_theorem",
+  "provider": "kimi",
+  "model_display_name": "fixture · Kimi K3",
+  "model_id": "fixture:kimi",
+  "model_label": "Kimi K3",
+  "api_host": null,
+  "response_model": null,
+  "setting": "pass@1",
+  "attempt": 1,
+  "repair_round": 0,
+  "task": "prove",
+  "mathematical_status": "established",
+  "reference_proof_status": "challenge",
+  "reference_statement_available": true,
+  "contamination": {
+    "model_training_cutoff": null,
+    "problem_publication_date": null,
+    "published_before_cutoff": null,
+    "public_formal_proof": null
+  },
+  "generation": {
+    "mode": "fixture",
+    "error": null,
+    "http_status": null,
+    "finish_reason": "fixture",
+    "observed_latency_ms": 4.848300009965897,
+    "working_ms": 4.848300009965897,
+    "usage": null,
+    "reasoning_chars": null,
+    "provider_attempts": 1,
+    "retry_wait_ms": null,
+    "truncated": false,
+    "prompt_hash": "52e14e9f4df3fef4a84f14bc218dc7b71d25a182f06b984a8bdbae40a6e9ea24",
+    "prompt_template_version": "qedrank-prove-v1",
+    "temperature": 0,
+    "effort": null,
+    "max_tokens": 16384,
+    "timeout_ms": 300000,
+    "started_at": "2026-10-27T10:44:14.408Z",
+    "ended_at": "2026-10-27T10:44:14.412Z",
+    "response_chars": 599
+  },
+  "parse": {
+    "has_file": true,
+    "notes": []
+  },
+  "confidence": {
+    "statement": null,
+    "proof": null
+  },
+  "abstained": false,
+  "static_screen": {
+    "ok": true,
+    "rejections": [],
+    "flags": [
+      "placeholder"
+    ]
+  },
+  "compile": {
+    "status": "compiler_success",
+    "error_count": 0,
+    "linter_warnings": {},
+    "duration_ms": 7148.088499993086,
+    "messages": []
+  },
+  "audit": {
+    "status": "placeholder",
+    "axioms": [
+      "propext",
+      "sorryAx",
+      "Quot.sound"
+    ],
+    "kernel_replay": "passed",
+    "file_sorry_free": false
+  },
+  "statement_match": "definitionally_identical",
+  "statement_match_source": "compiled_declarations",
+  "grade": {
+    "schema": "qedrank-grade-v1",
+    "graded_at": "2026-10-27T10:44:14.437Z",
+    "verdict": "not_solved",
+    "reasons": [
+      "contains_sorry"
+    ],
+    "warnings": [],
+    "target": "P900",
+    "policy": {
+      "libraryPrefixes": [
+        "ProofBench.Mathlib_Problems"
+      ],
+      "hiddenPrefixes": [
+        "ProofBench.Mathlib",
+        "ProofBench.PROBLEMS",
+        "ProofBench.DATABASE"
+      ],
+      "allowExtraImports": false,
+      "allowUnusedSorry": false,
+      "kernelReplay": true
+    },
+    "challenge_sha256": "26d12f1c7fd255b0104d5c45af0656b0865a7410df27638d18dd0a16c41e90a5",
+    "solution_sha256": "c3400a3156198f4bbd42a481702a1fbf7c9b283377f10d0f744b6fc1de8d35a7",
+    "checks": {
+      "static_screen": {
+        "ok": true,
+        "rejections": [],
+        "flags": [
+          "placeholder"
+        ]
+      },
+      "imports": {
+        "ok": true,
+        "challenge": [],
+        "solution": [],
+        "disallowed": [],
+        "hidden_library": [],
+        "removed_challenge_imports": [],
+        "extra": [],
+        "extra_allowed": false
+      },
+      "challenge": {
+        "status": "compiler_success",
+        "cached": false,
+        "missing_module": false
+      },
+      "compile": {
+        "status": "compiler_success",
+        "error_count": 0,
+        "warning_count": 1,
+        "linter_warnings": {},
+        "duration_ms": 7148.088499993086,
+        "infra_reason": null,
+        "resource_limit": null
+      },
+      "sorry": {
+        "target_sorry_free": false,
+        "file_sorry_free": false,
+        "declarations_with_sorry": [
+          "next_eq",
+          "P900"
+        ],
+        "declarations_with_sorry_count": 2
+      },
+      "axioms": {
+        "status": "placeholder",
+        "axioms": [
+          "propext",
+          "sorryAx",
+          "Quot.sound"
+        ],
+        "non_standard": [],
+        "target_kind": "theorem",
+        "target_is_prop": true,
+        "target_unsafe": false
+      },
+      "statement": {
+        "status": "unchanged",
+        "target": "P900",
+        "target_status": "same",
+        "definitions_changed": [],
+        "definitions_removed": [],
+        "lemmas_changed": [],
+        "auxiliary_missing": 0,
+        "counts": {
+          "challenge_declarations": 21,
+          "same": 21,
+          "changed": 0,
+          "missing": 0
+        },
+        "object_imports": {
+          "challenge": [
+            "Init",
+            "Init"
+          ],
+          "solution": [
+            "Init",
+            "Init"
+          ]
+        },
+        "solution_is_module": false,
+        "object_imports_removed": [],
+        "text_identical": true
+      },
+      "kernel_replay": {
+        "status": "passed",
+        "declarations": 25,
+        "duration_ms": 31131.95030000806,
+        "detail": null
+      }
+    },
+    "completeness": {
+      "available": true,
+      "score": 0.6666666666666666,
+      "steps": 3,
+      "steps_done": 2,
+      "target_own_sorry": false,
+      "lemmas_written": 3,
+      "lemmas_written_sorry_free": 2,
+      "lemmas_used": 2,
+      "lemmas_used_sorry_free": 1,
+      "axioms_assumed": 0,
+      "open_steps": [
+        "next_eq"
+      ],
+      "definition": "steps = the target plus every lemma written in the solution (not in the challenge) that the target's proof uses, directly or through other declarations of the file, plus every axiom the solution declares and the target relies on; a step is done when it is a lemma whose own proof contains no sorry; score = done steps / steps. Requires a file that compiles and leaves the statement and definitions unchanged. The agent chooses the decomposition, so compare scores within a problem, not across problems."
+    },
+    "proof": {
+      "proof_lines": 7,
+      "solution_code_lines": 13,
+      "solution_total_lines": 23,
+      "challenge_code_lines": 7,
+      "target_proof_lines": 2,
+      "rule": "proof_lines = code lines of the solution (non-blank after comment removal) minus the code lines of the challenge that are not the target's proof; it counts the target's proof and every lemma or definition the agent added"
+    },
+    "timing": {
+      "compile_ms": 7148.088499993086,
+      "challenge_compile_ms": 5771.228599995375,
+      "total_ms": 137504.3328000009
+    },
+    "toolchain": {
+      "lean_version": "Lean (version 4.34.1, x86_64-w64-windows-gnu, commit 5045d0056413266e57c625dcd7c365b10e377c52, Release)",
+      "toolchain": "leanprover/lean4:v4.34.1",
+      "mathlib": null,
+      "lean_options": [
+        "-DrelaxedAutoImplicit=false"
+      ],
+      "lean_project": "C:\\QEDRank\\QEDRank_java\\qedrank\\test\\fixtures\\lean-core"
+    },
+    "limits": {
+      "timeout_ms": 600000,
+      "memory_mb": 8192,
+      "max_heartbeats": 400000
+    }
+  },
+  "loc": {
+    "model": {
+      "total": 23,
+      "code": 13,
+      "proof": {
+        "code": 7
+      }
+    },
+    "reference": null,
+    "rule": "proof_lines = code lines of the solution (non-blank after comment removal) minus the code lines of the challenge that are not the target's proof; it counts the target's proof and every lemma or definition the agent added"
+  },
+  "timing": {
+    "evaluation_started_at": "2026-10-27T10:44:14.420Z",
+    "lean_compile_ms": 7148.088499993086,
+    "lean_total_ms": 137504.3328000009,
+    "evaluation_total_ms": 137521.88240000606,
+    "total_ms": 137526.73070001602,
+    "working_ms": 137509.18110001087,
+    "evaluation_ended_at": "2026-10-27T10:46:31.942Z"
+  },
+  "eligibility": {
+    "statement_track": true,
+    "proof_track": true,
+    "reasons": []
+  },
+  "outcomes": {
+    "infrastructure_failure": false,
+    "compiled": 1,
+    "audit_clean": 0,
+    "statement_faithful": 1,
+    "verified": 0
+  },
+  "notes": [],
+  "compiler_output": "17:8: warning: declaration uses `sorry`",
+  "evaluation_complete": true
+}

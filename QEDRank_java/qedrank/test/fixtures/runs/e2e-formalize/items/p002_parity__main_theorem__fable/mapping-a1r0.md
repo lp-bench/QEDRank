@@ -1,0 +1,1 @@
+Stated as m * 2 rather than 2 * m; equivalent by commutativity.

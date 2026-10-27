@@ -10,8 +10,6 @@
 
 import path from 'node:path';
 import { promises as fs } from 'node:fs';
-import { execFile } from 'node:child_process';
-import { promisify } from 'node:util';
 import {
   parseImports, rewriteImports, stripProofs, wrapNamespace, staticScreen, findDeclarations,
   theoremNames, countLines, dropDanglingDoc, splitHeader,
@@ -21,8 +19,6 @@ import { parseModelOutput } from './prompt.js';
 import { countLinterWarnings } from './lean.js';
 import { ITEM_SCHEMA, STATEMENT_MATCH_ACCEPTED } from './schema.js';
 import { ensureDir, writeText, writeJson, readJson, exists, sha256, leanIdent, slug, nowMono, isoNow } from './util.js';
-
-const execFileP = promisify(execFile);
 
 const STD_PREFIX = /^(Mathlib|Std|Lean|Init|Aesop|Batteries|Qq|ProofWidgets|Plausible|LeanSearchClient|ImportGraph)(\.|$)/;
 
@@ -107,14 +103,10 @@ export async function preparePrelude({ runner, toolchain, paper, sharedFiles, re
     rec.compile = { status: 'infrastructure_failure', infra_reason: toolchain.reason };
     return rec;
   }
-  // Build through lake so the .olean lands on the project LEAN_PATH.
-  const t0 = nowMono();
-  try {
-    const { stdout, stderr } = await execFileP('lake', ['build', moduleName], { cwd: leanDir, timeout: runner.timeoutMs, windowsHide: true, maxBuffer: 16 * 1024 * 1024, env: cleanEnv() });
-    rec.compile = { status: 'compiler_success', duration_ms: nowMono() - t0, stdout_tail: stdout.slice(-2000), stderr_tail: stderr.slice(-2000) };
-  } catch (err) {
-    const text = `${err.stdout || ''}\n${err.stderr || ''}`;
-    rec.compile = { status: err.killed ? 'timeout' : 'compiler_failure', duration_ms: nowMono() - t0, stdout_tail: text.slice(-4000) };
+  // Build through lake so the .olean lands on the project LEAN_PATH (a host project; a container
+  // environment answers with an infrastructure_failure that says so, see LeanRunner.lakeBuild).
+  rec.compile = await runner.lakeBuild(moduleName, { cwd: leanDir });
+  if (rec.compile.status !== 'compiler_success') {
     flags.push('prelude_failed_to_build');
     return rec;
   }
@@ -129,12 +121,6 @@ export async function preparePrelude({ runner, toolchain, paper, sharedFiles, re
   if (rec.decls.some((d) => d.unsafe)) flags.push('prelude_contains_unsafe');
   log(`prelude ${moduleName}: ${rec.compile.status}, ${rec.decls.length} decls`);
   return rec;
-}
-
-function cleanEnv() {
-  const env = { ...process.env };
-  for (const k of Object.keys(env)) if (/_API_KEY$|^GITHUB_TOKEN$/.test(k)) delete env[k];
-  return env;
 }
 
 /**

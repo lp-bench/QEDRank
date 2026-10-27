@@ -75,10 +75,18 @@ export const DEFAULT_CONFIG = Object.freeze({
     'matharena-arxivlean': { dir: null, datasetMode: 'adapted' },
     'qedrank-harness': { dir: 'harness' },
   },
-  // Lean verification backend. 'lean-cli' (one lean process per file) is the only implemented
-  // backend; a persistent server (Kimina Lean Server, LeanInteract) is added only after
-  // `node qedrank/cli.js lean-bench` shows that compilation is the bottleneck on the target machine.
-  verification: { backend: 'lean-cli' },
+  // Where the pinned Lean project lives and how `lean` runs (qedrank/lib/leanenv.js):
+  //   backend   auto | host | docker | apptainer (CLI: --backend). auto = the host project when it
+  //             is built, else the Docker image, else the Apptainer .sif; so a machine with a built
+  //             project behaves as before. 'lean-cli' is the old name of host.
+  //   image     the Docker image built by `node qedrank/cli.js lean-env build` (CLI: --image)
+  //   sif       the Apptainer image for HPC nodes (CLI: --sif)
+  //   mounts    extra host directories the container may read and write, "host:container"; runs/
+  //             and the system temp directory are always mounted
+  //   dockerArgs / apptainerArgs   extra flags for `docker run` / `apptainer exec` (site policy)
+  // One lean process per file in every case; a persistent server (Kimina Lean Server, LeanInteract)
+  // is added only after `node qedrank/cli.js lean-bench` shows that compilation is the bottleneck.
+  verification: { backend: 'auto', image: 'qedrank-lean:latest', sif: null, mounts: null, dockerArgs: [], apptainerArgs: [] },
 });
 
 function deepMerge(base, extra) {

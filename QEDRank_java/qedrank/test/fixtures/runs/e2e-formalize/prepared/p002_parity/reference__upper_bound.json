@@ -1,0 +1,100 @@
+{
+  "paper_id": "p002_parity",
+  "target_kind": "upper_bound",
+  "lean_path": "papers/p002_parity/lean/UpperBound.lean",
+  "sha256": "25001502adc6304ff279f12c1b85ac86c085a806d91301cf5e40f4199baf8ef0",
+  "declaration_name": "ub",
+  "resolved_declaration": "ub",
+  "reference_proof_status": "complete",
+  "reference_proof_status_source": "axiom_audit",
+  "compile": {
+    "label": "ref:p002_parity:upper_bound:QRP_p002_parity.lean.UpperBound",
+    "file": "C:\\QEDRank\\QEDRank_java\\qedrank\\test\\fixtures\\runs\\e2e-formalize\\prepared\\p002_parity\\lean\\refs\\QRP_p002_parity\\lean\\UpperBound.lean",
+    "status": "compiler_success",
+    "exit_code": 0,
+    "timed_out": false,
+    "duration_ms": 26434.087399989367,
+    "messages": [],
+    "error_count": 0,
+    "warning_count": 0,
+    "stdout_tail": "",
+    "stderr_tail": "",
+    "started_at": "2026-10-27T13:17:31.914Z",
+    "ended_at": "2026-10-27T13:17:58.353Z",
+    "limits": {
+      "timeout_ms": 600000,
+      "memory_mb": 8192,
+      "max_heartbeats": 400000
+    },
+    "lean_version": "Lean (version 4.34.1, x86_64-w64-windows-gnu, commit 5045d0056413266e57c625dcd7c365b10e377c52, Release)",
+    "infra_reason": null
+  },
+  "audit": {
+    "status": "compiler_success",
+    "duration_ms": 32984.007799983025
+  },
+  "axioms": [],
+  "static_screen": {
+    "ok": true,
+    "rejections": [],
+    "flags": []
+  },
+  "statement_module": "QRSR_p002_parity_upper_bound",
+  "statement_compile": {
+    "label": "refstmt:p002_parity:upper_bound",
+    "file": "C:\\QEDRank\\QEDRank_java\\qedrank\\test\\fixtures\\runs\\e2e-formalize\\prepared\\p002_parity\\lean\\cmp\\QRSR_p002_parity_upper_bound.lean",
+    "status": "timeout",
+    "exit_code": null,
+    "timed_out": false,
+    "duration_ms": 665459.400000006,
+    "messages": [],
+    "error_count": 0,
+    "warning_count": 0,
+    "stdout_tail": "",
+    "stderr_tail": "",
+    "started_at": "2026-10-27T13:19:04.075Z",
+    "ended_at": "2026-10-27T13:30:09.533Z",
+    "limits": {
+      "timeout_ms": 600000,
+      "memory_mb": 8192,
+      "max_heartbeats": 400000
+    },
+    "lean_version": "Lean (version 4.34.1, x86_64-w64-windows-gnu, commit 5045d0056413266e57c625dcd7c365b10e377c52, Release)",
+    "infra_reason": null,
+    "module": "QRSR_p002_parity_upper_bound",
+    "src_sha256": "0e1dab548c3cd3997f34ecdb6ea7e93bf548e9885f4efe169a0fd5975caea844",
+    "olean": null
+  },
+  "statement_declaration": null,
+  "statement_available": false,
+  "definitions_in_statement_module": [],
+  "loc": {
+    "total": 4,
+    "code": 2,
+    "proof": {
+      "total": 1,
+      "code": 1
+    },
+    "rule": "total=newline-separated lines; code=non-blank lines after comment removal; proof=lines from the target declaration's top-level := to the end of the declaration, same code rule"
+  },
+  "flags": [
+    "reference_statement_module_timeout"
+  ],
+  "prepared_at": "2026-10-27T13:17:31.911Z",
+  "dependency_compiles": [
+    {
+      "module": "QRP_p002_parity.lean.UpperBound",
+      "status": "compiler_success",
+      "duration_ms": 26434.087399989367,
+      "error_count": 0
+    }
+  ],
+  "axiom_classification": {
+    "placeholder": false,
+    "native_decide": false,
+    "user_axioms": [],
+    "clean": true
+  },
+  "declaration_is_prop": true,
+  "leak_guard": []
+}

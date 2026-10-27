@@ -6,6 +6,7 @@ import { callProvider, describeProvider, SYSTEM_PROMPT } from '../../lib/provide
 import { extractCodeBlocks } from './prompt.js';
 import { staticScreen, parseImports } from './leansrc.js';
 import { detectToolchain, LeanRunner } from './lean.js';
+import { selectToolchain } from './leanenv.js';
 import { pLimit, nowMono } from './util.js';
 
 export const PING_PROMPT = `Write a Lean 4 proof for the commutativity of addition on natural numbers:
@@ -20,11 +21,12 @@ export function leanFromAnswer(text) {
   return code;
 }
 
-export async function pingModels(ids, { env = process.env, timeoutMs = 120000, maxTokens = 4096, retries = 1, compile = false, leanDir = 'lean', scratchDir, log = () => {} } = {}) {
+export async function pingModels(ids, { env = process.env, timeoutMs = 120000, maxTokens = 4096, retries = 1, compile = false, leanDir = 'lean', config = null, scratchDir, log = () => {} } = {}) {
   const limit = pLimit(10);
   let runner = null;
   if (compile) {
-    const tc = await detectToolchain(leanDir, { log });
+    // With the run configuration the configured backend applies (host, docker or apptainer).
+    const tc = config ? await selectToolchain(config, { leanDir, log }) : await detectToolchain(leanDir, { log });
     runner = new LeanRunner(tc, { timeoutMs: 600000, memoryMb: 8192, maxHeartbeats: 400000 });
   }
   const results = await Promise.all(ids.map((id) => limit(async () => {

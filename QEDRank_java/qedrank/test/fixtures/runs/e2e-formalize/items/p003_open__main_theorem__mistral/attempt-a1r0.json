@@ -1,0 +1,113 @@
+{
+  "schema": "qedrank-item-v1",
+  "item_key": "p003_open__main_theorem__mistral",
+  "paper_id": "p003_open",
+  "target_kind": "main_theorem",
+  "provider": "mistral",
+  "model_display_name": "fixture · Leanstral",
+  "model_id": "fixture:mistral",
+  "model_label": "Leanstral",
+  "api_host": null,
+  "response_model": null,
+  "setting": "pass@1",
+  "attempt": 1,
+  "repair_round": 0,
+  "mathematical_status": "open",
+  "reference_proof_status": "invalid",
+  "reference_statement_available": false,
+  "contamination": {
+    "model_training_cutoff": null,
+    "problem_publication_date": null,
+    "published_before_cutoff": null,
+    "public_formal_proof": null
+  },
+  "generation": {
+    "mode": "fixture",
+    "error": null,
+    "http_status": null,
+    "finish_reason": "fixture",
+    "observed_latency_ms": 1.5165999829769135,
+    "working_ms": 1.5165999829769135,
+    "usage": null,
+    "reasoning_chars": null,
+    "provider_attempts": 1,
+    "retry_wait_ms": null,
+    "truncated": false,
+    "prompt_hash": "fdc04bec2321e3ac69a69969b64b5ebccea9d318a8da8ddb57f0e62562ebee1b",
+    "prompt_template_version": "qedrank-prompt-v2",
+    "temperature": 0,
+    "max_tokens": 16384,
+    "timeout_ms": 300000,
+    "started_at": "2026-10-27T19:11:06.603Z",
+    "ended_at": "2026-10-27T19:11:06.605Z",
+    "response_chars": 238
+  },
+  "parse": {
+    "notes": [],
+    "parts_found": 4,
+    "has_statement": false,
+    "has_proof_file": false,
+    "mapping_chars": 21
+  },
+  "confidence": {
+    "statement": 10,
+    "proof": 0
+  },
+  "abstained": true,
+  "static_screen": null,
+  "statement_compile": null,
+  "model_statement_declaration": null,
+  "compile": {
+    "status": "not_attempted",
+    "reason": "abstained"
+  },
+  "audit": {
+    "status": "not_audited",
+    "static_flags": []
+  },
+  "ab_consistency": null,
+  "comparison": {
+    "statement_match": "not_evaluated",
+    "method": "none",
+    "evidence": {
+      "notes": [
+        "not_eligible"
+      ]
+    },
+    "source": "automated",
+    "script_status": "not_attempted"
+  },
+  "statement_match": "not_evaluated",
+  "statement_match_source": "automated",
+  "loc": null,
+  "timing": {
+    "evaluation_started_at": "2026-10-27T19:11:06.607Z",
+    "lean_compile_ms": null,
+    "lean_audit_ms": 0.005299985408782959,
+    "lean_compare_ms": null,
+    "lean_total_ms": 0,
+    "evaluation_total_ms": 5.451100021600723,
+    "total_ms": 6.967700004577637,
+    "working_ms": 1.5165999829769135,
+    "evaluation_ended_at": "2026-10-27T19:11:06.613Z"
+  },
+  "eligibility": {
+    "statement_track": false,
+    "proof_track": false,
+    "reasons": [
+      "reference_statement_unavailable",
+      "mathematical_status_open"
+    ]
+  },
+  "outcomes": {
+    "infrastructure_failure": false,
+    "compiled": null,
+    "audit_clean": null,
+    "statement_faithful": null,
+    "verified": null
+  },
+  "notes": [
+    "no_statement_returned"
+  ],
+  "evaluation_complete": true
+}

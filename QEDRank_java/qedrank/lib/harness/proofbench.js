@@ -471,9 +471,10 @@ function countBy(xs, fn) {
 
 /** QEDRank's grader bound to a pinned Lean project, for the partial-progress assessment. */
 export async function makeRegrader({ config, leanProject, cacheDir, log }) {
-  const { detectToolchain, LeanRunner } = await import('../lean.js');
+  const { LeanRunner } = await import('../lean.js');
+  const { selectToolchain } = await import('../leanenv.js');
   const { gradeSubmission, DEFAULT_GRADE_POLICY } = await import('../grade.js');
-  const toolchain = await detectToolchain(leanProject, { log });
+  const toolchain = await selectToolchain(config, { leanDir: leanProject, log });
   const runner = new LeanRunner(toolchain, { ...config.lean, log });
   const scratch = await fs.mkdtemp(path.join(os.tmpdir(), 'qedrank-regrade-'));
   const policy = { ...DEFAULT_GRADE_POLICY, libraryPrefixes: ['ProofBench.Mathlib_Problems', 'Matroid', 'Archive.Sensitivity'], kernelReplay: false };

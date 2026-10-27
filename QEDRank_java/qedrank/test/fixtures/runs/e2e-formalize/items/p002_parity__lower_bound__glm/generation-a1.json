@@ -1,0 +1,43 @@
+{
+  "provider": "glm",
+  "display_name": "fixture · GLM-5.3 Flash",
+  "label": "GLM-5.3 Flash",
+  "vendor": "Z.ai · served by GWDG Chat AI",
+  "model_id": "fixture:glm",
+  "api_host": null,
+  "response_model": null,
+  "mode": "fixture",
+  "text": "=== PART A ===\n```lean\nimport Mathlib.Algebra.Ring.Parity\n\ntheorem lb (n : ℕ) : n ≤ 2 * n\n```\n=== PART B ===\n```lean\nimport Mathlib.Algebra.Ring.Parity\n\ntheorem lb (n : ℕ) : n ≤ 2 * n := by omega\n```\n=== PART C ===\nLower bound as stated.\n=== PART D ===\nstatement_confidence: 97\nproof_confidence: 97\n",
+  "usage": null,
+  "sampling": null,
+  "reasoning_chars": null,
+  "observed_latency_ms": 10.574099987745285,
+  "working_ms": 10.574099987745285,
+  "http_status": null,
+  "finish_reason": "fixture",
+  "provider_attempts": 1,
+  "retry_wait_ms": null,
+  "error": null,
+  "started_at": "2026-10-27T18:53:26.105Z",
+  "started_mono_ms": 201527649.2967,
+  "ended_at": "2026-10-27T18:53:26.116Z",
+  "ended_mono_ms": 201527659.8708,
+  "fixture_file": "glm\\p002_parity__lower_bound.md",
+  "facts": {
+    "released": "2026-02",
+    "training_cutoff": null,
+    "parameters_b": 320,
+    "active_parameters_b": 18,
+    "sources": {
+      "released": "https://docs.hpc.gwdg.de/services/ai-services/chat-ai/models/index.html",
+      "parameters_b": "https://huggingface.co/zai-org/GLM-5.3-Flash"
+    },
+    "note": "Hybrid-attention mixture of experts; reasoning_effort low | high | max (default max). Release month from the GWDG model table; the model card prints no date. No vendor-stated training cutoff."
+  },
+  "prompt_hash": "e8d6d37cfe888ec5a329ead5477006ce32dc431fa96273f6064091a25b1d163c",
+  "prompt_template_version": "qedrank-prompt-v2",
+  "temperature": 0,
+  "effort": null,
+  "max_tokens": 16384,
+  "timeout_ms": 300000
+}

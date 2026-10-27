@@ -1,0 +1,196 @@
+{
+  "schema": "qedrank-item-v1",
+  "item_key": "p001_sum_bound__main_theorem__glm",
+  "paper_id": "p001_sum_bound",
+  "target_kind": "main_theorem",
+  "provider": "glm",
+  "model_display_name": "fixture · GLM-5.3 Flash",
+  "model_id": "fixture:glm",
+  "model_label": "GLM-5.3 Flash",
+  "api_host": null,
+  "response_model": null,
+  "setting": "pass@1",
+  "attempt": 1,
+  "repair_round": 0,
+  "mathematical_status": "established",
+  "reference_proof_status": "complete",
+  "reference_statement_available": true,
+  "contamination": {
+    "model_training_cutoff": null,
+    "problem_publication_date": "2026",
+    "published_before_cutoff": null,
+    "public_formal_proof": null
+  },
+  "generation": {
+    "mode": "fixture",
+    "error": null,
+    "http_status": null,
+    "finish_reason": "fixture",
+    "observed_latency_ms": 81.56649997830391,
+    "working_ms": 81.56649997830391,
+    "usage": null,
+    "reasoning_chars": null,
+    "provider_attempts": 1,
+    "retry_wait_ms": null,
+    "truncated": false,
+    "prompt_hash": "f403f4cd95a4fc71446a3d448a9b5240865997ab8a6031b558ec02f4d970546a",
+    "prompt_template_version": "qedrank-prompt-v2",
+    "temperature": 0,
+    "max_tokens": 16384,
+    "timeout_ms": 300000,
+    "started_at": "2026-10-27T14:59:40.183Z",
+    "ended_at": "2026-10-27T14:59:40.265Z",
+    "response_chars": 693
+  },
+  "parse": {
+    "notes": [],
+    "parts_found": 4,
+    "has_statement": true,
+    "has_proof_file": true,
+    "mapping_chars": 196
+  },
+  "confidence": {
+    "statement": 95,
+    "proof": 80
+  },
+  "abstained": false,
+  "static_screen": {
+    "ok": true,
+    "rejections": [],
+    "flags": []
+  },
+  "statement_compile": {
+    "label": "stmt:p001_sum_bound__main_theorem__glm",
+    "file": "C:\\QEDRank\\QEDRank_java\\qedrank\\test\\fixtures\\runs\\e2e-formalize\\items\\p001_sum_bound__main_theorem__glm\\lean\\QRSM_p001_sum_bound_main_theorem_glm_a1r0.lean",
+    "status": "timeout",
+    "exit_code": null,
+    "timed_out": false,
+    "duration_ms": 12640883.870700002,
+    "messages": [],
+    "error_count": 0,
+    "warning_count": 0,
+    "stdout_tail": "",
+    "stderr_tail": "",
+    "started_at": "2026-10-27T14:59:40.446Z",
+    "ended_at": "2026-10-27T18:30:21.337Z",
+    "limits": {
+      "timeout_ms": 600000,
+      "memory_mb": 8192,
+      "max_heartbeats": 400000
+    },
+    "lean_version": "Lean (version 4.34.1, x86_64-w64-windows-gnu, commit 5045d0056413266e57c625dcd7c365b10e377c52, Release)",
+    "infra_reason": null,
+    "module": "QRSM_p001_sum_bound_main_theorem_glm_a1r0",
+    "src_sha256": "daf775f0dfec79555beaab09b6e1eb446699d02b4a2785f406bd1cdebe7df067",
+    "olean": null
+  },
+  "model_statement_declaration": "main_theorem",
+  "compile": {
+    "label": "proof:p001_sum_bound__main_theorem__glm",
+    "file": "C:\\QEDRank\\QEDRank_java\\qedrank\\test\\fixtures\\runs\\e2e-formalize\\items\\p001_sum_bound__main_theorem__glm\\lean\\QRM_p001_sum_bound_main_theorem_glm_a1r0.lean",
+    "status": "compiler_success",
+    "exit_code": 0,
+    "timed_out": false,
+    "duration_ms": 20222.321399986744,
+    "messages": [],
+    "error_count": 0,
+    "warning_count": 0,
+    "stdout_tail": "",
+    "stderr_tail": "",
+    "started_at": "2026-10-27T18:37:30.818Z",
+    "ended_at": "2026-10-27T18:37:51.040Z",
+    "limits": {
+      "timeout_ms": 600000,
+      "memory_mb": 8192,
+      "max_heartbeats": 400000
+    },
+    "lean_version": "Lean (version 4.34.1, x86_64-w64-windows-gnu, commit 5045d0056413266e57c625dcd7c365b10e377c52, Release)",
+    "infra_reason": null,
+    "module": "QRM_p001_sum_bound_main_theorem_glm_a1r0",
+    "src_sha256": "dcfe91d4cc5e887d6ac5c51acfb975935e9d2d3b4b90fbc425031efaa60547a6",
+    "olean": "C:\\QEDRank\\QEDRank_java\\qedrank\\test\\fixtures\\runs\\e2e-formalize\\items\\p001_sum_bound__main_theorem__glm\\lean\\QRM_p001_sum_bound_main_theorem_glm_a1r0.olean",
+    "linter_warnings": {}
+  },
+  "audit": {
+    "status": "clean",
+    "target_declaration": "main_theorem",
+    "declarations": 1,
+    "unsafe_declarations": [],
+    "static_flags": [],
+    "axioms": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "classification": {
+      "placeholder": false,
+      "native_decide": false,
+      "user_axioms": [],
+      "clean": true
+    },
+    "target_is_prop": true,
+    "target_kind": "theorem"
+  },
+  "ab_consistency": {
+    "consistent": null,
+    "status": "statement_module_unavailable"
+  },
+  "comparison": {
+    "statement_match": "unresolved",
+    "method": "none",
+    "evidence": {
+      "notes": [
+        "timeout"
+      ]
+    },
+    "source": "automated",
+    "script_status": "not_attempted"
+  },
+  "statement_match": "unresolved",
+  "statement_match_source": "automated",
+  "loc": {
+    "model": {
+      "total": 7,
+      "code": 6,
+      "proof": {
+        "total": 4,
+        "code": 4
+      },
+      "rule": "total=newline-separated lines; code=non-blank lines after comment removal; proof=lines from the target declaration's top-level := to the end of the declaration, same code rule"
+    },
+    "reference": {
+      "total": 9,
+      "code": 6,
+      "proof": {
+        "total": 4,
+        "code": 4
+      },
+      "rule": "total=newline-separated lines; code=non-blank lines after comment removal; proof=lines from the target declaration's top-level := to the end of the declaration, same code rule"
+    }
+  },
+  "timing": {
+    "evaluation_started_at": "2026-10-27T14:59:40.279Z",
+    "lean_compile_ms": 20222.321399986744,
+    "lean_audit_ms": 1344910.1220000386,
+    "lean_compare_ms": null,
+    "lean_total_ms": 12733771.852699965,
+    "evaluation_total_ms": 14007144.023600012,
+    "total_ms": 14007225.59009999,
+    "working_ms": 12733853.419199944,
+    "evaluation_ended_at": "2026-10-27T18:53:07.418Z"
+  },
+  "eligibility": {
+    "statement_track": true,
+    "proof_track": true,
+    "reasons": []
+  },
+  "outcomes": {
+    "infrastructure_failure": false,
+    "compiled": 1,
+    "audit_clean": 1,
+    "statement_faithful": 0,
+    "verified": 0
+  },
+  "notes": [],
+  "evaluation_complete": true
+}

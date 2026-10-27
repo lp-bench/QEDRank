@@ -1,0 +1,112 @@
+{
+  "schema": "qedrank-item-v1",
+  "item_key": "p002_parity__disproof__mistral",
+  "paper_id": "p002_parity",
+  "target_kind": "disproof",
+  "provider": "mistral",
+  "model_display_name": "fixture · Leanstral",
+  "model_id": "fixture:mistral",
+  "model_label": "Leanstral",
+  "api_host": null,
+  "response_model": null,
+  "setting": "pass@1",
+  "attempt": 1,
+  "repair_round": 0,
+  "mathematical_status": "uncertain",
+  "reference_proof_status": "complete",
+  "reference_statement_available": true,
+  "contamination": {
+    "model_training_cutoff": null,
+    "problem_publication_date": null,
+    "published_before_cutoff": null,
+    "public_formal_proof": null
+  },
+  "generation": {
+    "mode": "fixture",
+    "error": null,
+    "http_status": null,
+    "finish_reason": "fixture",
+    "observed_latency_ms": 13.317799985408783,
+    "working_ms": 13.317799985408783,
+    "usage": null,
+    "reasoning_chars": null,
+    "provider_attempts": 1,
+    "retry_wait_ms": null,
+    "truncated": false,
+    "prompt_hash": "072325c0e18e547ec62e9dbec476f72a82701bbd109e9a065faf79dbf226d98b",
+    "prompt_template_version": "qedrank-prompt-v2",
+    "temperature": 0,
+    "max_tokens": 16384,
+    "timeout_ms": 300000,
+    "started_at": "2026-10-27T19:10:01.497Z",
+    "ended_at": "2026-10-27T19:10:01.510Z",
+    "response_chars": 238
+  },
+  "parse": {
+    "notes": [],
+    "parts_found": 4,
+    "has_statement": false,
+    "has_proof_file": false,
+    "mapping_chars": 21
+  },
+  "confidence": {
+    "statement": 10,
+    "proof": 0
+  },
+  "abstained": true,
+  "static_screen": null,
+  "statement_compile": null,
+  "model_statement_declaration": null,
+  "compile": {
+    "status": "not_attempted",
+    "reason": "abstained"
+  },
+  "audit": {
+    "status": "not_audited",
+    "static_flags": []
+  },
+  "ab_consistency": null,
+  "comparison": {
+    "statement_match": "not_evaluated",
+    "method": "none",
+    "evidence": {
+      "notes": [
+        "no_statement"
+      ]
+    },
+    "source": "automated",
+    "script_status": "not_attempted"
+  },
+  "statement_match": "not_evaluated",
+  "statement_match_source": "automated",
+  "loc": null,
+  "timing": {
+    "evaluation_started_at": "2026-10-27T19:10:01.514Z",
+    "lean_compile_ms": null,
+    "lean_audit_ms": 0.0037000179290771484,
+    "lean_compare_ms": null,
+    "lean_total_ms": 0,
+    "evaluation_total_ms": 8.803999990224838,
+    "total_ms": 22.12179997563362,
+    "working_ms": 13.317799985408783,
+    "evaluation_ended_at": "2026-10-27T19:10:01.523Z"
+  },
+  "eligibility": {
+    "statement_track": true,
+    "proof_track": false,
+    "reasons": [
+      "mathematical_status_uncertain"
+    ]
+  },
+  "outcomes": {
+    "infrastructure_failure": false,
+    "compiled": null,
+    "audit_clean": null,
+    "statement_faithful": 0,
+    "verified": null
+  },
+  "notes": [
+    "no_statement_returned"
+  ],
+  "evaluation_complete": true
+}

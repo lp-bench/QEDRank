@@ -5,7 +5,7 @@ import path from 'node:path';
 import os from 'node:os';
 import { promises as fs } from 'node:fs';
 import http from 'node:http';
-import { buildRunArgv, JobManager } from '../lib/jobs.js';
+import { buildRunArgv, JobManager, listRunConfigs } from '../lib/jobs.js';
 import { createServer, originAllowed } from '../lib/serve.js';
 
 const REPO = 'https://github.com/owner/ProofBench';
@@ -120,5 +120,34 @@ test('job endpoints answer only to the app origins with the client header; run f
   assert.equal(list.body.jobs, true);
   assert.equal(list.headers['access-control-allow-origin'], '*');
   server.close();
+  await fs.rm(dir, { recursive: true, force: true });
+});
+
+test('run requests carry the run configuration and generation settings as validated flags', () => {
+  const base = { command: 'run', repo: REPO, models: 'glm', runId: 'r', task: 'prove' };
+  const b = buildRunArgv({ ...base, config: 'glm-prove-pass4.json', attempts: 16, temperature: 1, effort: 'max', maxTokens: 65536, timeoutMs: 1800000, providerConcurrency: 2 }, { configs: ['glm-prove-pass4.json'] });
+  assert.deepEqual(b.argv.slice(-14), ['--attempts', '16', '--config', 'configs/glm-prove-pass4.json', '--temperature', '1', '--max-tokens', '65536', '--timeout-ms', '1800000', '--provider-concurrency', '2', '--effort', 'max']);
+  assert.throws(() => buildRunArgv({ ...base, config: '../qedrank.config.json' }), /config must be/);
+  assert.throws(() => buildRunArgv({ ...base, config: 'other.json' }, { configs: ['glm-prove-pass4.json'] }), /unknown run configuration/);
+  assert.throws(() => buildRunArgv({ ...base, temperature: 5 }), /temperature must be/);
+  assert.throws(() => buildRunArgv({ ...base, providerConcurrency: 0 }), /providerConcurrency must be/);
+  assert.throws(() => buildRunArgv({ ...base, effort: 'ultra' }), /effort must be/);
+  // without a known list any well-formed name passes; the CLI fails fast when the file is missing
+  assert.ok(buildRunArgv({ ...base, config: 'x.json' }).argv.includes('configs/x.json'));
+  // empty fields are not flags
+  assert.ok(!buildRunArgv({ ...base, temperature: '', effort: '', config: '' }).argv.some((a) => /--temperature|--effort|--config/.test(a)));
+});
+
+test('listRunConfigs reads the settings of every configs/*.json and marks a broken one', async () => {
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'qr-configs-'));
+  await fs.writeFile(path.join(dir, 'glm-prove-pass4.json'), JSON.stringify({ task: 'prove', generation: { attempts: 4, temperature: 1.0, effort: 'max', maxTokens: 65536, timeoutMs: 1800000, providerConcurrency: 2 }, lean: { concurrency: 3 } }));
+  await fs.writeFile(path.join(dir, 'broken.json'), '{ not json');
+  await fs.writeFile(path.join(dir, 'notes.txt'), 'ignored');
+  const list = await listRunConfigs(dir);
+  assert.deepEqual(list.map((c) => c.file), ['broken.json', 'glm-prove-pass4.json']);
+  assert.equal(list[0].error, 'not valid JSON');
+  assert.deepEqual(list[1].generation, { attempts: 4, temperature: 1, topP: null, effort: 'max', maxTokens: 65536, timeoutMs: 1800000, providerConcurrency: 2, retries: null });
+  assert.equal(list[1].path, 'configs/glm-prove-pass4.json');
+  assert.deepEqual(await listRunConfigs(path.join(dir, 'missing')), []);
   await fs.rm(dir, { recursive: true, force: true });
 });

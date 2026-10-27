@@ -1,0 +1,42 @@
+{
+  "paper_id": "p003_open",
+  "prepared_at": "2026-10-27T13:36:00.840Z",
+  "pdf": null,
+  "title": "An Open Bound Conjecture",
+  "title_source": "papers/p003_open/README.md",
+  "contexts": {
+    "main_theorem": {
+      "source": "none",
+      "pages_used": [],
+      "truncated": false,
+      "chars": 25,
+      "sha256": "c38c6b91382cc269acc568087d4d2705ce507df068491648719c5fb2d6d55301",
+      "locator_pages": []
+    }
+  },
+  "prelude": {
+    "module": null,
+    "source": "none",
+    "compile_status": null,
+    "flags": [],
+    "decls": 0
+  },
+  "references": {
+    "main_theorem": {
+      "lean_path": "papers/p003_open/main.lean",
+      "reference_proof_status": "invalid",
+      "statement_available": false,
+      "flags": [
+        "reference_compile_failed:QRP_p003_open.main:timeout",
+        "reference_statement_module_timeout"
+      ]
+    }
+  },
+  "flags": [
+    "missing_pdf"
+  ],
+  "timing": {
+    "total_ms": 5018618.996600002
+  },
+  "prelude_text": null
+}

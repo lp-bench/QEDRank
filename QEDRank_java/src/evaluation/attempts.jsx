@@ -196,7 +196,7 @@ export function AttemptDrawer({ cell, model, runId, server, onClose }) {
               )}
               {view !== 'summary' && (
                 <div className="ev-doc">
-                  {!server && <p className="muted">Proof text and grading records are read from the local run server; this run was opened from files. Load it with <b>List runs → Load</b> to inspect them.</p>}
+                  {!server && <p className="muted">Proof text and grading records are read from the local run server; this run was opened from files. Choose it under <b>Runs on this machine</b> (with <code>npm run qedrank:serve</code> running) to inspect them.</p>}
                   {doc.loading && <p className="muted">loading…</p>}
                   {doc.error && <p className="muted">{doc.error}</p>}
                   {view === 'record' && record && <SessionsView record={record} />}
@@ -236,6 +236,9 @@ function SessionsView({ record }) {
   )
 }
 
+/** The k highlighted in the pass@k table and charted (metrics.js PASS_K_PROMINENT); every k is reported. */
+const PROMINENT = [1, 2, 4, 8, 16]
+
 /** pass@k for every k with the prominent ones highlighted; estimate and observed kept apart. */
 export function PassKTable({ summary }) {
   const models = summary.models
@@ -245,18 +248,18 @@ export function PassKTable({ summary }) {
   const cov = summary.coverage?.coverage_differences || []
   return (
     <div>
-      <p className="small">{curves[0].pk.curve_note} Cells show the unbiased estimate with its 95% paper-cluster interval, and below it the observed share of problems solved within the first k attempts (num/den). A dash means fewer than k attempts exist for every problem: unavailable, not zero. Prominent columns: k = 1, 2, 4, 8.</p>
+      <p className="small">{curves[0].pk.curve_note} Cells show the unbiased estimate with its 95% paper-cluster interval, and below it the observed share of problems solved within the first k attempts (num/den). A dash means fewer than k attempts exist for every problem: unavailable, not zero. Prominent columns: k = 1, 2, 4, 8, 16.</p>
       <Enlargeable title="pass@k by model">
         <div className="table-wrap">
           <table className="table ev-matrix ev-passk">
-            <thead><tr><th>Model</th><th className="num">Problems · attempts</th>{ks.map((k) => <th key={k} className={`num ${[1, 2, 4, 8].includes(k) ? 'pk-prominent' : ''}`}>pass@{k}</th>)}</tr></thead>
+            <thead><tr><th>Model</th><th className="num">Problems · attempts</th>{ks.map((k) => <th key={k} className={`num ${PROMINENT.includes(k) ? 'pk-prominent' : ''}`}>pass@{k}</th>)}</tr></thead>
             <tbody>
               {curves.map(({ m, pk }) => (
                 <tr key={m.id}>
                   <td className="ev-model-cell" style={{ '--mc': slotColor(m.id) }}><i className="chip-dot" /><b>{shortLabel(m)}</b><div className="small mono">{m.model_id}</div></td>
                   <td className="num">{pk.items_with_attempts ?? '—'} · {pk.attempts_total ?? '—'}</td>
                   {ks.map((k) => { const c = pk.curve.find((x) => x.k === k); return (
-                    <td key={k} className={`num ${[1, 2, 4, 8].includes(k) ? 'pk-prominent' : ''}`}>
+                    <td key={k} className={`num ${PROMINENT.includes(k) ? 'pk-prominent' : ''}`}>
                       {c && typeof c.value === 'number' ? <><b>{pct1(c.value)}</b>{typeof c.ci_lo === 'number' ? <div className="small">[{pct1(c.ci_lo)}, {pct1(c.ci_hi)}]</div> : null}<div className="small muted">obs {c.observed_within_k?.num}/{c.observed_within_k?.den} · n={c.items}{c.items_short ? ` (+${c.items_short} short)` : ''}</div></> : <span className="muted" title="no problem has that many attempts">—</span>}
                     </td>) })}
                 </tr>
@@ -274,7 +277,7 @@ export function PassKProminentFigure({ summary }) {
   const models = summary.models
   const curves = models.map((m) => ({ m, pk: summary.by_target.all?.[m.id]?.pass_at_k })).filter((x) => x.pk?.curve?.length)
   if (!curves.length) return null
-  const ks = [1, 2, 4, 8].filter((k) => curves.some((x) => x.pk.curve.some((c) => c.k === k && typeof c.value === 'number')))
+  const ks = PROMINENT.filter((k) => curves.some((x) => x.pk.curve.some((c) => c.k === k && typeof c.value === 'number')))
   if (!ks.length) return null
   const rows = curves.map(({ m, pk }) => ({ id: m.id, label: shortLabel(m), values: Object.fromEntries(ks.map((k) => { const c = pk.curve.find((x) => x.k === k); return [`k${k}`, { value: typeof c?.value === 'number' ? c.value : null, text: typeof c?.value === 'number' ? pct1(c.value) : 'n/a' }] })) }))
   const series = ks.map((k, i) => ({ key: `k${k}`, label: `pass@${k}`, color: `var(--s${(i % 8) + 1})` }))

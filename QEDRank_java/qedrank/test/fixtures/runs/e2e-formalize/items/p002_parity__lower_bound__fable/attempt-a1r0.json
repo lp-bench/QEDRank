@@ -1,0 +1,110 @@
+{
+  "schema": "qedrank-item-v1",
+  "item_key": "p002_parity__lower_bound__fable",
+  "paper_id": "p002_parity",
+  "target_kind": "lower_bound",
+  "provider": "fable",
+  "model_display_name": "fixture · Claude Fable 5.1",
+  "model_id": "fixture:fable",
+  "model_label": "Claude Fable 5.1",
+  "api_host": null,
+  "response_model": null,
+  "setting": "pass@1",
+  "attempt": 1,
+  "repair_round": 0,
+  "mathematical_status": "established",
+  "reference_proof_status": "complete",
+  "reference_statement_available": true,
+  "contamination": {
+    "model_training_cutoff": "2026-06",
+    "problem_publication_date": null,
+    "published_before_cutoff": null,
+    "public_formal_proof": null
+  },
+  "generation": {
+    "mode": "fixture",
+    "error": null,
+    "http_status": null,
+    "finish_reason": "fixture",
+    "observed_latency_ms": 4.590700000524521,
+    "working_ms": 4.590700000524521,
+    "usage": null,
+    "reasoning_chars": null,
+    "provider_attempts": 1,
+    "retry_wait_ms": null,
+    "truncated": false,
+    "prompt_hash": "e8d6d37cfe888ec5a329ead5477006ce32dc431fa96273f6064091a25b1d163c",
+    "prompt_template_version": "qedrank-prompt-v2",
+    "temperature": 0,
+    "max_tokens": 16384,
+    "timeout_ms": 300000,
+    "started_at": "2026-10-27T18:54:25.209Z",
+    "ended_at": "2026-10-27T18:54:25.214Z",
+    "response_chars": 311
+  },
+  "parse": {
+    "notes": [],
+    "parts_found": 4,
+    "has_statement": false,
+    "has_proof_file": false,
+    "mapping_chars": 61
+  },
+  "confidence": {
+    "statement": 15,
+    "proof": 0
+  },
+  "abstained": true,
+  "static_screen": null,
+  "statement_compile": null,
+  "model_statement_declaration": null,
+  "compile": {
+    "status": "not_attempted",
+    "reason": "abstained"
+  },
+  "audit": {
+    "status": "not_audited",
+    "static_flags": []
+  },
+  "ab_consistency": null,
+  "comparison": {
+    "statement_match": "not_evaluated",
+    "method": "none",
+    "evidence": {
+      "notes": [
+        "no_statement"
+      ]
+    },
+    "source": "automated",
+    "script_status": "not_attempted"
+  },
+  "statement_match": "not_evaluated",
+  "statement_match_source": "automated",
+  "loc": null,
+  "timing": {
+    "evaluation_started_at": "2026-10-27T18:54:25.218Z",
+    "lean_compile_ms": null,
+    "lean_audit_ms": 0.0026999711990356445,
+    "lean_compare_ms": null,
+    "lean_total_ms": 0,
+    "evaluation_total_ms": 6.048399984836578,
+    "total_ms": 10.6390999853611,
+    "working_ms": 4.590700000524521,
+    "evaluation_ended_at": "2026-10-27T18:54:25.224Z"
+  },
+  "eligibility": {
+    "statement_track": true,
+    "proof_track": true,
+    "reasons": []
+  },
+  "outcomes": {
+    "infrastructure_failure": false,
+    "compiled": null,
+    "audit_clean": null,
+    "statement_faithful": 0,
+    "verified": 0
+  },
+  "notes": [
+    "no_statement_returned"
+  ],
+  "evaluation_complete": true
+}

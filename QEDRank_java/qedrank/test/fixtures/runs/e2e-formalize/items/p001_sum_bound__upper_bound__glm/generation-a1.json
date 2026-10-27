@@ -1,0 +1,43 @@
+{
+  "provider": "glm",
+  "display_name": "fixture · GLM-5.3 Flash",
+  "label": "GLM-5.3 Flash",
+  "vendor": "Z.ai · served by GWDG Chat AI",
+  "model_id": "fixture:glm",
+  "api_host": null,
+  "response_model": null,
+  "mode": "fixture",
+  "text": "=== PART A ===\n```lean\nimport Mathlib.Algebra.BigOperators.Intervals\nimport Mathlib.Algebra.Order.BigOperators.Group.Finset\nimport Mathlib.Tactic.Ring\nimport QEDRank.Papers.p001_sum_bound\n\ntheorem upper_bound (n : ℕ) : sumBelow n ≤ n ^ 2\n```\n=== PART B ===\n```lean\nimport Mathlib.Algebra.BigOperators.Intervals\nimport Mathlib.Algebra.Order.BigOperators.Group.Finset\nimport Mathlib.Tactic.Ring\nimport QEDRank.Papers.p001_sum_bound\n\ntheorem upper_bound (n : ℕ) : sumBelow n ≤ n ^ 2 := by\n  unfold sumBelow\n  have h : (Finset.range n).sum id ≤ (Finset.range n).sum (fun _ => n) :=\n    Finset.sum_le_sum (fun i hi => le_of_lt (Finset.mem_range.mp hi))\n  simp only [Finset.sum_const, Finset.card_range, smul_eq_mul] at h\n  calc (Finset.range n).sum id ≤ n * n := h\n    _ = n ^ 2 := by ring\n```\n=== PART C ===\nEach summand is below n, so the sum of n of them is at most n·n = n².\n=== PART D ===\nstatement_confidence: 90\nproof_confidence: 75\n",
+  "usage": null,
+  "sampling": null,
+  "reasoning_chars": null,
+  "observed_latency_ms": 3562.826000005007,
+  "working_ms": 3562.826000005007,
+  "http_status": null,
+  "finish_reason": "fixture",
+  "provider_attempts": 1,
+  "retry_wait_ms": null,
+  "error": null,
+  "started_at": "2026-10-27T14:59:40.617Z",
+  "started_mono_ms": 187502169.276,
+  "ended_at": "2026-10-27T14:59:44.180Z",
+  "ended_mono_ms": 187505732.102,
+  "fixture_file": "glm\\p001_sum_bound__upper_bound.md",
+  "facts": {
+    "released": "2026-02",
+    "training_cutoff": null,
+    "parameters_b": 320,
+    "active_parameters_b": 18,
+    "sources": {
+      "released": "https://docs.hpc.gwdg.de/services/ai-services/chat-ai/models/index.html",
+      "parameters_b": "https://huggingface.co/zai-org/GLM-5.3-Flash"
+    },
+    "note": "Hybrid-attention mixture of experts; reasoning_effort low | high | max (default max). Release month from the GWDG model table; the model card prints no date. No vendor-stated training cutoff."
+  },
+  "prompt_hash": "d0abdc69ed9b63093d50a541ee9a4bb45530017c7d9f118ef712f29a51886f54",
+  "prompt_template_version": "qedrank-prompt-v2",
+  "temperature": 0,
+  "effort": null,
+  "max_tokens": 16384,
+  "timeout_ms": 300000
+}

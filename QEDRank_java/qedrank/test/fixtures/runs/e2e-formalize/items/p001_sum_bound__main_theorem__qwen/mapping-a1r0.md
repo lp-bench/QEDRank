@@ -1,0 +1,1 @@
+Statement is the Gauss identity. The inductive step is left open.

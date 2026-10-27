@@ -1,0 +1,5277 @@
+{
+  "schema": "qedrank-results-v1",
+  "run_id": "e2e-formalize",
+  "source": {
+    "kind": "local",
+    "url": "file://C:/QEDRank/QEDRank_java/qedrank/test/fixtures/corpus-a",
+    "requested_ref": null,
+    "resolved_ref": null,
+    "ref_type": "local_git_tree",
+    "commit": "6d6845273a0fb2c6663d39035fe702706895d8a6",
+    "head_commit": "377a33e43d312f9ddeb8627101b60a37b651a4a2",
+    "dirty": true,
+    "subdir": null
+  },
+  "count": 32,
+  "items": [
+    {
+      "schema": "qedrank-item-v1",
+      "item_key": "p001_sum_bound__lower_bound__fable",
+      "paper_id": "p001_sum_bound",
+      "target_kind": "lower_bound",
+      "provider": "fable",
+      "model_display_name": "fixture · Claude Fable 5.1",
+      "model_id": "fixture:fable",
+      "model_label": "Claude Fable 5.1",
+      "api_host": null,
+      "response_model": null,
+      "setting": "pass@1",
+      "attempt": 1,
+      "repair_round": 0,
+      "mathematical_status": "established",
+      "reference_proof_status": "unknown",
+      "reference_statement_available": true,
+      "contamination": {
+        "model_training_cutoff": "2026-06",
+        "problem_publication_date": "2026",
+        "published_before_cutoff": null,
+        "public_formal_proof": null
+      },
+      "generation": {
+        "mode": "fixture",
+        "error": null,
+        "http_status": null,
+        "finish_reason": "fixture",
+        "observed_latency_ms": 125.254399985075,
+        "working_ms": 125.254399985075,
+        "usage": null,
+        "reasoning_chars": null,
+        "provider_attempts": 1,
+        "retry_wait_ms": null,
+        "truncated": false,
+        "prompt_hash": "40080f1e827aca5aefe0e6fd3631792fe62c5d32e1829821fa0bdf356cda3ce7",
+        "prompt_template_version": "qedrank-prompt-v2",
+        "temperature": 0,
+        "max_tokens": 16384,
+        "timeout_ms": 300000,
+        "started_at": "2026-10-27T14:59:44.811Z",
+        "ended_at": "2026-10-27T14:59:44.937Z",
+        "response_chars": 311
+      },
+      "parse": {
+        "notes": [],
+        "parts_found": 4,
+        "has_statement": false,
+        "has_proof_file": false,
+        "mapping_chars": 61
+      },
+      "confidence": {
+        "statement": 15,
+        "proof": 0
+      },
+      "abstained": true,
+      "static_screen": null,
+      "statement_compile": null,
+      "model_statement_declaration": null,
+      "compile": {
+        "status": "not_attempted",
+        "reason": "abstained"
+      },
+      "audit": {
+        "status": "not_audited",
+        "static_flags": []
+      },
+      "ab_consistency": null,
+      "comparison": {
+        "statement_match": "not_evaluated",
+        "method": "none",
+        "evidence": {
+          "notes": [
+            "no_statement"
+          ]
+        },
+        "source": "automated",
+        "script_status": "not_attempted"
+      },
+      "statement_match": "not_evaluated",
+      "statement_match_source": "automated",
+      "loc": null,
+      "timing": {
+        "evaluation_started_at": "2026-10-27T14:59:45.113Z",
+        "lean_compile_ms": null,
+        "lean_audit_ms": 0.035800009965896606,
+        "lean_compare_ms": null,
+        "lean_total_ms": 0,
+        "evaluation_total_ms": 235.7678999900818,
+        "total_ms": 361.0222999751568,
+        "working_ms": 125.254399985075,
+        "evaluation_ended_at": "2026-10-27T14:59:45.349Z"
+      },
+      "eligibility": {
+        "statement_track": true,
+        "proof_track": true,
+        "reasons": []
+      },
+      "outcomes": {
+        "infrastructure_failure": false,
+        "compiled": null,
+        "audit_clean": null,
+        "statement_faithful": 0,
+        "verified": 0
+      },
+      "notes": [
+        "no_statement_returned"
+      ],
+      "evaluation_complete": true
+    },
+    {
+      "schema": "qedrank-item-v1",
+      "item_key": "p001_sum_bound__lower_bound__glm",
+      "paper_id": "p001_sum_bound",
+      "target_kind": "lower_bound",
+      "provider": "glm",
+      "model_display_name": "fixture · GLM-5.3 Flash",
+      "model_id": "fixture:glm",
+      "model_label": "GLM-5.3 Flash",
+      "api_host": null,
+      "response_model": null,
+      "setting": "pass@1",
+      "attempt": 1,
+      "repair_round": 0,
+      "mathematical_status": "established",
+      "reference_proof_status": "unknown",
+      "reference_statement_available": true,
+      "contamination": {
+        "model_training_cutoff": null,
+        "problem_publication_date": "2026",
+        "published_before_cutoff": null,
+        "public_formal_proof": null
+      },
+      "generation": {
+        "mode": "fixture",
+        "error": null,
+        "http_status": null,
+        "finish_reason": "fixture",
+        "observed_latency_ms": 304.5609999895096,
+        "working_ms": 304.5609999895096,
+        "usage": null,
+        "reasoning_chars": null,
+        "provider_attempts": 1,
+        "retry_wait_ms": null,
+        "truncated": false,
+        "prompt_hash": "40080f1e827aca5aefe0e6fd3631792fe62c5d32e1829821fa0bdf356cda3ce7",
+        "prompt_template_version": "qedrank-prompt-v2",
+        "temperature": 0,
+        "max_tokens": 16384,
+        "timeout_ms": 300000,
+        "started_at": "2026-10-27T14:59:44.851Z",
+        "ended_at": "2026-10-27T14:59:45.156Z",
+        "response_chars": 499
+      },
+      "parse": {
+        "notes": [],
+        "parts_found": 4,
+        "has_statement": true,
+        "has_proof_file": false,
+        "mapping_chars": 78
+      },
+      "confidence": {
+        "statement": 85,
+        "proof": 5
+      },
+      "abstained": true,
+      "static_screen": null,
+      "statement_compile": {
+        "label": "stmt:p001_sum_bound__lower_bound__glm",
+        "file": "C:\\QEDRank\\QEDRank_java\\qedrank\\test\\fixtures\\runs\\e2e-formalize\\items\\p001_sum_bound__lower_bound__glm\\lean\\QRSM_p001_sum_bound_lower_bound_glm_a1r0.lean",
+        "status": "compiler_success",
+        "exit_code": 0,
+        "timed_out": false,
+        "duration_ms": 70081.87960001826,
+        "messages": [
+          {
+            "severity": "warning",
+            "line": 7,
+            "column": 8,
+            "file": "C:\\QEDRank\\QEDRank_java\\qedrank\\test\\fixtures\\runs\\e2e-formalize\\items\\p001_sum_bound__lower_bound__glm\\lean\\QRSM_p001_sum_bound_lower_bound_glm_a1r0.lean",
+            "text": "declaration uses `sorry`"
+          }
+        ],
+        "error_count": 0,
+        "warning_count": 1,
+        "stdout_tail": "{\"caption\":\"\",\"data\":\"declaration uses `sorry`\",\"endPos\":{\"column\":19,\"line\":7},\"fileName\":\"C:\\\\QEDRank\\\\QEDRank_java\\\\qedrank\\\\test\\\\fixtures\\\\runs\\\\e2e-formalize\\\\items\\\\p001_sum_bound__lower_bound__glm\\\\lean\\\\QRSM_p001_sum_bound_lower_bound_glm_a1r0.lean\",\"isSilent\":false,\"keepFullRange\":false,\"kind\":\"hasSorry\",\"pos\":{\"column\":8,\"line\":7},\"severity\":\"warning\"}\n",
+        "stderr_tail": "",
+        "started_at": "2026-10-27T18:36:01.410Z",
+        "ended_at": "2026-10-27T18:37:11.491Z",
+        "limits": {
+          "timeout_ms": 600000,
+          "memory_mb": 8192,
+          "max_heartbeats": 400000
+        },
+        "lean_version": "Lean (version 4.34.1, x86_64-w64-windows-gnu, commit 5045d0056413266e57c625dcd7c365b10e377c52, Release)",
+        "infra_reason": null,
+        "module": "QRSM_p001_sum_bound_lower_bound_glm_a1r0",
+        "src_sha256": "351ecd38a39ad92c1d8de4788b54e37f0e246b77bdf6a8d45ad67a209bd6e413",
+        "olean": "C:\\QEDRank\\QEDRank_java\\qedrank\\test\\fixtures\\runs\\e2e-formalize\\items\\p001_sum_bound__lower_bound__glm\\lean\\QRSM_p001_sum_bound_lower_bound_glm_a1r0.olean",
+        "resolved_declaration": "QRModel.lower_bound",
+        "definitions": []
+      },
+      "model_statement_declaration": "lower_bound",
+      "compile": {
+        "status": "not_attempted",
+        "reason": "abstained"
+      },
+      "audit": {
+        "status": "not_audited",
+        "static_flags": []
+      },
+      "ab_consistency": null,
+      "comparison": {
+        "statement_match": "definitionally_identical",
+        "method": "syntactic_identity",
+        "evidence": {
+          "syntactic_identical": true,
+          "reducible_defeq": true,
+          "default_defeq": true,
+          "fwd_proved": true,
+          "fwd_uses_hyp": true,
+          "bwd_proved": true,
+          "bwd_uses_hyp": true,
+          "model_provable_outright": false,
+          "ref_provable_outright": false,
+          "script_status": "compiler_failure",
+          "notes": []
+        },
+        "source": "automated",
+        "script_status": "compiler_failure",
+        "duration_ms": 68264.90420001745,
+        "qr_errors": [],
+        "messages": [
+          {
+            "severity": "error",
+            "line": 40,
+            "column": 41,
+            "file": "C:\\QEDRank\\QEDRank_java\\qedrank\\test\\fixtures\\runs\\e2e-formalize\\items\\p001_sum_bound__lower_bound__glm\\lean\\QRA_cmp_a1r0.lean",
+            "text": "unsolved goals\nn✝ : ℕ\n⊢ n✝ ≤ sumBelow n✝ + 1"
+          },
+          {
+            "severity": "error",
+            "line": 51,
+            "column": 37,
+            "file": "C:\\QEDRank\\QEDRank_java\\qedrank\\test\\fixtures\\runs\\e2e-formalize\\items\\p001_sum_bound__lower_bound__glm\\lean\\QRA_cmp_a1r0.lean",
+            "text": "unsolved goals\nn✝ : ℕ\n⊢ n✝ ≤ sumBelow n✝ + 1"
+          }
+        ]
+      },
+      "statement_match": "definitionally_identical",
+      "statement_match_source": "automated",
+      "loc": null,
+      "timing": {
+        "evaluation_started_at": "2026-10-27T14:59:45.291Z",
+        "lean_compile_ms": null,
+        "lean_audit_ms": 0.013999998569488525,
+        "lean_compare_ms": 68264.90420001745,
+        "lean_total_ms": 227054.74830004573,
+        "evaluation_total_ms": 13973614.944700003,
+        "total_ms": 13973919.505699992,
+        "working_ms": 227359.30930003524,
+        "evaluation_ended_at": "2026-10-27T18:52:38.901Z"
+      },
+      "eligibility": {
+        "statement_track": true,
+        "proof_track": true,
+        "reasons": []
+      },
+      "outcomes": {
+        "infrastructure_failure": false,
+        "compiled": null,
+        "audit_clean": null,
+        "statement_faithful": 1,
+        "verified": 0
+      },
+      "notes": [],
+      "evaluation_complete": true
+    },
+    {
+      "schema": "qedrank-item-v1",
+      "item_key": "p001_sum_bound__lower_bound__mistral",
+      "paper_id": "p001_sum_bound",
+      "target_kind": "lower_bound",
+      "provider": "mistral",
+      "model_display_name": "fixture · Leanstral",
+      "model_id": "fixture:mistral",
+      "model_label": "Leanstral",
+      "api_host": null,
+      "response_model": null,
+      "setting": "pass@1",
+      "attempt": 1,
+      "repair_round": 0,
+      "mathematical_status": "established",
+      "reference_proof_status": "unknown",
+      "reference_statement_available": true,
+      "contamination": {
+        "model_training_cutoff": null,
+        "problem_publication_date": "2026",
+        "published_before_cutoff": null,
+        "public_formal_proof": null
+      },
+      "generation": {
+        "mode": "fixture",
+        "error": null,
+        "http_status": null,
+        "finish_reason": "fixture",
+        "observed_latency_ms": 72.82729998230934,
+        "working_ms": 72.82729998230934,
+        "usage": null,
+        "reasoning_chars": null,
+        "provider_attempts": 1,
+        "retry_wait_ms": null,
+        "truncated": false,
+        "prompt_hash": "40080f1e827aca5aefe0e6fd3631792fe62c5d32e1829821fa0bdf356cda3ce7",
+        "prompt_template_version": "qedrank-prompt-v2",
+        "temperature": 0,
+        "max_tokens": 16384,
+        "timeout_ms": 300000,
+        "started_at": "2026-10-27T14:59:45.285Z",
+        "ended_at": "2026-10-27T14:59:45.358Z",
+        "response_chars": 238
+      },
+      "parse": {
+        "notes": [],
+        "parts_found": 4,
+        "has_statement": false,
+        "has_proof_file": false,
+        "mapping_chars": 21
+      },
+      "confidence": {
+        "statement": 10,
+        "proof": 0
+      },
+      "abstained": true,
+      "static_screen": null,
+      "statement_compile": null,
+      "model_statement_declaration": null,
+      "compile": {
+        "status": "not_attempted",
+        "reason": "abstained"
+      },
+      "audit": {
+        "status": "not_audited",
+        "static_flags": []
+      },
+      "ab_consistency": null,
+      "comparison": {
+        "statement_match": "not_evaluated",
+        "method": "none",
+        "evidence": {
+          "notes": [
+            "no_statement"
+          ]
+        },
+        "source": "automated",
+        "script_status": "not_attempted"
+      },
+      "statement_match": "not_evaluated",
+      "statement_match_source": "automated",
+      "loc": null,
+      "timing": {
+        "evaluation_started_at": "2026-10-27T14:59:45.396Z",
+        "lean_compile_ms": null,
+        "lean_audit_ms": 0.022300004959106445,
+        "lean_compare_ms": null,
+        "lean_total_ms": 0,
+        "evaluation_total_ms": 70.77549999952316,
+        "total_ms": 143.6027999818325,
+        "working_ms": 72.82729998230934,
+        "evaluation_ended_at": "2026-10-27T14:59:45.467Z"
+      },
+      "eligibility": {
+        "statement_track": true,
+        "proof_track": true,
+        "reasons": []
+      },
+      "outcomes": {
+        "infrastructure_failure": false,
+        "compiled": null,
+        "audit_clean": null,
+        "statement_faithful": 0,
+        "verified": 0
+      },
+      "notes": [
+        "no_statement_returned"
+      ],
+      "evaluation_complete": true
+    },
+    {
+      "schema": "qedrank-item-v1",
+      "item_key": "p001_sum_bound__lower_bound__qwen",
+      "paper_id": "p001_sum_bound",
+      "target_kind": "lower_bound",
+      "provider": "qwen",
+      "model_display_name": "fixture · Qwen3 30B-A3B Instruct",
+      "model_id": "fixture:qwen",
+      "model_label": "Qwen3 30B-A3B Instruct",
+      "api_host": null,
+      "response_model": null,
+      "setting": "pass@1",
+      "attempt": 1,
+      "repair_round": 0,
+      "mathematical_status": "established",
+      "reference_proof_status": "unknown",
+      "reference_statement_available": true,
+      "contamination": {
+        "model_training_cutoff": null,
+        "problem_publication_date": "2026",
+        "published_before_cutoff": null,
+        "public_formal_proof": null
+      },
+      "generation": {
+        "mode": "fixture",
+        "error": null,
+        "http_status": null,
+        "finish_reason": "fixture",
+        "observed_latency_ms": 153.17080000042915,
+        "working_ms": 153.17080000042915,
+        "usage": null,
+        "reasoning_chars": null,
+        "provider_attempts": 1,
+        "retry_wait_ms": null,
+        "truncated": false,
+        "prompt_hash": "40080f1e827aca5aefe0e6fd3631792fe62c5d32e1829821fa0bdf356cda3ce7",
+        "prompt_template_version": "qedrank-prompt-v2",
+        "temperature": 0,
+        "max_tokens": 16384,
+        "timeout_ms": 300000,
+        "started_at": "2026-10-27T14:59:44.809Z",
+        "ended_at": "2026-10-27T14:59:44.963Z",
+        "response_chars": 372
+      },
+      "parse": {
+        "notes": [],
+        "parts_found": 4,
+        "has_statement": true,
+        "has_proof_file": false,
+        "mapping_chars": 106
+      },
+      "confidence": {
+        "statement": 5,
+        "proof": 0
+      },
+      "abstained": true,
+      "static_screen": null,
+      "statement_compile": {
+        "label": "stmt:p001_sum_bound__lower_bound__qwen",
+        "file": "C:\\QEDRank\\QEDRank_java\\qedrank\\test\\fixtures\\runs\\e2e-formalize\\items\\p001_sum_bound__lower_bound__qwen\\lean\\QRSM_p001_sum_bound_lower_bound_qwen_a1r0.lean",
+        "status": "compiler_success",
+        "exit_code": 0,
+        "timed_out": false,
+        "duration_ms": 225518.2269000113,
+        "messages": [
+          {
+            "severity": "warning",
+            "line": 7,
+            "column": 8,
+            "file": "C:\\QEDRank\\QEDRank_java\\qedrank\\test\\fixtures\\runs\\e2e-formalize\\items\\p001_sum_bound__lower_bound__qwen\\lean\\QRSM_p001_sum_bound_lower_bound_qwen_a1r0.lean",
+            "text": "declaration uses `sorry`"
+          }
+        ],
+        "error_count": 0,
+        "warning_count": 1,
+        "stdout_tail": "{\"caption\":\"\",\"data\":\"declaration uses `sorry`\",\"endPos\":{\"column\":29,\"line\":7},\"fileName\":\"C:\\\\QEDRank\\\\QEDRank_java\\\\qedrank\\\\test\\\\fixtures\\\\runs\\\\e2e-formalize\\\\items\\\\p001_sum_bound__lower_bound__qwen\\\\lean\\\\QRSM_p001_sum_bound_lower_bound_qwen_a1r0.lean\",\"isSilent\":false,\"keepFullRange\":false,\"kind\":\"hasSorry\",\"pos\":{\"column\":8,\"line\":7},\"severity\":\"warning\"}\n",
+        "stderr_tail": "",
+        "started_at": "2026-10-27T18:32:15.879Z",
+        "ended_at": "2026-10-27T18:36:01.410Z",
+        "limits": {
+          "timeout_ms": 600000,
+          "memory_mb": 8192,
+          "max_heartbeats": 400000
+        },
+        "lean_version": "Lean (version 4.34.1, x86_64-w64-windows-gnu, commit 5045d0056413266e57c625dcd7c365b10e377c52, Release)",
+        "infra_reason": null,
+        "module": "QRSM_p001_sum_bound_lower_bound_qwen_a1r0",
+        "src_sha256": "d1d61afa2d651c99191b9a1e8080a1e5f20474522c739f176cea1284476f6e09",
+        "olean": "C:\\QEDRank\\QEDRank_java\\qedrank\\test\\fixtures\\runs\\e2e-formalize\\items\\p001_sum_bound__lower_bound__qwen\\lean\\QRSM_p001_sum_bound_lower_bound_qwen_a1r0.olean",
+        "resolved_declaration": "QRModel.placeholder_statement",
+        "definitions": []
+      },
+      "model_statement_declaration": "placeholder_statement",
+      "compile": {
+        "status": "not_attempted",
+        "reason": "abstained"
+      },
+      "audit": {
+        "status": "not_audited",
+        "static_flags": []
+      },
+      "ab_consistency": null,
+      "comparison": {
+        "statement_match": "unresolved",
+        "method": "automated_bidirectional_implication",
+        "evidence": {
+          "syntactic_identical": false,
+          "reducible_defeq": false,
+          "default_defeq": false,
+          "fwd_proved": true,
+          "fwd_uses_hyp": false,
+          "bwd_proved": false,
+          "bwd_uses_hyp": false,
+          "model_provable_outright": true,
+          "ref_provable_outright": false,
+          "script_status": "compiler_failure",
+          "notes": [
+            "forward implication proof ignored its hypothesis"
+          ]
+        },
+        "source": "automated",
+        "script_status": "compiler_failure",
+        "duration_ms": 287043.7231999934,
+        "qr_errors": [],
+        "messages": [
+          {
+            "severity": "error",
+            "line": 26,
+            "column": 48,
+            "file": "C:\\QEDRank\\QEDRank_java\\qedrank\\test\\fixtures\\runs\\e2e-formalize\\items\\p001_sum_bound__lower_bound__qwen\\lean\\QRA_cmp_a1r0.lean",
+            "text": "unsolved goals\nn✝ : ℕ\n⊢ n✝ ≤ sumBelow n✝ + 1"
+          },
+          {
+            "severity": "error",
+            "line": 51,
+            "column": 37,
+            "file": "C:\\QEDRank\\QEDRank_java\\qedrank\\test\\fixtures\\runs\\e2e-formalize\\items\\p001_sum_bound__lower_bound__qwen\\lean\\QRA_cmp_a1r0.lean",
+            "text": "unsolved goals\nn✝ : ℕ\n⊢ n✝ ≤ sumBelow n✝ + 1"
+          }
+        ]
+      },
+      "statement_match": "unresolved",
+      "statement_match_source": "automated",
+      "loc": null,
+      "timing": {
+        "evaluation_started_at": "2026-10-27T14:59:45.216Z",
+        "lean_compile_ms": null,
+        "lean_audit_ms": 0.01969999074935913,
+        "lean_compare_ms": 287043.7231999934,
+        "lean_total_ms": 783290.3027000129,
+        "evaluation_total_ms": 13889928.618800014,
+        "total_ms": 13890081.789600015,
+        "working_ms": 783443.4735000134,
+        "evaluation_ended_at": "2026-10-27T18:51:15.152Z"
+      },
+      "eligibility": {
+        "statement_track": true,
+        "proof_track": true,
+        "reasons": []
+      },
+      "outcomes": {
+        "infrastructure_failure": false,
+        "compiled": null,
+        "audit_clean": null,
+        "statement_faithful": 0,
+        "verified": 0
+      },
+      "notes": [],
+      "evaluation_complete": true
+    },
+    {
+      "schema": "qedrank-item-v1",
+      "item_key": "p001_sum_bound__main_theorem__fable",
+      "paper_id": "p001_sum_bound",
+      "target_kind": "main_theorem",
+      "provider": "fable",
+      "model_display_name": "fixture · Claude Fable 5.1",
+      "model_id": "fixture:fable",
+      "model_label": "Claude Fable 5.1",
+      "api_host": null,
+      "response_model": null,
+      "setting": "pass@1",
+      "attempt": 1,
+      "repair_round": 0,
+      "mathematical_status": "established",
+      "reference_proof_status": "complete",
+      "reference_statement_available": true,
+      "contamination": {
+        "model_training_cutoff": "2026-06",
+        "problem_publication_date": "2026",
+        "published_before_cutoff": null,
+        "public_formal_proof": null
+      },
+      "generation": {
+        "mode": "fixture",
+        "error": null,
+        "http_status": null,
+        "finish_reason": "fixture",
+        "observed_latency_ms": 91.06549999117851,
+        "working_ms": 91.06549999117851,
+        "usage": null,
+        "reasoning_chars": null,
+        "provider_attempts": 1,
+        "retry_wait_ms": null,
+        "truncated": false,
+        "prompt_hash": "f403f4cd95a4fc71446a3d448a9b5240865997ab8a6031b558ec02f4d970546a",
+        "prompt_template_version": "qedrank-prompt-v2",
+        "temperature": 0,
+        "max_tokens": 16384,
+        "timeout_ms": 300000,
+        "started_at": "2026-10-27T14:59:40.183Z",
+        "ended_at": "2026-10-27T14:59:40.274Z",
+        "response_chars": 311
+      },
+      "parse": {
+        "notes": [],
+        "parts_found": 4,
+        "has_statement": false,
+        "has_proof_file": false,
+        "mapping_chars": 61
+      },
+      "confidence": {
+        "statement": 15,
+        "proof": 0
+      },
+      "abstained": true,
+      "static_screen": null,
+      "statement_compile": null,
+      "model_statement_declaration": null,
+      "compile": {
+        "status": "not_attempted",
+        "reason": "abstained"
+      },
+      "audit": {
+        "status": "not_audited",
+        "static_flags": []
+      },
+      "ab_consistency": null,
+      "comparison": {
+        "statement_match": "not_evaluated",
+        "method": "none",
+        "evidence": {
+          "notes": [
+            "no_statement"
+          ]
+        },
+        "source": "automated",
+        "script_status": "not_attempted"
+      },
+      "statement_match": "not_evaluated",
+      "statement_match_source": "automated",
+      "loc": null,
+      "timing": {
+        "evaluation_started_at": "2026-10-27T14:59:40.281Z",
+        "lean_compile_ms": null,
+        "lean_audit_ms": 0.030099987983703613,
+        "lean_compare_ms": null,
+        "lean_total_ms": 0,
+        "evaluation_total_ms": 12.8158999979496,
+        "total_ms": 103.88139998912811,
+        "working_ms": 91.06549999117851,
+        "evaluation_ended_at": "2026-10-27T14:59:40.294Z"
+      },
+      "eligibility": {
+        "statement_track": true,
+        "proof_track": true,
+        "reasons": []
+      },
+      "outcomes": {
+        "infrastructure_failure": false,
+        "compiled": null,
+        "audit_clean": null,
+        "statement_faithful": 0,
+        "verified": 0
+      },
+      "notes": [
+        "no_statement_returned"
+      ],
+      "evaluation_complete": true
+    },
+    {
+      "schema": "qedrank-item-v1",
+      "item_key": "p001_sum_bound__main_theorem__glm",
+      "paper_id": "p001_sum_bound",
+      "target_kind": "main_theorem",
+      "provider": "glm",
+      "model_display_name": "fixture · GLM-5.3 Flash",
+      "model_id": "fixture:glm",
+      "model_label": "GLM-5.3 Flash",
+      "api_host": null,
+      "response_model": null,
+      "setting": "pass@1",
+      "attempt": 1,
+      "repair_round": 0,
+      "mathematical_status": "established",
+      "reference_proof_status": "complete",
+      "reference_statement_available": true,
+      "contamination": {
+        "model_training_cutoff": null,
+        "problem_publication_date": "2026",
+        "published_before_cutoff": null,
+        "public_formal_proof": null
+      },
+      "generation": {
+        "mode": "fixture",
+        "error": null,
+        "http_status": null,
+        "finish_reason": "fixture",
+        "observed_latency_ms": 81.56649997830391,
+        "working_ms": 81.56649997830391,
+        "usage": null,
+        "reasoning_chars": null,
+        "provider_attempts": 1,
+        "retry_wait_ms": null,
+        "truncated": false,
+        "prompt_hash": "f403f4cd95a4fc71446a3d448a9b5240865997ab8a6031b558ec02f4d970546a",
+        "prompt_template_version": "qedrank-prompt-v2",
+        "temperature": 0,
+        "max_tokens": 16384,
+        "timeout_ms": 300000,
+        "started_at": "2026-10-27T14:59:40.183Z",
+        "ended_at": "2026-10-27T14:59:40.265Z",
+        "response_chars": 693
+      },
+      "parse": {
+        "notes": [],
+        "parts_found": 4,
+        "has_statement": true,
+        "has_proof_file": true,
+        "mapping_chars": 196
+      },
+      "confidence": {
+        "statement": 95,
+        "proof": 80
+      },
+      "abstained": false,
+      "static_screen": {
+        "ok": true,
+        "rejections": [],
+        "flags": []
+      },
+      "statement_compile": {
+        "label": "stmt:p001_sum_bound__main_theorem__glm",
+        "file": "C:\\QEDRank\\QEDRank_java\\qedrank\\test\\fixtures\\runs\\e2e-formalize\\items\\p001_sum_bound__main_theorem__glm\\lean\\QRSM_p001_sum_bound_main_theorem_glm_a1r0.lean",
+        "status": "timeout",
+        "exit_code": null,
+        "timed_out": false,
+        "duration_ms": 12640883.870700002,
+        "messages": [],
+        "error_count": 0,
+        "warning_count": 0,
+        "stdout_tail": "",
+        "stderr_tail": "",
+        "started_at": "2026-10-27T14:59:40.446Z",
+        "ended_at": "2026-10-27T18:30:21.337Z",
+        "limits": {
+          "timeout_ms": 600000,
+          "memory_mb": 8192,
+          "max_heartbeats": 400000
+        },
+        "lean_version": "Lean (version 4.34.1, x86_64-w64-windows-gnu, commit 5045d0056413266e57c625dcd7c365b10e377c52, Release)",
+        "infra_reason": null,
+        "module": "QRSM_p001_sum_bound_main_theorem_glm_a1r0",
+        "src_sha256": "daf775f0dfec79555beaab09b6e1eb446699d02b4a2785f406bd1cdebe7df067",
+        "olean": null
+      },
+      "model_statement_declaration": "main_theorem",
+      "compile": {
+        "label": "proof:p001_sum_bound__main_theorem__glm",
+        "file": "C:\\QEDRank\\QEDRank_java\\qedrank\\test\\fixtures\\runs\\e2e-formalize\\items\\p001_sum_bound__main_theorem__glm\\lean\\QRM_p001_sum_bound_main_theorem_glm_a1r0.lean",
+        "status": "compiler_success",
+        "exit_code": 0,
+        "timed_out": false,
+        "duration_ms": 20222.321399986744,
+        "messages": [],
+        "error_count": 0,
+        "warning_count": 0,
+        "stdout_tail": "",
+        "stderr_tail": "",
+        "started_at": "2026-10-27T18:37:30.818Z",
+        "ended_at": "2026-10-27T18:37:51.040Z",
+        "limits": {
+          "timeout_ms": 600000,
+          "memory_mb": 8192,
+          "max_heartbeats": 400000
+        },
+        "lean_version": "Lean (version 4.34.1, x86_64-w64-windows-gnu, commit 5045d0056413266e57c625dcd7c365b10e377c52, Release)",
+        "infra_reason": null,
+        "module": "QRM_p001_sum_bound_main_theorem_glm_a1r0",
+        "src_sha256": "dcfe91d4cc5e887d6ac5c51acfb975935e9d2d3b4b90fbc425031efaa60547a6",
+        "olean": "C:\\QEDRank\\QEDRank_java\\qedrank\\test\\fixtures\\runs\\e2e-formalize\\items\\p001_sum_bound__main_theorem__glm\\lean\\QRM_p001_sum_bound_main_theorem_glm_a1r0.olean",
+        "linter_warnings": {}
+      },
+      "audit": {
+        "status": "clean",
+        "target_declaration": "main_theorem",
+        "declarations": 1,
+        "unsafe_declarations": [],
+        "static_flags": [],
+        "axioms": [
+          "propext",
+          "Classical.choice",
+          "Quot.sound"
+        ],
+        "classification": {
+          "placeholder": false,
+          "native_decide": false,
+          "user_axioms": [],
+          "clean": true
+        },
+        "target_is_prop": true,
+        "target_kind": "theorem"
+      },
+      "ab_consistency": {
+        "consistent": null,
+        "status": "statement_module_unavailable"
+      },
+      "comparison": {
+        "statement_match": "unresolved",
+        "method": "none",
+        "evidence": {
+          "notes": [
+            "timeout"
+          ]
+        },
+        "source": "automated",
+        "script_status": "not_attempted"
+      },
+      "statement_match": "unresolved",
+      "statement_match_source": "automated",
+      "loc": {
+        "model": {
+          "total": 7,
+          "code": 6,
+          "proof": {
+            "total": 4,
+            "code": 4
+          },
+          "rule": "total=newline-separated lines; code=non-blank lines after comment removal; proof=lines from the target declaration's top-level := to the end of the declaration, same code rule"
+        },
+        "reference": {
+          "total": 9,
+          "code": 6,
+          "proof": {
+            "total": 4,
+            "code": 4
+          },
+          "rule": "total=newline-separated lines; code=non-blank lines after comment removal; proof=lines from the target declaration's top-level := to the end of the declaration, same code rule"
+        }
+      },
+      "timing": {
+        "evaluation_started_at": "2026-10-27T14:59:40.279Z",
+        "lean_compile_ms": 20222.321399986744,
+        "lean_audit_ms": 1344910.1220000386,
+        "lean_compare_ms": null,
+        "lean_total_ms": 12733771.852699965,
+        "evaluation_total_ms": 14007144.023600012,
+        "total_ms": 14007225.59009999,
+        "working_ms": 12733853.419199944,
+        "evaluation_ended_at": "2026-10-27T18:53:07.418Z"
+      },
+      "eligibility": {
+        "statement_track": true,
+        "proof_track": true,
+        "reasons": []
+      },
+      "outcomes": {
+        "infrastructure_failure": false,
+        "compiled": 1,
+        "audit_clean": 1,
+        "statement_faithful": 0,
+        "verified": 0
+      },
+      "notes": [],
+      "evaluation_complete": true
+    },
+    {
+      "schema": "qedrank-item-v1",
+      "item_key": "p001_sum_bound__main_theorem__mistral",
+      "paper_id": "p001_sum_bound",
+      "target_kind": "main_theorem",
+      "provider": "mistral",
+      "model_display_name": "fixture · Leanstral",
+      "model_id": "fixture:mistral",
+      "model_label": "Leanstral",
+      "api_host": null,
+      "response_model": null,
+      "setting": "pass@1",
+      "attempt": 1,
+      "repair_round": 0,
+      "mathematical_status": "established",
+      "reference_proof_status": "complete",
+      "reference_statement_available": true,
+      "contamination": {
+        "model_training_cutoff": null,
+        "problem_publication_date": "2026",
+        "published_before_cutoff": null,
+        "public_formal_proof": null
+      },
+      "generation": {
+        "mode": "fixture",
+        "error": null,
+        "http_status": null,
+        "finish_reason": "fixture",
+        "observed_latency_ms": 204.50320002436638,
+        "working_ms": 204.50320002436638,
+        "usage": null,
+        "reasoning_chars": null,
+        "provider_attempts": 1,
+        "retry_wait_ms": null,
+        "truncated": false,
+        "prompt_hash": "f403f4cd95a4fc71446a3d448a9b5240865997ab8a6031b558ec02f4d970546a",
+        "prompt_template_version": "qedrank-prompt-v2",
+        "temperature": 0,
+        "max_tokens": 16384,
+        "timeout_ms": 300000,
+        "started_at": "2026-10-27T14:59:40.241Z",
+        "ended_at": "2026-10-27T14:59:40.446Z",
+        "response_chars": 238
+      },
+      "parse": {
+        "notes": [],
+        "parts_found": 4,
+        "has_statement": false,
+        "has_proof_file": false,
+        "mapping_chars": 21
+      },
+      "confidence": {
+        "statement": 10,
+        "proof": 0
+      },
+      "abstained": true,
+      "static_screen": null,
+      "statement_compile": null,
+      "model_statement_declaration": null,
+      "compile": {
+        "status": "not_attempted",
+        "reason": "abstained"
+      },
+      "audit": {
+        "status": "not_audited",
+        "static_flags": []
+      },
+      "ab_consistency": null,
+      "comparison": {
+        "statement_match": "not_evaluated",
+        "method": "none",
+        "evidence": {
+          "notes": [
+            "no_statement"
+          ]
+        },
+        "source": "automated",
+        "script_status": "not_attempted"
+      },
+      "statement_match": "not_evaluated",
+      "statement_match_source": "automated",
+      "loc": null,
+      "timing": {
+        "evaluation_started_at": "2026-10-27T14:59:44.181Z",
+        "lean_compile_ms": null,
+        "lean_audit_ms": 0.038300007581710815,
+        "lean_compare_ms": null,
+        "lean_total_ms": 0,
+        "evaluation_total_ms": 600.2073000073433,
+        "total_ms": 804.7105000317097,
+        "working_ms": 204.50320002436638,
+        "evaluation_ended_at": "2026-10-27T14:59:44.781Z"
+      },
+      "eligibility": {
+        "statement_track": true,
+        "proof_track": true,
+        "reasons": []
+      },
+      "outcomes": {
+        "infrastructure_failure": false,
+        "compiled": null,
+        "audit_clean": null,
+        "statement_faithful": 0,
+        "verified": 0
+      },
+      "notes": [
+        "no_statement_returned"
+      ],
+      "evaluation_complete": true
+    },
+    {
+      "schema": "qedrank-item-v1",
+      "item_key": "p001_sum_bound__main_theorem__qwen",
+      "paper_id": "p001_sum_bound",
+      "target_kind": "main_theorem",
+      "provider": "qwen",
+      "model_display_name": "fixture · Qwen3 30B-A3B Instruct",
+      "model_id": "fixture:qwen",
+      "model_label": "Qwen3 30B-A3B Instruct",
+      "api_host": null,
+      "response_model": null,
+      "setting": "pass@1",
+      "attempt": 1,
+      "repair_round": 0,
+      "mathematical_status": "established",
+      "reference_proof_status": "complete",
+      "reference_statement_available": true,
+      "contamination": {
+        "model_training_cutoff": null,
+        "problem_publication_date": "2026",
+        "published_before_cutoff": null,
+        "public_formal_proof": null
+      },
+      "generation": {
+        "mode": "fixture",
+        "error": null,
+        "http_status": null,
+        "finish_reason": "fixture",
+        "observed_latency_ms": 80.41830000281334,
+        "working_ms": 80.41830000281334,
+        "usage": null,
+        "reasoning_chars": null,
+        "provider_attempts": 1,
+        "retry_wait_ms": null,
+        "truncated": false,
+        "prompt_hash": "f403f4cd95a4fc71446a3d448a9b5240865997ab8a6031b558ec02f4d970546a",
+        "prompt_template_version": "qedrank-prompt-v2",
+        "temperature": 0,
+        "max_tokens": 16384,
+        "timeout_ms": 300000,
+        "started_at": "2026-10-27T14:59:40.185Z",
+        "ended_at": "2026-10-27T14:59:40.265Z",
+        "response_chars": 567
+      },
+      "parse": {
+        "notes": [],
+        "parts_found": 4,
+        "has_statement": true,
+        "has_proof_file": true,
+        "mapping_chars": 65
+      },
+      "confidence": {
+        "statement": 92,
+        "proof": 60
+      },
+      "abstained": false,
+      "static_screen": {
+        "ok": true,
+        "rejections": [],
+        "flags": [
+          "placeholder"
+        ]
+      },
+      "statement_compile": {
+        "label": "stmt:p001_sum_bound__main_theorem__qwen",
+        "file": "C:\\QEDRank\\QEDRank_java\\qedrank\\test\\fixtures\\runs\\e2e-formalize\\items\\p001_sum_bound__main_theorem__qwen\\lean\\QRSM_p001_sum_bound_main_theorem_qwen_a1r0.lean",
+        "status": "timeout",
+        "exit_code": null,
+        "timed_out": false,
+        "duration_ms": 12641974.987900019,
+        "messages": [],
+        "error_count": 0,
+        "warning_count": 0,
+        "stdout_tail": "",
+        "stderr_tail": "",
+        "started_at": "2026-10-27T14:59:40.317Z",
+        "ended_at": "2026-10-27T18:30:22.298Z",
+        "limits": {
+          "timeout_ms": 600000,
+          "memory_mb": 8192,
+          "max_heartbeats": 400000
+        },
+        "lean_version": "Lean (version 4.34.1, x86_64-w64-windows-gnu, commit 5045d0056413266e57c625dcd7c365b10e377c52, Release)",
+        "infra_reason": null,
+        "module": "QRSM_p001_sum_bound_main_theorem_qwen_a1r0",
+        "src_sha256": "daf775f0dfec79555beaab09b6e1eb446699d02b4a2785f406bd1cdebe7df067",
+        "olean": null
+      },
+      "model_statement_declaration": "main_theorem",
+      "compile": {
+        "label": "proof:p001_sum_bound__main_theorem__qwen",
+        "file": "C:\\QEDRank\\QEDRank_java\\qedrank\\test\\fixtures\\runs\\e2e-formalize\\items\\p001_sum_bound__main_theorem__qwen\\lean\\QRM_p001_sum_bound_main_theorem_qwen_a1r0.lean",
+        "status": "compiler_success",
+        "exit_code": 0,
+        "timed_out": false,
+        "duration_ms": 18523.850899994373,
+        "messages": [
+          {
+            "severity": "warning",
+            "line": 4,
+            "column": 8,
+            "file": "C:\\QEDRank\\QEDRank_java\\qedrank\\test\\fixtures\\runs\\e2e-formalize\\items\\p001_sum_bound__main_theorem__qwen\\lean\\QRM_p001_sum_bound_main_theorem_qwen_a1r0.lean",
+            "text": "declaration uses `sorry`"
+          }
+        ],
+        "error_count": 0,
+        "warning_count": 1,
+        "stdout_tail": "{\"caption\":\"\",\"data\":\"declaration uses `sorry`\",\"endPos\":{\"column\":20,\"line\":4},\"fileName\":\"C:\\\\QEDRank\\\\QEDRank_java\\\\qedrank\\\\test\\\\fixtures\\\\runs\\\\e2e-formalize\\\\items\\\\p001_sum_bound__main_theorem__qwen\\\\lean\\\\QRM_p001_sum_bound_main_theorem_qwen_a1r0.lean\",\"isSilent\":false,\"keepFullRange\":false,\"kind\":\"hasSorry\",\"pos\":{\"column\":8,\"line\":4},\"severity\":\"warning\"}\n",
+        "stderr_tail": "",
+        "started_at": "2026-10-27T18:37:26.321Z",
+        "ended_at": "2026-10-27T18:37:44.845Z",
+        "limits": {
+          "timeout_ms": 600000,
+          "memory_mb": 8192,
+          "max_heartbeats": 400000
+        },
+        "lean_version": "Lean (version 4.34.1, x86_64-w64-windows-gnu, commit 5045d0056413266e57c625dcd7c365b10e377c52, Release)",
+        "infra_reason": null,
+        "module": "QRM_p001_sum_bound_main_theorem_qwen_a1r0",
+        "src_sha256": "2b92748cc5fe26e87b1726c4500776246537b8df3d1a9fdca5883d1a90d512a3",
+        "olean": "C:\\QEDRank\\QEDRank_java\\qedrank\\test\\fixtures\\runs\\e2e-formalize\\items\\p001_sum_bound__main_theorem__qwen\\lean\\QRM_p001_sum_bound_main_theorem_qwen_a1r0.olean",
+        "linter_warnings": {}
+      },
+      "audit": {
+        "status": "placeholder",
+        "target_declaration": "main_theorem",
+        "declarations": 1,
+        "unsafe_declarations": [],
+        "static_flags": [
+          "placeholder"
+        ],
+        "axioms": [
+          "propext",
+          "sorryAx",
+          "Classical.choice",
+          "Quot.sound"
+        ],
+        "classification": {
+          "placeholder": true,
+          "native_decide": false,
+          "user_axioms": [],
+          "clean": false
+        },
+        "target_is_prop": true,
+        "target_kind": "theorem"
+      },
+      "ab_consistency": {
+        "consistent": null,
+        "status": "statement_module_unavailable"
+      },
+      "comparison": {
+        "statement_match": "unresolved",
+        "method": "none",
+        "evidence": {
+          "notes": [
+            "timeout"
+          ]
+        },
+        "source": "automated",
+        "script_status": "not_attempted"
+      },
+      "statement_match": "unresolved",
+      "statement_match_source": "automated",
+      "loc": {
+        "model": {
+          "total": 8,
+          "code": 7,
+          "proof": {
+            "total": 5,
+            "code": 5
+          },
+          "rule": "total=newline-separated lines; code=non-blank lines after comment removal; proof=lines from the target declaration's top-level := to the end of the declaration, same code rule"
+        },
+        "reference": {
+          "total": 9,
+          "code": 6,
+          "proof": {
+            "total": 4,
+            "code": 4
+          },
+          "rule": "total=newline-separated lines; code=non-blank lines after comment removal; proof=lines from the target declaration's top-level := to the end of the declaration, same code rule"
+        }
+      },
+      "timing": {
+        "evaluation_started_at": "2026-10-27T14:59:40.276Z",
+        "lean_compile_ms": 18523.850899994373,
+        "lean_audit_ms": 1365197.9147000015,
+        "lean_compare_ms": null,
+        "lean_total_ms": 12733527.941900015,
+        "evaluation_total_ms": 14025808.039499998,
+        "total_ms": 14025888.4578,
+        "working_ms": 12733608.360200018,
+        "evaluation_ended_at": "2026-10-27T18:53:26.092Z"
+      },
+      "eligibility": {
+        "statement_track": true,
+        "proof_track": true,
+        "reasons": []
+      },
+      "outcomes": {
+        "infrastructure_failure": false,
+        "compiled": 1,
+        "audit_clean": 0,
+        "statement_faithful": 0,
+        "verified": 0
+      },
+      "notes": [],
+      "evaluation_complete": true
+    },
+    {
+      "schema": "qedrank-item-v1",
+      "item_key": "p001_sum_bound__upper_bound__fable",
+      "paper_id": "p001_sum_bound",
+      "target_kind": "upper_bound",
+      "provider": "fable",
+      "model_display_name": "fixture · Claude Fable 5.1",
+      "model_id": "fixture:fable",
+      "model_label": "Claude Fable 5.1",
+      "api_host": null,
+      "response_model": null,
+      "setting": "pass@1",
+      "attempt": 1,
+      "repair_round": 0,
+      "mathematical_status": "established",
+      "reference_proof_status": "complete",
+      "reference_statement_available": true,
+      "contamination": {
+        "model_training_cutoff": "2026-06",
+        "problem_publication_date": "2026",
+        "published_before_cutoff": null,
+        "public_formal_proof": null
+      },
+      "generation": {
+        "mode": "fixture",
+        "error": null,
+        "http_status": null,
+        "finish_reason": "fixture",
+        "observed_latency_ms": 3562.5190999805927,
+        "working_ms": 3562.5190999805927,
+        "usage": null,
+        "reasoning_chars": null,
+        "provider_attempts": 1,
+        "retry_wait_ms": null,
+        "truncated": false,
+        "prompt_hash": "d0abdc69ed9b63093d50a541ee9a4bb45530017c7d9f118ef712f29a51886f54",
+        "prompt_template_version": "qedrank-prompt-v2",
+        "temperature": 0,
+        "max_tokens": 16384,
+        "timeout_ms": 300000,
+        "started_at": "2026-10-27T14:59:40.618Z",
+        "ended_at": "2026-10-27T14:59:44.181Z",
+        "response_chars": 968
+      },
+      "parse": {
+        "notes": [],
+        "parts_found": 4,
+        "has_statement": true,
+        "has_proof_file": true,
+        "mapping_chars": 139
+      },
+      "confidence": {
+        "statement": 55,
+        "proof": 70
+      },
+      "abstained": false,
+      "static_screen": {
+        "ok": true,
+        "rejections": [],
+        "flags": []
+      },
+      "statement_compile": {
+        "label": "stmt:p001_sum_bound__upper_bound__fable",
+        "file": "C:\\QEDRank\\QEDRank_java\\qedrank\\test\\fixtures\\runs\\e2e-formalize\\items\\p001_sum_bound__upper_bound__fable\\lean\\QRSM_p001_sum_bound_upper_bound_fable_a1r0.lean",
+        "status": "compiler_success",
+        "exit_code": 0,
+        "timed_out": false,
+        "duration_ms": 28130.88259997964,
+        "messages": [
+          {
+            "severity": "warning",
+            "line": 9,
+            "column": 8,
+            "file": "C:\\QEDRank\\QEDRank_java\\qedrank\\test\\fixtures\\runs\\e2e-formalize\\items\\p001_sum_bound__upper_bound__fable\\lean\\QRSM_p001_sum_bound_upper_bound_fable_a1r0.lean",
+            "text": "declaration uses `sorry`"
+          }
+        ],
+        "error_count": 0,
+        "warning_count": 1,
+        "stdout_tail": "{\"caption\":\"\",\"data\":\"declaration uses `sorry`\",\"endPos\":{\"column\":19,\"line\":9},\"fileName\":\"C:\\\\QEDRank\\\\QEDRank_java\\\\qedrank\\\\test\\\\fixtures\\\\runs\\\\e2e-formalize\\\\items\\\\p001_sum_bound__upper_bound__fable\\\\lean\\\\QRSM_p001_sum_bound_upper_bound_fable_a1r0.lean\",\"isSilent\":false,\"keepFullRange\":false,\"kind\":\"hasSorry\",\"pos\":{\"column\":8,\"line\":9},\"severity\":\"warning\"}\n",
+        "stderr_tail": "",
+        "started_at": "2026-10-27T18:31:47.748Z",
+        "ended_at": "2026-10-27T18:32:15.879Z",
+        "limits": {
+          "timeout_ms": 600000,
+          "memory_mb": 8192,
+          "max_heartbeats": 400000
+        },
+        "lean_version": "Lean (version 4.34.1, x86_64-w64-windows-gnu, commit 5045d0056413266e57c625dcd7c365b10e377c52, Release)",
+        "infra_reason": null,
+        "module": "QRSM_p001_sum_bound_upper_bound_fable_a1r0",
+        "src_sha256": "737d782be1b2cff929a970bf0bc4aef2ba24f62a198d58421b02fd331b1a4296",
+        "olean": "C:\\QEDRank\\QEDRank_java\\qedrank\\test\\fixtures\\runs\\e2e-formalize\\items\\p001_sum_bound__upper_bound__fable\\lean\\QRSM_p001_sum_bound_upper_bound_fable_a1r0.olean",
+        "resolved_declaration": "QRModel.upper_bound",
+        "definitions": []
+      },
+      "model_statement_declaration": "upper_bound",
+      "compile": {
+        "label": "proof:p001_sum_bound__upper_bound__fable",
+        "file": "C:\\QEDRank\\QEDRank_java\\qedrank\\test\\fixtures\\runs\\e2e-formalize\\items\\p001_sum_bound__upper_bound__fable\\lean\\QRM_p001_sum_bound_upper_bound_fable_a1r0.lean",
+        "status": "compiler_success",
+        "exit_code": 0,
+        "timed_out": false,
+        "duration_ms": 39740.08399999142,
+        "messages": [],
+        "error_count": 0,
+        "warning_count": 0,
+        "stdout_tail": "",
+        "stderr_tail": "",
+        "started_at": "2026-10-27T18:45:48.333Z",
+        "ended_at": "2026-10-27T18:46:28.073Z",
+        "limits": {
+          "timeout_ms": 600000,
+          "memory_mb": 8192,
+          "max_heartbeats": 400000
+        },
+        "lean_version": "Lean (version 4.34.1, x86_64-w64-windows-gnu, commit 5045d0056413266e57c625dcd7c365b10e377c52, Release)",
+        "infra_reason": null,
+        "module": "QRM_p001_sum_bound_upper_bound_fable_a1r0",
+        "src_sha256": "260fd577cf92f6546d8662b6b31d9be56d5ccfd92867b1740151317bb2c0cb49",
+        "olean": "C:\\QEDRank\\QEDRank_java\\qedrank\\test\\fixtures\\runs\\e2e-formalize\\items\\p001_sum_bound__upper_bound__fable\\lean\\QRM_p001_sum_bound_upper_bound_fable_a1r0.olean",
+        "linter_warnings": {}
+      },
+      "audit": {
+        "status": "clean",
+        "target_declaration": "upper_bound",
+        "declarations": 1,
+        "unsafe_declarations": [],
+        "static_flags": [],
+        "axioms": [
+          "propext",
+          "Classical.choice",
+          "Quot.sound"
+        ],
+        "classification": {
+          "placeholder": false,
+          "native_decide": false,
+          "user_axioms": [],
+          "clean": true
+        },
+        "target_is_prop": true,
+        "target_kind": "theorem"
+      },
+      "ab_consistency": {
+        "consistent": true,
+        "syntactic": true,
+        "status": "compiler_success"
+      },
+      "comparison": {
+        "statement_match": "unresolved",
+        "method": "automated_bidirectional_implication",
+        "evidence": {
+          "syntactic_identical": false,
+          "reducible_defeq": false,
+          "default_defeq": false,
+          "fwd_proved": true,
+          "fwd_uses_hyp": true,
+          "bwd_proved": false,
+          "bwd_uses_hyp": false,
+          "model_provable_outright": false,
+          "ref_provable_outright": false,
+          "script_status": "compiler_success",
+          "notes": [
+            "reference implies model statement (candidate: weaker or equivalent) - reverse direction unresolved"
+          ]
+        },
+        "source": "automated",
+        "script_status": "compiler_success",
+        "duration_ms": 35466.1671000123,
+        "qr_errors": [],
+        "messages": []
+      },
+      "statement_match": "unresolved",
+      "statement_match_source": "automated",
+      "loc": {
+        "model": {
+          "total": 11,
+          "code": 10,
+          "proof": {
+            "total": 6,
+            "code": 6
+          },
+          "rule": "total=newline-separated lines; code=non-blank lines after comment removal; proof=lines from the target declaration's top-level := to the end of the declaration, same code rule"
+        },
+        "reference": {
+          "total": 13,
+          "code": 10,
+          "proof": {
+            "total": 6,
+            "code": 6
+          },
+          "rule": "total=newline-separated lines; code=non-blank lines after comment removal; proof=lines from the target declaration's top-level := to the end of the declaration, same code rule"
+        }
+      },
+      "timing": {
+        "evaluation_started_at": "2026-10-27T14:59:44.663Z",
+        "lean_compile_ms": 39740.08399999142,
+        "lean_audit_ms": 1729793.573300004,
+        "lean_compare_ms": 35466.1671000123,
+        "lean_total_ms": 232990.21450001,
+        "evaluation_total_ms": 15081874.670399994,
+        "total_ms": 15085437.189499974,
+        "working_ms": 236552.7335999906,
+        "evaluation_ended_at": "2026-10-27T19:11:06.542Z"
+      },
+      "eligibility": {
+        "statement_track": true,
+        "proof_track": true,
+        "reasons": []
+      },
+      "outcomes": {
+        "infrastructure_failure": false,
+        "compiled": 1,
+        "audit_clean": 1,
+        "statement_faithful": 0,
+        "verified": 0
+      },
+      "notes": [],
+      "evaluation_complete": true
+    },
+    {
+      "schema": "qedrank-item-v1",
+      "item_key": "p001_sum_bound__upper_bound__glm",
+      "paper_id": "p001_sum_bound",
+      "target_kind": "upper_bound",
+      "provider": "glm",
+      "model_display_name": "fixture · GLM-5.3 Flash",
+      "model_id": "fixture:glm",
+      "model_label": "GLM-5.3 Flash",
+      "api_host": null,
+      "response_model": null,
+      "setting": "pass@1",
+      "attempt": 1,
+      "repair_round": 0,
+      "mathematical_status": "established",
+      "reference_proof_status": "complete",
+      "reference_statement_available": true,
+      "contamination": {
+        "model_training_cutoff": null,
+        "problem_publication_date": "2026",
+        "published_before_cutoff": null,
+        "public_formal_proof": null
+      },
+      "generation": {
+        "mode": "fixture",
+        "error": null,
+        "http_status": null,
+        "finish_reason": "fixture",
+        "observed_latency_ms": 3562.826000005007,
+        "working_ms": 3562.826000005007,
+        "usage": null,
+        "reasoning_chars": null,
+        "provider_attempts": 1,
+        "retry_wait_ms": null,
+        "truncated": false,
+        "prompt_hash": "d0abdc69ed9b63093d50a541ee9a4bb45530017c7d9f118ef712f29a51886f54",
+        "prompt_template_version": "qedrank-prompt-v2",
+        "temperature": 0,
+        "max_tokens": 16384,
+        "timeout_ms": 300000,
+        "started_at": "2026-10-27T14:59:40.617Z",
+        "ended_at": "2026-10-27T14:59:44.180Z",
+        "response_chars": 935
+      },
+      "parse": {
+        "notes": [],
+        "parts_found": 4,
+        "has_statement": true,
+        "has_proof_file": true,
+        "mapping_chars": 69
+      },
+      "confidence": {
+        "statement": 90,
+        "proof": 75
+      },
+      "abstained": false,
+      "static_screen": {
+        "ok": true,
+        "rejections": [],
+        "flags": []
+      },
+      "statement_compile": {
+        "label": "stmt:p001_sum_bound__upper_bound__glm",
+        "file": "C:\\QEDRank\\QEDRank_java\\qedrank\\test\\fixtures\\runs\\e2e-formalize\\items\\p001_sum_bound__upper_bound__glm\\lean\\QRSM_p001_sum_bound_upper_bound_glm_a1r0.lean",
+        "status": "compiler_success",
+        "exit_code": 0,
+        "timed_out": false,
+        "duration_ms": 85460.06729999185,
+        "messages": [
+          {
+            "severity": "warning",
+            "line": 9,
+            "column": 8,
+            "file": "C:\\QEDRank\\QEDRank_java\\qedrank\\test\\fixtures\\runs\\e2e-formalize\\items\\p001_sum_bound__upper_bound__glm\\lean\\QRSM_p001_sum_bound_upper_bound_glm_a1r0.lean",
+            "text": "declaration uses `sorry`"
+          }
+        ],
+        "error_count": 0,
+        "warning_count": 1,
+        "stdout_tail": "{\"caption\":\"\",\"data\":\"declaration uses `sorry`\",\"endPos\":{\"column\":19,\"line\":9},\"fileName\":\"C:\\\\QEDRank\\\\QEDRank_java\\\\qedrank\\\\test\\\\fixtures\\\\runs\\\\e2e-formalize\\\\items\\\\p001_sum_bound__upper_bound__glm\\\\lean\\\\QRSM_p001_sum_bound_upper_bound_glm_a1r0.lean\",\"isSilent\":false,\"keepFullRange\":false,\"kind\":\"hasSorry\",\"pos\":{\"column\":8,\"line\":9},\"severity\":\"warning\"}\n",
+        "stderr_tail": "",
+        "started_at": "2026-10-27T18:30:22.299Z",
+        "ended_at": "2026-10-27T18:31:47.748Z",
+        "limits": {
+          "timeout_ms": 600000,
+          "memory_mb": 8192,
+          "max_heartbeats": 400000
+        },
+        "lean_version": "Lean (version 4.34.1, x86_64-w64-windows-gnu, commit 5045d0056413266e57c625dcd7c365b10e377c52, Release)",
+        "infra_reason": null,
+        "module": "QRSM_p001_sum_bound_upper_bound_glm_a1r0",
+        "src_sha256": "ea090a6aec21fb9351acf1345d0264187daf77526ca1c7c7d64af79d92ce0dbd",
+        "olean": "C:\\QEDRank\\QEDRank_java\\qedrank\\test\\fixtures\\runs\\e2e-formalize\\items\\p001_sum_bound__upper_bound__glm\\lean\\QRSM_p001_sum_bound_upper_bound_glm_a1r0.olean",
+        "resolved_declaration": "QRModel.upper_bound",
+        "definitions": []
+      },
+      "model_statement_declaration": "upper_bound",
+      "compile": {
+        "label": "proof:p001_sum_bound__upper_bound__glm",
+        "file": "C:\\QEDRank\\QEDRank_java\\qedrank\\test\\fixtures\\runs\\e2e-formalize\\items\\p001_sum_bound__upper_bound__glm\\lean\\QRM_p001_sum_bound_upper_bound_glm_a1r0.lean",
+        "status": "compiler_success",
+        "exit_code": 0,
+        "timed_out": false,
+        "duration_ms": 37423.72229999304,
+        "messages": [],
+        "error_count": 0,
+        "warning_count": 0,
+        "stdout_tail": "",
+        "stderr_tail": "",
+        "started_at": "2026-10-27T18:45:48.464Z",
+        "ended_at": "2026-10-27T18:46:25.888Z",
+        "limits": {
+          "timeout_ms": 600000,
+          "memory_mb": 8192,
+          "max_heartbeats": 400000
+        },
+        "lean_version": "Lean (version 4.34.1, x86_64-w64-windows-gnu, commit 5045d0056413266e57c625dcd7c365b10e377c52, Release)",
+        "infra_reason": null,
+        "module": "QRM_p001_sum_bound_upper_bound_glm_a1r0",
+        "src_sha256": "bf803af6380a2240442ae675b95922de2574259fff6a1b1e545e42d1e8964525",
+        "olean": "C:\\QEDRank\\QEDRank_java\\qedrank\\test\\fixtures\\runs\\e2e-formalize\\items\\p001_sum_bound__upper_bound__glm\\lean\\QRM_p001_sum_bound_upper_bound_glm_a1r0.olean",
+        "linter_warnings": {}
+      },
+      "audit": {
+        "status": "clean",
+        "target_declaration": "upper_bound",
+        "declarations": 1,
+        "unsafe_declarations": [],
+        "static_flags": [],
+        "axioms": [
+          "propext",
+          "Classical.choice",
+          "Quot.sound"
+        ],
+        "classification": {
+          "placeholder": false,
+          "native_decide": false,
+          "user_axioms": [],
+          "clean": true
+        },
+        "target_is_prop": true,
+        "target_kind": "theorem"
+      },
+      "ab_consistency": {
+        "consistent": true,
+        "syntactic": true,
+        "status": "compiler_success"
+      },
+      "comparison": {
+        "statement_match": "definitionally_identical",
+        "method": "syntactic_identity",
+        "evidence": {
+          "syntactic_identical": true,
+          "reducible_defeq": true,
+          "default_defeq": true,
+          "fwd_proved": true,
+          "fwd_uses_hyp": true,
+          "bwd_proved": true,
+          "bwd_uses_hyp": true,
+          "model_provable_outright": false,
+          "ref_provable_outright": false,
+          "script_status": "compiler_success",
+          "notes": []
+        },
+        "source": "automated",
+        "script_status": "compiler_success",
+        "duration_ms": 30897.249799996614,
+        "qr_errors": [],
+        "messages": []
+      },
+      "statement_match": "definitionally_identical",
+      "statement_match_source": "automated",
+      "loc": {
+        "model": {
+          "total": 12,
+          "code": 11,
+          "proof": {
+            "total": 7,
+            "code": 7
+          },
+          "rule": "total=newline-separated lines; code=non-blank lines after comment removal; proof=lines from the target declaration's top-level := to the end of the declaration, same code rule"
+        },
+        "reference": {
+          "total": 13,
+          "code": 10,
+          "proof": {
+            "total": 6,
+            "code": 6
+          },
+          "rule": "total=newline-separated lines; code=non-blank lines after comment removal; proof=lines from the target declaration's top-level := to the end of the declaration, same code rule"
+        }
+      },
+      "timing": {
+        "evaluation_started_at": "2026-10-27T14:59:44.657Z",
+        "lean_compile_ms": 37423.72229999304,
+        "lean_audit_ms": 1699731.9785999954,
+        "lean_compare_ms": 30897.249799996614,
+        "lean_total_ms": 394115.29130002856,
+        "evaluation_total_ms": 15016815.773399979,
+        "total_ms": 15020378.599399984,
+        "working_ms": 397678.11730003357,
+        "evaluation_ended_at": "2026-10-27T19:10:01.482Z"
+      },
+      "eligibility": {
+        "statement_track": true,
+        "proof_track": true,
+        "reasons": []
+      },
+      "outcomes": {
+        "infrastructure_failure": false,
+        "compiled": 1,
+        "audit_clean": 1,
+        "statement_faithful": 1,
+        "verified": 1
+      },
+      "notes": [],
+      "evaluation_complete": true
+    },
+    {
+      "schema": "qedrank-item-v1",
+      "item_key": "p001_sum_bound__upper_bound__mistral",
+      "paper_id": "p001_sum_bound",
+      "target_kind": "upper_bound",
+      "provider": "mistral",
+      "model_display_name": "fixture · Leanstral",
+      "model_id": "fixture:mistral",
+      "model_label": "Leanstral",
+      "api_host": null,
+      "response_model": null,
+      "setting": "pass@1",
+      "attempt": 1,
+      "repair_round": 0,
+      "mathematical_status": "established",
+      "reference_proof_status": "complete",
+      "reference_statement_available": true,
+      "contamination": {
+        "model_training_cutoff": null,
+        "problem_publication_date": "2026",
+        "published_before_cutoff": null,
+        "public_formal_proof": null
+      },
+      "generation": {
+        "mode": "fixture",
+        "error": null,
+        "http_status": null,
+        "finish_reason": "fixture",
+        "observed_latency_ms": 484.5352999866009,
+        "working_ms": 484.5352999866009,
+        "usage": null,
+        "reasoning_chars": null,
+        "provider_attempts": 1,
+        "retry_wait_ms": null,
+        "truncated": false,
+        "prompt_hash": "d0abdc69ed9b63093d50a541ee9a4bb45530017c7d9f118ef712f29a51886f54",
+        "prompt_template_version": "qedrank-prompt-v2",
+        "temperature": 0,
+        "max_tokens": 16384,
+        "timeout_ms": 300000,
+        "started_at": "2026-10-27T14:59:44.179Z",
+        "ended_at": "2026-10-27T14:59:44.664Z",
+        "response_chars": 238
+      },
+      "parse": {
+        "notes": [],
+        "parts_found": 4,
+        "has_statement": false,
+        "has_proof_file": false,
+        "mapping_chars": 21
+      },
+      "confidence": {
+        "statement": 10,
+        "proof": 0
+      },
+      "abstained": true,
+      "static_screen": null,
+      "statement_compile": null,
+      "model_statement_declaration": null,
+      "compile": {
+        "status": "not_attempted",
+        "reason": "abstained"
+      },
+      "audit": {
+        "status": "not_audited",
+        "static_flags": []
+      },
+      "ab_consistency": null,
+      "comparison": {
+        "statement_match": "not_evaluated",
+        "method": "none",
+        "evidence": {
+          "notes": [
+            "no_statement"
+          ]
+        },
+        "source": "automated",
+        "script_status": "not_attempted"
+      },
+      "statement_match": "not_evaluated",
+      "statement_match_source": "automated",
+      "loc": null,
+      "timing": {
+        "evaluation_started_at": "2026-10-27T14:59:44.852Z",
+        "lean_compile_ms": null,
+        "lean_audit_ms": 0.036199986934661865,
+        "lean_compare_ms": null,
+        "lean_total_ms": 0,
+        "evaluation_total_ms": 175.10839998722076,
+        "total_ms": 659.6436999738216,
+        "working_ms": 484.5352999866009,
+        "evaluation_ended_at": "2026-10-27T14:59:45.027Z"
+      },
+      "eligibility": {
+        "statement_track": true,
+        "proof_track": true,
+        "reasons": []
+      },
+      "outcomes": {
+        "infrastructure_failure": false,
+        "compiled": null,
+        "audit_clean": null,
+        "statement_faithful": 0,
+        "verified": 0
+      },
+      "notes": [
+        "no_statement_returned"
+      ],
+      "evaluation_complete": true
+    },
+    {
+      "schema": "qedrank-item-v1",
+      "item_key": "p001_sum_bound__upper_bound__qwen",
+      "paper_id": "p001_sum_bound",
+      "target_kind": "upper_bound",
+      "provider": "qwen",
+      "model_display_name": "fixture · Qwen3 30B-A3B Instruct",
+      "model_id": "fixture:qwen",
+      "model_label": "Qwen3 30B-A3B Instruct",
+      "api_host": null,
+      "response_model": null,
+      "setting": "pass@1",
+      "attempt": 1,
+      "repair_round": 0,
+      "mathematical_status": "established",
+      "reference_proof_status": "complete",
+      "reference_statement_available": true,
+      "contamination": {
+        "model_training_cutoff": null,
+        "problem_publication_date": "2026",
+        "published_before_cutoff": null,
+        "public_formal_proof": null
+      },
+      "generation": {
+        "mode": "fixture",
+        "error": null,
+        "http_status": null,
+        "finish_reason": "fixture",
+        "observed_latency_ms": 3562.109200000763,
+        "working_ms": 3562.109200000763,
+        "usage": null,
+        "reasoning_chars": null,
+        "provider_attempts": 1,
+        "retry_wait_ms": null,
+        "truncated": false,
+        "prompt_hash": "d0abdc69ed9b63093d50a541ee9a4bb45530017c7d9f118ef712f29a51886f54",
+        "prompt_template_version": "qedrank-prompt-v2",
+        "temperature": 0,
+        "max_tokens": 16384,
+        "timeout_ms": 300000,
+        "started_at": "2026-10-27T14:59:40.618Z",
+        "ended_at": "2026-10-27T14:59:44.180Z",
+        "response_chars": 372
+      },
+      "parse": {
+        "notes": [],
+        "parts_found": 4,
+        "has_statement": true,
+        "has_proof_file": false,
+        "mapping_chars": 106
+      },
+      "confidence": {
+        "statement": 5,
+        "proof": 0
+      },
+      "abstained": true,
+      "static_screen": null,
+      "statement_compile": {
+        "label": "stmt:p001_sum_bound__upper_bound__qwen",
+        "file": "C:\\QEDRank\\QEDRank_java\\qedrank\\test\\fixtures\\runs\\e2e-formalize\\items\\p001_sum_bound__upper_bound__qwen\\lean\\QRSM_p001_sum_bound_upper_bound_qwen_a1r0.lean",
+        "status": "compiler_success",
+        "exit_code": 0,
+        "timed_out": false,
+        "duration_ms": 340316.2990999818,
+        "messages": [
+          {
+            "severity": "warning",
+            "line": 7,
+            "column": 8,
+            "file": "C:\\QEDRank\\QEDRank_java\\qedrank\\test\\fixtures\\runs\\e2e-formalize\\items\\p001_sum_bound__upper_bound__qwen\\lean\\QRSM_p001_sum_bound_upper_bound_qwen_a1r0.lean",
+            "text": "declaration uses `sorry`"
+          }
+        ],
+        "error_count": 0,
+        "warning_count": 1,
+        "stdout_tail": "{\"caption\":\"\",\"data\":\"declaration uses `sorry`\",\"endPos\":{\"column\":29,\"line\":7},\"fileName\":\"C:\\\\QEDRank\\\\QEDRank_java\\\\qedrank\\\\test\\\\fixtures\\\\runs\\\\e2e-formalize\\\\items\\\\p001_sum_bound__upper_bound__qwen\\\\lean\\\\QRSM_p001_sum_bound_upper_bound_qwen_a1r0.lean\",\"isSilent\":false,\"keepFullRange\":false,\"kind\":\"hasSorry\",\"pos\":{\"column\":8,\"line\":7},\"severity\":\"warning\"}\n",
+        "stderr_tail": "",
+        "started_at": "2026-10-27T18:30:21.337Z",
+        "ended_at": "2026-10-27T18:36:01.655Z",
+        "limits": {
+          "timeout_ms": 600000,
+          "memory_mb": 8192,
+          "max_heartbeats": 400000
+        },
+        "lean_version": "Lean (version 4.34.1, x86_64-w64-windows-gnu, commit 5045d0056413266e57c625dcd7c365b10e377c52, Release)",
+        "infra_reason": null,
+        "module": "QRSM_p001_sum_bound_upper_bound_qwen_a1r0",
+        "src_sha256": "d1d61afa2d651c99191b9a1e8080a1e5f20474522c739f176cea1284476f6e09",
+        "olean": "C:\\QEDRank\\QEDRank_java\\qedrank\\test\\fixtures\\runs\\e2e-formalize\\items\\p001_sum_bound__upper_bound__qwen\\lean\\QRSM_p001_sum_bound_upper_bound_qwen_a1r0.olean",
+        "resolved_declaration": "QRModel.placeholder_statement",
+        "definitions": []
+      },
+      "model_statement_declaration": "placeholder_statement",
+      "compile": {
+        "status": "not_attempted",
+        "reason": "abstained"
+      },
+      "audit": {
+        "status": "not_audited",
+        "static_flags": []
+      },
+      "ab_consistency": null,
+      "comparison": {
+        "statement_match": "unresolved",
+        "method": "automated_bidirectional_implication",
+        "evidence": {
+          "syntactic_identical": false,
+          "reducible_defeq": false,
+          "default_defeq": false,
+          "fwd_proved": true,
+          "fwd_uses_hyp": false,
+          "bwd_proved": false,
+          "bwd_uses_hyp": false,
+          "model_provable_outright": true,
+          "ref_provable_outright": false,
+          "script_status": "compiler_failure",
+          "notes": [
+            "forward implication proof ignored its hypothesis"
+          ]
+        },
+        "source": "automated",
+        "script_status": "compiler_failure",
+        "duration_ms": 304745.02920001745,
+        "qr_errors": [],
+        "messages": [
+          {
+            "severity": "error",
+            "line": 26,
+            "column": 48,
+            "file": "C:\\QEDRank\\QEDRank_java\\qedrank\\test\\fixtures\\runs\\e2e-formalize\\items\\p001_sum_bound__upper_bound__qwen\\lean\\QRA_cmp_a1r0.lean",
+            "text": "unsolved goals\nn✝ : ℕ\n⊢ sumBelow n✝ ≤ n✝ ^ 2"
+          }
+        ]
+      },
+      "statement_match": "unresolved",
+      "statement_match_source": "automated",
+      "loc": null,
+      "timing": {
+        "evaluation_started_at": "2026-10-27T14:59:44.657Z",
+        "lean_compile_ms": null,
+        "lean_audit_ms": 0.0203000009059906,
+        "lean_compare_ms": 304745.02920001745,
+        "lean_total_ms": 915091.8728999794,
+        "evaluation_total_ms": 13905989.593499988,
+        "total_ms": 13909551.70269999,
+        "working_ms": 918653.9820999801,
+        "evaluation_ended_at": "2026-10-27T18:51:30.654Z"
+      },
+      "eligibility": {
+        "statement_track": true,
+        "proof_track": true,
+        "reasons": []
+      },
+      "outcomes": {
+        "infrastructure_failure": false,
+        "compiled": null,
+        "audit_clean": null,
+        "statement_faithful": 0,
+        "verified": 0
+      },
+      "notes": [],
+      "evaluation_complete": true
+    },
+    {
+      "schema": "qedrank-item-v1",
+      "item_key": "p002_parity__disproof__fable",
+      "paper_id": "p002_parity",
+      "target_kind": "disproof",
+      "provider": "fable",
+      "model_display_name": "fixture · Claude Fable 5.1",
+      "model_id": "fixture:fable",
+      "model_label": "Claude Fable 5.1",
+      "api_host": null,
+      "response_model": null,
+      "setting": "pass@1",
+      "attempt": 1,
+      "repair_round": 0,
+      "mathematical_status": "uncertain",
+      "reference_proof_status": "complete",
+      "reference_statement_available": true,
+      "contamination": {
+        "model_training_cutoff": "2026-06",
+        "problem_publication_date": null,
+        "published_before_cutoff": null,
+        "public_formal_proof": null
+      },
+      "generation": {
+        "mode": "fixture",
+        "error": null,
+        "http_status": null,
+        "finish_reason": "fixture",
+        "observed_latency_ms": 3.964499980211258,
+        "working_ms": 3.964499980211258,
+        "usage": null,
+        "reasoning_chars": null,
+        "provider_attempts": 1,
+        "retry_wait_ms": null,
+        "truncated": false,
+        "prompt_hash": "072325c0e18e547ec62e9dbec476f72a82701bbd109e9a065faf79dbf226d98b",
+        "prompt_template_version": "qedrank-prompt-v2",
+        "temperature": 0,
+        "max_tokens": 16384,
+        "timeout_ms": 300000,
+        "started_at": "2026-10-27T19:08:21.246Z",
+        "ended_at": "2026-10-27T19:08:21.250Z",
+        "response_chars": 386
+      },
+      "parse": {
+        "notes": [],
+        "parts_found": 4,
+        "has_statement": true,
+        "has_proof_file": true,
+        "mapping_chars": 37
+      },
+      "confidence": {
+        "statement": 90,
+        "proof": 85
+      },
+      "abstained": false,
+      "static_screen": {
+        "ok": true,
+        "rejections": [],
+        "flags": [
+          "native_decide"
+        ]
+      },
+      "statement_compile": {
+        "label": "stmt:p002_parity__disproof__fable",
+        "file": "C:\\QEDRank\\QEDRank_java\\qedrank\\test\\fixtures\\runs\\e2e-formalize\\items\\p002_parity__disproof__fable\\lean\\QRSM_p002_parity_disproof_fable_a1r0.lean",
+        "status": "compiler_success",
+        "exit_code": 0,
+        "timed_out": false,
+        "duration_ms": 42271.63490000367,
+        "messages": [
+          {
+            "severity": "warning",
+            "line": 6,
+            "column": 8,
+            "file": "C:\\QEDRank\\QEDRank_java\\qedrank\\test\\fixtures\\runs\\e2e-formalize\\items\\p002_parity__disproof__fable\\lean\\QRSM_p002_parity_disproof_fable_a1r0.lean",
+            "text": "declaration uses `sorry`"
+          }
+        ],
+        "error_count": 0,
+        "warning_count": 1,
+        "stdout_tail": "{\"caption\":\"\",\"data\":\"declaration uses `sorry`\",\"endPos\":{\"column\":19,\"line\":6},\"fileName\":\"C:\\\\QEDRank\\\\QEDRank_java\\\\qedrank\\\\test\\\\fixtures\\\\runs\\\\e2e-formalize\\\\items\\\\p002_parity__disproof__fable\\\\lean\\\\QRSM_p002_parity_disproof_fable_a1r0.lean\",\"isSilent\":false,\"keepFullRange\":false,\"kind\":\"hasSorry\",\"pos\":{\"column\":8,\"line\":6},\"severity\":\"warning\"}\n",
+        "stderr_tail": "",
+        "started_at": "2026-10-27T19:11:36.742Z",
+        "ended_at": "2026-10-27T19:12:19.018Z",
+        "limits": {
+          "timeout_ms": 600000,
+          "memory_mb": 8192,
+          "max_heartbeats": 400000
+        },
+        "lean_version": "Lean (version 4.34.1, x86_64-w64-windows-gnu, commit 5045d0056413266e57c625dcd7c365b10e377c52, Release)",
+        "infra_reason": null,
+        "module": "QRSM_p002_parity_disproof_fable_a1r0",
+        "src_sha256": "5f7b3183dc654d80e11b69574dfc7f304e068050473a47140f89a45f3a476246",
+        "olean": "C:\\QEDRank\\QEDRank_java\\qedrank\\test\\fixtures\\runs\\e2e-formalize\\items\\p002_parity__disproof__fable\\lean\\QRSM_p002_parity_disproof_fable_a1r0.olean",
+        "resolved_declaration": "QRModel.not_all_odd",
+        "definitions": []
+      },
+      "model_statement_declaration": "not_all_odd",
+      "compile": {
+        "label": "proof:p002_parity__disproof__fable",
+        "file": "C:\\QEDRank\\QEDRank_java\\qedrank\\test\\fixtures\\runs\\e2e-formalize\\items\\p002_parity__disproof__fable\\lean\\QRM_p002_parity_disproof_fable_a1r0.lean",
+        "status": "compiler_success",
+        "exit_code": 0,
+        "timed_out": false,
+        "duration_ms": 20911.572999984026,
+        "messages": [],
+        "error_count": 0,
+        "warning_count": 0,
+        "stdout_tail": "",
+        "stderr_tail": "",
+        "started_at": "2026-10-27T19:21:07.943Z",
+        "ended_at": "2026-10-27T19:21:28.855Z",
+        "limits": {
+          "timeout_ms": 600000,
+          "memory_mb": 8192,
+          "max_heartbeats": 400000
+        },
+        "lean_version": "Lean (version 4.34.1, x86_64-w64-windows-gnu, commit 5045d0056413266e57c625dcd7c365b10e377c52, Release)",
+        "infra_reason": null,
+        "module": "QRM_p002_parity_disproof_fable_a1r0",
+        "src_sha256": "840ca49407fc9a6d7f1780c5c23db22d24075dcfeddb85d82a0d15fd2fa74f3d",
+        "olean": "C:\\QEDRank\\QEDRank_java\\qedrank\\test\\fixtures\\runs\\e2e-formalize\\items\\p002_parity__disproof__fable\\lean\\QRM_p002_parity_disproof_fable_a1r0.olean",
+        "linter_warnings": {}
+      },
+      "audit": {
+        "status": "user_axiom",
+        "target_declaration": "not_all_odd",
+        "declarations": 1,
+        "unsafe_declarations": [],
+        "static_flags": [
+          "native_decide"
+        ],
+        "axioms": [
+          "propext",
+          "Classical.choice",
+          "Quot.sound",
+          "not_all_odd._native.native_decide.ax_1_1"
+        ],
+        "classification": {
+          "placeholder": false,
+          "native_decide": false,
+          "user_axioms": [
+            "not_all_odd._native.native_decide.ax_1_1"
+          ],
+          "clean": false
+        },
+        "target_is_prop": true,
+        "target_kind": "theorem"
+      },
+      "ab_consistency": {
+        "consistent": true,
+        "syntactic": true,
+        "status": "compiler_success"
+      },
+      "comparison": {
+        "statement_match": "definitionally_identical",
+        "method": "syntactic_identity",
+        "evidence": {
+          "syntactic_identical": true,
+          "reducible_defeq": true,
+          "default_defeq": true,
+          "fwd_proved": true,
+          "fwd_uses_hyp": true,
+          "bwd_proved": true,
+          "bwd_uses_hyp": true,
+          "model_provable_outright": true,
+          "ref_provable_outright": true,
+          "script_status": "compiler_success",
+          "notes": []
+        },
+        "source": "automated",
+        "script_status": "compiler_success",
+        "duration_ms": 33368.40230000019,
+        "qr_errors": [],
+        "messages": []
+      },
+      "statement_match": "definitionally_identical",
+      "statement_match_source": "automated",
+      "loc": {
+        "model": {
+          "total": 5,
+          "code": 4,
+          "proof": {
+            "total": 3,
+            "code": 3
+          },
+          "rule": "total=newline-separated lines; code=non-blank lines after comment removal; proof=lines from the target declaration's top-level := to the end of the declaration, same code rule"
+        },
+        "reference": {
+          "total": 7,
+          "code": 4,
+          "proof": {
+            "total": 3,
+            "code": 3
+          },
+          "rule": "total=newline-separated lines; code=non-blank lines after comment removal; proof=lines from the target declaration's top-level := to the end of the declaration, same code rule"
+        }
+      },
+      "timing": {
+        "evaluation_started_at": "2026-10-27T19:08:21.254Z",
+        "lean_compile_ms": 20911.572999984026,
+        "lean_audit_ms": 580413.3829000294,
+        "lean_compare_ms": 33368.40230000019,
+        "lean_total_ms": 279558.9551999867,
+        "evaluation_total_ms": 1204892.6762999892,
+        "total_ms": 1204896.6407999694,
+        "working_ms": 279562.9196999669,
+        "evaluation_ended_at": "2026-10-27T19:28:26.139Z"
+      },
+      "eligibility": {
+        "statement_track": true,
+        "proof_track": false,
+        "reasons": [
+          "mathematical_status_uncertain"
+        ]
+      },
+      "outcomes": {
+        "infrastructure_failure": false,
+        "compiled": 1,
+        "audit_clean": 0,
+        "statement_faithful": 1,
+        "verified": null
+      },
+      "notes": [],
+      "evaluation_complete": true
+    },
+    {
+      "schema": "qedrank-item-v1",
+      "item_key": "p002_parity__disproof__glm",
+      "paper_id": "p002_parity",
+      "target_kind": "disproof",
+      "provider": "glm",
+      "model_display_name": "fixture · GLM-5.3 Flash",
+      "model_id": "fixture:glm",
+      "model_label": "GLM-5.3 Flash",
+      "api_host": null,
+      "response_model": null,
+      "setting": "pass@1",
+      "attempt": 1,
+      "repair_round": 0,
+      "mathematical_status": "uncertain",
+      "reference_proof_status": "complete",
+      "reference_statement_available": true,
+      "contamination": {
+        "model_training_cutoff": null,
+        "problem_publication_date": null,
+        "published_before_cutoff": null,
+        "public_formal_proof": null
+      },
+      "generation": {
+        "mode": "fixture",
+        "error": null,
+        "http_status": null,
+        "finish_reason": "fixture",
+        "observed_latency_ms": 8.386700004339218,
+        "working_ms": 8.386700004339218,
+        "usage": null,
+        "reasoning_chars": null,
+        "provider_attempts": 1,
+        "retry_wait_ms": null,
+        "truncated": false,
+        "prompt_hash": "072325c0e18e547ec62e9dbec476f72a82701bbd109e9a065faf79dbf226d98b",
+        "prompt_template_version": "qedrank-prompt-v2",
+        "temperature": 0,
+        "max_tokens": 16384,
+        "timeout_ms": 300000,
+        "started_at": "2026-10-27T19:06:07.287Z",
+        "ended_at": "2026-10-27T19:06:07.295Z",
+        "response_chars": 395
+      },
+      "parse": {
+        "notes": [],
+        "parts_found": 4,
+        "has_statement": true,
+        "has_proof_file": true,
+        "mapping_chars": 65
+      },
+      "confidence": {
+        "statement": 90,
+        "proof": 90
+      },
+      "abstained": false,
+      "static_screen": {
+        "ok": true,
+        "rejections": [],
+        "flags": []
+      },
+      "statement_compile": {
+        "label": "stmt:p002_parity__disproof__glm",
+        "file": "C:\\QEDRank\\QEDRank_java\\qedrank\\test\\fixtures\\runs\\e2e-formalize\\items\\p002_parity__disproof__glm\\lean\\QRSM_p002_parity_disproof_glm_a1r0.lean",
+        "status": "compiler_success",
+        "exit_code": 0,
+        "timed_out": false,
+        "duration_ms": 22395.07499998808,
+        "messages": [
+          {
+            "severity": "warning",
+            "line": 6,
+            "column": 8,
+            "file": "C:\\QEDRank\\QEDRank_java\\qedrank\\test\\fixtures\\runs\\e2e-formalize\\items\\p002_parity__disproof__glm\\lean\\QRSM_p002_parity_disproof_glm_a1r0.lean",
+            "text": "declaration uses `sorry`"
+          }
+        ],
+        "error_count": 0,
+        "warning_count": 1,
+        "stdout_tail": "{\"caption\":\"\",\"data\":\"declaration uses `sorry`\",\"endPos\":{\"column\":19,\"line\":6},\"fileName\":\"C:\\\\QEDRank\\\\QEDRank_java\\\\qedrank\\\\test\\\\fixtures\\\\runs\\\\e2e-formalize\\\\items\\\\p002_parity__disproof__glm\\\\lean\\\\QRSM_p002_parity_disproof_glm_a1r0.lean\",\"isSilent\":false,\"keepFullRange\":false,\"kind\":\"hasSorry\",\"pos\":{\"column\":8,\"line\":6},\"severity\":\"warning\"}\n",
+        "stderr_tail": "",
+        "started_at": "2026-10-27T19:08:49.297Z",
+        "ended_at": "2026-10-27T19:09:11.692Z",
+        "limits": {
+          "timeout_ms": 600000,
+          "memory_mb": 8192,
+          "max_heartbeats": 400000
+        },
+        "lean_version": "Lean (version 4.34.1, x86_64-w64-windows-gnu, commit 5045d0056413266e57c625dcd7c365b10e377c52, Release)",
+        "infra_reason": null,
+        "module": "QRSM_p002_parity_disproof_glm_a1r0",
+        "src_sha256": "5f7b3183dc654d80e11b69574dfc7f304e068050473a47140f89a45f3a476246",
+        "olean": "C:\\QEDRank\\QEDRank_java\\qedrank\\test\\fixtures\\runs\\e2e-formalize\\items\\p002_parity__disproof__glm\\lean\\QRSM_p002_parity_disproof_glm_a1r0.olean",
+        "resolved_declaration": "QRModel.not_all_odd",
+        "definitions": []
+      },
+      "model_statement_declaration": "not_all_odd",
+      "compile": {
+        "label": "proof:p002_parity__disproof__glm",
+        "file": "C:\\QEDRank\\QEDRank_java\\qedrank\\test\\fixtures\\runs\\e2e-formalize\\items\\p002_parity__disproof__glm\\lean\\QRM_p002_parity_disproof_glm_a1r0.lean",
+        "status": "compiler_success",
+        "exit_code": 0,
+        "timed_out": false,
+        "duration_ms": 34323.00519999862,
+        "messages": [],
+        "error_count": 0,
+        "warning_count": 0,
+        "stdout_tail": "",
+        "stderr_tail": "",
+        "started_at": "2026-10-27T19:17:58.248Z",
+        "ended_at": "2026-10-27T19:18:32.570Z",
+        "limits": {
+          "timeout_ms": 600000,
+          "memory_mb": 8192,
+          "max_heartbeats": 400000
+        },
+        "lean_version": "Lean (version 4.34.1, x86_64-w64-windows-gnu, commit 5045d0056413266e57c625dcd7c365b10e377c52, Release)",
+        "infra_reason": null,
+        "module": "QRM_p002_parity_disproof_glm_a1r0",
+        "src_sha256": "7ceaadf1286f41f37d723eb2c15dd0d6b4ac94374668afd691b146c2af58f186",
+        "olean": "C:\\QEDRank\\QEDRank_java\\qedrank\\test\\fixtures\\runs\\e2e-formalize\\items\\p002_parity__disproof__glm\\lean\\QRM_p002_parity_disproof_glm_a1r0.olean",
+        "linter_warnings": {}
+      },
+      "audit": {
+        "status": "clean",
+        "target_declaration": "not_all_odd",
+        "declarations": 1,
+        "unsafe_declarations": [],
+        "static_flags": [],
+        "axioms": [
+          "propext",
+          "Classical.choice",
+          "Quot.sound"
+        ],
+        "classification": {
+          "placeholder": false,
+          "native_decide": false,
+          "user_axioms": [],
+          "clean": true
+        },
+        "target_is_prop": true,
+        "target_kind": "theorem"
+      },
+      "ab_consistency": {
+        "consistent": true,
+        "syntactic": true,
+        "status": "compiler_success"
+      },
+      "comparison": {
+        "statement_match": "definitionally_identical",
+        "method": "syntactic_identity",
+        "evidence": {
+          "syntactic_identical": true,
+          "reducible_defeq": true,
+          "default_defeq": true,
+          "fwd_proved": true,
+          "fwd_uses_hyp": true,
+          "bwd_proved": true,
+          "bwd_uses_hyp": true,
+          "model_provable_outright": true,
+          "ref_provable_outright": true,
+          "script_status": "compiler_success",
+          "notes": []
+        },
+        "source": "automated",
+        "script_status": "compiler_success",
+        "duration_ms": 38460.622199982405,
+        "qr_errors": [],
+        "messages": []
+      },
+      "statement_match": "definitionally_identical",
+      "statement_match_source": "automated",
+      "loc": {
+        "model": {
+          "total": 3,
+          "code": 2,
+          "proof": {
+            "total": 1,
+            "code": 1
+          },
+          "rule": "total=newline-separated lines; code=non-blank lines after comment removal; proof=lines from the target declaration's top-level := to the end of the declaration, same code rule"
+        },
+        "reference": {
+          "total": 7,
+          "code": 4,
+          "proof": {
+            "total": 3,
+            "code": 3
+          },
+          "rule": "total=newline-separated lines; code=non-blank lines after comment removal; proof=lines from the target declaration's top-level := to the end of the declaration, same code rule"
+        }
+      },
+      "timing": {
+        "evaluation_started_at": "2026-10-27T19:06:07.301Z",
+        "lean_compile_ms": 34323.00519999862,
+        "lean_audit_ms": 622859.2651999891,
+        "lean_compare_ms": 38460.622199982405,
+        "lean_total_ms": 203848.915899992,
+        "evaluation_total_ms": 1305491.0143999755,
+        "total_ms": 1305499.4010999799,
+        "working_ms": 203857.30259999633,
+        "evaluation_ended_at": "2026-10-27T19:27:52.790Z"
+      },
+      "eligibility": {
+        "statement_track": true,
+        "proof_track": false,
+        "reasons": [
+          "mathematical_status_uncertain"
+        ]
+      },
+      "outcomes": {
+        "infrastructure_failure": false,
+        "compiled": 1,
+        "audit_clean": 1,
+        "statement_faithful": 1,
+        "verified": null
+      },
+      "notes": [],
+      "evaluation_complete": true
+    },
+    {
+      "schema": "qedrank-item-v1",
+      "item_key": "p002_parity__disproof__mistral",
+      "paper_id": "p002_parity",
+      "target_kind": "disproof",
+      "provider": "mistral",
+      "model_display_name": "fixture · Leanstral",
+      "model_id": "fixture:mistral",
+      "model_label": "Leanstral",
+      "api_host": null,
+      "response_model": null,
+      "setting": "pass@1",
+      "attempt": 1,
+      "repair_round": 0,
+      "mathematical_status": "uncertain",
+      "reference_proof_status": "complete",
+      "reference_statement_available": true,
+      "contamination": {
+        "model_training_cutoff": null,
+        "problem_publication_date": null,
+        "published_before_cutoff": null,
+        "public_formal_proof": null
+      },
+      "generation": {
+        "mode": "fixture",
+        "error": null,
+        "http_status": null,
+        "finish_reason": "fixture",
+        "observed_latency_ms": 13.317799985408783,
+        "working_ms": 13.317799985408783,
+        "usage": null,
+        "reasoning_chars": null,
+        "provider_attempts": 1,
+        "retry_wait_ms": null,
+        "truncated": false,
+        "prompt_hash": "072325c0e18e547ec62e9dbec476f72a82701bbd109e9a065faf79dbf226d98b",
+        "prompt_template_version": "qedrank-prompt-v2",
+        "temperature": 0,
+        "max_tokens": 16384,
+        "timeout_ms": 300000,
+        "started_at": "2026-10-27T19:10:01.497Z",
+        "ended_at": "2026-10-27T19:10:01.510Z",
+        "response_chars": 238
+      },
+      "parse": {
+        "notes": [],
+        "parts_found": 4,
+        "has_statement": false,
+        "has_proof_file": false,
+        "mapping_chars": 21
+      },
+      "confidence": {
+        "statement": 10,
+        "proof": 0
+      },
+      "abstained": true,
+      "static_screen": null,
+      "statement_compile": null,
+      "model_statement_declaration": null,
+      "compile": {
+        "status": "not_attempted",
+        "reason": "abstained"
+      },
+      "audit": {
+        "status": "not_audited",
+        "static_flags": []
+      },
+      "ab_consistency": null,
+      "comparison": {
+        "statement_match": "not_evaluated",
+        "method": "none",
+        "evidence": {
+          "notes": [
+            "no_statement"
+          ]
+        },
+        "source": "automated",
+        "script_status": "not_attempted"
+      },
+      "statement_match": "not_evaluated",
+      "statement_match_source": "automated",
+      "loc": null,
+      "timing": {
+        "evaluation_started_at": "2026-10-27T19:10:01.514Z",
+        "lean_compile_ms": null,
+        "lean_audit_ms": 0.0037000179290771484,
+        "lean_compare_ms": null,
+        "lean_total_ms": 0,
+        "evaluation_total_ms": 8.803999990224838,
+        "total_ms": 22.12179997563362,
+        "working_ms": 13.317799985408783,
+        "evaluation_ended_at": "2026-10-27T19:10:01.523Z"
+      },
+      "eligibility": {
+        "statement_track": true,
+        "proof_track": false,
+        "reasons": [
+          "mathematical_status_uncertain"
+        ]
+      },
+      "outcomes": {
+        "infrastructure_failure": false,
+        "compiled": null,
+        "audit_clean": null,
+        "statement_faithful": 0,
+        "verified": null
+      },
+      "notes": [
+        "no_statement_returned"
+      ],
+      "evaluation_complete": true
+    },
+    {
+      "schema": "qedrank-item-v1",
+      "item_key": "p002_parity__disproof__qwen",
+      "paper_id": "p002_parity",
+      "target_kind": "disproof",
+      "provider": "qwen",
+      "model_display_name": "fixture · Qwen3 30B-A3B Instruct",
+      "model_id": "fixture:qwen",
+      "model_label": "Qwen3 30B-A3B Instruct",
+      "api_host": null,
+      "response_model": null,
+      "setting": "pass@1",
+      "attempt": 1,
+      "repair_round": 0,
+      "mathematical_status": "uncertain",
+      "reference_proof_status": "complete",
+      "reference_statement_available": true,
+      "contamination": {
+        "model_training_cutoff": null,
+        "problem_publication_date": null,
+        "published_before_cutoff": null,
+        "public_formal_proof": null
+      },
+      "generation": {
+        "mode": "fixture",
+        "error": null,
+        "http_status": null,
+        "finish_reason": "fixture",
+        "observed_latency_ms": 8.054199993610382,
+        "working_ms": 8.054199993610382,
+        "usage": null,
+        "reasoning_chars": null,
+        "provider_attempts": 1,
+        "retry_wait_ms": null,
+        "truncated": false,
+        "prompt_hash": "072325c0e18e547ec62e9dbec476f72a82701bbd109e9a065faf79dbf226d98b",
+        "prompt_template_version": "qedrank-prompt-v2",
+        "temperature": 0,
+        "max_tokens": 16384,
+        "timeout_ms": 300000,
+        "started_at": "2026-10-27T18:55:37.155Z",
+        "ended_at": "2026-10-27T18:55:37.163Z",
+        "response_chars": 353
+      },
+      "parse": {
+        "notes": [],
+        "parts_found": 4,
+        "has_statement": true,
+        "has_proof_file": true,
+        "mapping_chars": 14
+      },
+      "confidence": {
+        "statement": 90,
+        "proof": 80
+      },
+      "abstained": false,
+      "static_screen": {
+        "ok": true,
+        "rejections": [],
+        "flags": []
+      },
+      "statement_compile": {
+        "label": "stmt:p002_parity__disproof__qwen",
+        "file": "C:\\QEDRank\\QEDRank_java\\qedrank\\test\\fixtures\\runs\\e2e-formalize\\items\\p002_parity__disproof__qwen\\lean\\QRSM_p002_parity_disproof_qwen_a1r0.lean",
+        "status": "compiler_success",
+        "exit_code": 0,
+        "timed_out": false,
+        "duration_ms": 39227.74349999428,
+        "messages": [
+          {
+            "severity": "warning",
+            "line": 6,
+            "column": 8,
+            "file": "C:\\QEDRank\\QEDRank_java\\qedrank\\test\\fixtures\\runs\\e2e-formalize\\items\\p002_parity__disproof__qwen\\lean\\QRSM_p002_parity_disproof_qwen_a1r0.lean",
+            "text": "declaration uses `sorry`"
+          }
+        ],
+        "error_count": 0,
+        "warning_count": 1,
+        "stdout_tail": "{\"caption\":\"\",\"data\":\"declaration uses `sorry`\",\"endPos\":{\"column\":19,\"line\":6},\"fileName\":\"C:\\\\QEDRank\\\\QEDRank_java\\\\qedrank\\\\test\\\\fixtures\\\\runs\\\\e2e-formalize\\\\items\\\\p002_parity__disproof__qwen\\\\lean\\\\QRSM_p002_parity_disproof_qwen_a1r0.lean\",\"isSilent\":false,\"keepFullRange\":false,\"kind\":\"hasSorry\",\"pos\":{\"column\":8,\"line\":6},\"severity\":\"warning\"}\n",
+        "stderr_tail": "",
+        "started_at": "2026-10-27T19:00:34.594Z",
+        "ended_at": "2026-10-27T19:01:13.828Z",
+        "limits": {
+          "timeout_ms": 600000,
+          "memory_mb": 8192,
+          "max_heartbeats": 400000
+        },
+        "lean_version": "Lean (version 4.34.1, x86_64-w64-windows-gnu, commit 5045d0056413266e57c625dcd7c365b10e377c52, Release)",
+        "infra_reason": null,
+        "module": "QRSM_p002_parity_disproof_qwen_a1r0",
+        "src_sha256": "5f7b3183dc654d80e11b69574dfc7f304e068050473a47140f89a45f3a476246",
+        "olean": "C:\\QEDRank\\QEDRank_java\\qedrank\\test\\fixtures\\runs\\e2e-formalize\\items\\p002_parity__disproof__qwen\\lean\\QRSM_p002_parity_disproof_qwen_a1r0.olean",
+        "resolved_declaration": "QRModel.not_all_odd",
+        "definitions": []
+      },
+      "model_statement_declaration": "not_all_odd",
+      "compile": {
+        "label": "proof:p002_parity__disproof__qwen",
+        "file": "C:\\QEDRank\\QEDRank_java\\qedrank\\test\\fixtures\\runs\\e2e-formalize\\items\\p002_parity__disproof__qwen\\lean\\QRM_p002_parity_disproof_qwen_a1r0.lean",
+        "status": "compiler_success",
+        "exit_code": 0,
+        "timed_out": false,
+        "duration_ms": 22563.261999994516,
+        "messages": [],
+        "error_count": 0,
+        "warning_count": 0,
+        "stdout_tail": "",
+        "stderr_tail": "",
+        "started_at": "2026-10-27T19:14:06.165Z",
+        "ended_at": "2026-10-27T19:14:28.729Z",
+        "limits": {
+          "timeout_ms": 600000,
+          "memory_mb": 8192,
+          "max_heartbeats": 400000
+        },
+        "lean_version": "Lean (version 4.34.1, x86_64-w64-windows-gnu, commit 5045d0056413266e57c625dcd7c365b10e377c52, Release)",
+        "infra_reason": null,
+        "module": "QRM_p002_parity_disproof_qwen_a1r0",
+        "src_sha256": "4b07e4cdd96f75165333d288c8626c18807276b95485301e48223809adf70942",
+        "olean": "C:\\QEDRank\\QEDRank_java\\qedrank\\test\\fixtures\\runs\\e2e-formalize\\items\\p002_parity__disproof__qwen\\lean\\QRM_p002_parity_disproof_qwen_a1r0.olean",
+        "linter_warnings": {}
+      },
+      "audit": {
+        "status": "clean",
+        "target_declaration": "not_all_odd",
+        "declarations": 1,
+        "unsafe_declarations": [],
+        "static_flags": [],
+        "axioms": [
+          "propext",
+          "Classical.choice",
+          "Quot.sound"
+        ],
+        "classification": {
+          "placeholder": false,
+          "native_decide": false,
+          "user_axioms": [],
+          "clean": true
+        },
+        "target_is_prop": true,
+        "target_kind": "theorem"
+      },
+      "ab_consistency": {
+        "consistent": true,
+        "syntactic": true,
+        "status": "compiler_success"
+      },
+      "comparison": {
+        "statement_match": "definitionally_identical",
+        "method": "syntactic_identity",
+        "evidence": {
+          "syntactic_identical": true,
+          "reducible_defeq": true,
+          "default_defeq": true,
+          "fwd_proved": true,
+          "fwd_uses_hyp": true,
+          "bwd_proved": true,
+          "bwd_uses_hyp": true,
+          "model_provable_outright": true,
+          "ref_provable_outright": true,
+          "script_status": "compiler_success",
+          "notes": []
+        },
+        "source": "automated",
+        "script_status": "compiler_success",
+        "duration_ms": 25927.916500002146,
+        "qr_errors": [],
+        "messages": []
+      },
+      "statement_match": "definitionally_identical",
+      "statement_match_source": "automated",
+      "loc": {
+        "model": {
+          "total": 6,
+          "code": 5,
+          "proof": {
+            "total": 4,
+            "code": 4
+          },
+          "rule": "total=newline-separated lines; code=non-blank lines after comment removal; proof=lines from the target declaration's top-level := to the end of the declaration, same code rule"
+        },
+        "reference": {
+          "total": 7,
+          "code": 4,
+          "proof": {
+            "total": 3,
+            "code": 3
+          },
+          "rule": "total=newline-separated lines; code=non-blank lines after comment removal; proof=lines from the target declaration's top-level := to the end of the declaration, same code rule"
+        }
+      },
+      "timing": {
+        "evaluation_started_at": "2026-10-27T18:55:37.167Z",
+        "lean_compile_ms": 22563.261999994516,
+        "lean_audit_ms": 839232.8237000108,
+        "lean_compare_ms": 25927.916500002146,
+        "lean_total_ms": 216942.35099998116,
+        "evaluation_total_ms": 1784913.0055000186,
+        "total_ms": 1784921.0597000122,
+        "working_ms": 216950.40519997478,
+        "evaluation_ended_at": "2026-10-27T19:25:22.090Z"
+      },
+      "eligibility": {
+        "statement_track": true,
+        "proof_track": false,
+        "reasons": [
+          "mathematical_status_uncertain"
+        ]
+      },
+      "outcomes": {
+        "infrastructure_failure": false,
+        "compiled": 1,
+        "audit_clean": 1,
+        "statement_faithful": 1,
+        "verified": null
+      },
+      "notes": [],
+      "evaluation_complete": true
+    },
+    {
+      "schema": "qedrank-item-v1",
+      "item_key": "p002_parity__lower_bound__fable",
+      "paper_id": "p002_parity",
+      "target_kind": "lower_bound",
+      "provider": "fable",
+      "model_display_name": "fixture · Claude Fable 5.1",
+      "model_id": "fixture:fable",
+      "model_label": "Claude Fable 5.1",
+      "api_host": null,
+      "response_model": null,
+      "setting": "pass@1",
+      "attempt": 1,
+      "repair_round": 0,
+      "mathematical_status": "established",
+      "reference_proof_status": "complete",
+      "reference_statement_available": true,
+      "contamination": {
+        "model_training_cutoff": "2026-06",
+        "problem_publication_date": null,
+        "published_before_cutoff": null,
+        "public_formal_proof": null
+      },
+      "generation": {
+        "mode": "fixture",
+        "error": null,
+        "http_status": null,
+        "finish_reason": "fixture",
+        "observed_latency_ms": 4.590700000524521,
+        "working_ms": 4.590700000524521,
+        "usage": null,
+        "reasoning_chars": null,
+        "provider_attempts": 1,
+        "retry_wait_ms": null,
+        "truncated": false,
+        "prompt_hash": "e8d6d37cfe888ec5a329ead5477006ce32dc431fa96273f6064091a25b1d163c",
+        "prompt_template_version": "qedrank-prompt-v2",
+        "temperature": 0,
+        "max_tokens": 16384,
+        "timeout_ms": 300000,
+        "started_at": "2026-10-27T18:54:25.209Z",
+        "ended_at": "2026-10-27T18:54:25.214Z",
+        "response_chars": 311
+      },
+      "parse": {
+        "notes": [],
+        "parts_found": 4,
+        "has_statement": false,
+        "has_proof_file": false,
+        "mapping_chars": 61
+      },
+      "confidence": {
+        "statement": 15,
+        "proof": 0
+      },
+      "abstained": true,
+      "static_screen": null,
+      "statement_compile": null,
+      "model_statement_declaration": null,
+      "compile": {
+        "status": "not_attempted",
+        "reason": "abstained"
+      },
+      "audit": {
+        "status": "not_audited",
+        "static_flags": []
+      },
+      "ab_consistency": null,
+      "comparison": {
+        "statement_match": "not_evaluated",
+        "method": "none",
+        "evidence": {
+          "notes": [
+            "no_statement"
+          ]
+        },
+        "source": "automated",
+        "script_status": "not_attempted"
+      },
+      "statement_match": "not_evaluated",
+      "statement_match_source": "automated",
+      "loc": null,
+      "timing": {
+        "evaluation_started_at": "2026-10-27T18:54:25.218Z",
+        "lean_compile_ms": null,
+        "lean_audit_ms": 0.0026999711990356445,
+        "lean_compare_ms": null,
+        "lean_total_ms": 0,
+        "evaluation_total_ms": 6.048399984836578,
+        "total_ms": 10.6390999853611,
+        "working_ms": 4.590700000524521,
+        "evaluation_ended_at": "2026-10-27T18:54:25.224Z"
+      },
+      "eligibility": {
+        "statement_track": true,
+        "proof_track": true,
+        "reasons": []
+      },
+      "outcomes": {
+        "infrastructure_failure": false,
+        "compiled": null,
+        "audit_clean": null,
+        "statement_faithful": 0,
+        "verified": 0
+      },
+      "notes": [
+        "no_statement_returned"
+      ],
+      "evaluation_complete": true
+    },
+    {
+      "schema": "qedrank-item-v1",
+      "item_key": "p002_parity__lower_bound__glm",
+      "paper_id": "p002_parity",
+      "target_kind": "lower_bound",
+      "provider": "glm",
+      "model_display_name": "fixture · GLM-5.3 Flash",
+      "model_id": "fixture:glm",
+      "model_label": "GLM-5.3 Flash",
+      "api_host": null,
+      "response_model": null,
+      "setting": "pass@1",
+      "attempt": 1,
+      "repair_round": 0,
+      "mathematical_status": "established",
+      "reference_proof_status": "complete",
+      "reference_statement_available": true,
+      "contamination": {
+        "model_training_cutoff": null,
+        "problem_publication_date": null,
+        "published_before_cutoff": null,
+        "public_formal_proof": null
+      },
+      "generation": {
+        "mode": "fixture",
+        "error": null,
+        "http_status": null,
+        "finish_reason": "fixture",
+        "observed_latency_ms": 10.574099987745285,
+        "working_ms": 10.574099987745285,
+        "usage": null,
+        "reasoning_chars": null,
+        "provider_attempts": 1,
+        "retry_wait_ms": null,
+        "truncated": false,
+        "prompt_hash": "e8d6d37cfe888ec5a329ead5477006ce32dc431fa96273f6064091a25b1d163c",
+        "prompt_template_version": "qedrank-prompt-v2",
+        "temperature": 0,
+        "max_tokens": 16384,
+        "timeout_ms": 300000,
+        "started_at": "2026-10-27T18:53:26.105Z",
+        "ended_at": "2026-10-27T18:53:26.116Z",
+        "response_chars": 299
+      },
+      "parse": {
+        "notes": [],
+        "parts_found": 4,
+        "has_statement": true,
+        "has_proof_file": true,
+        "mapping_chars": 22
+      },
+      "confidence": {
+        "statement": 97,
+        "proof": 97
+      },
+      "abstained": false,
+      "static_screen": {
+        "ok": true,
+        "rejections": [],
+        "flags": []
+      },
+      "statement_compile": {
+        "label": "stmt:p002_parity__lower_bound__glm",
+        "file": "C:\\QEDRank\\QEDRank_java\\qedrank\\test\\fixtures\\runs\\e2e-formalize\\items\\p002_parity__lower_bound__glm\\lean\\QRSM_p002_parity_lower_bound_glm_a1r0.lean",
+        "status": "compiler_success",
+        "exit_code": 0,
+        "timed_out": false,
+        "duration_ms": 61609.30140000582,
+        "messages": [
+          {
+            "severity": "warning",
+            "line": 6,
+            "column": 8,
+            "file": "C:\\QEDRank\\QEDRank_java\\qedrank\\test\\fixtures\\runs\\e2e-formalize\\items\\p002_parity__lower_bound__glm\\lean\\QRSM_p002_parity_lower_bound_glm_a1r0.lean",
+            "text": "declaration uses `sorry`"
+          }
+        ],
+        "error_count": 0,
+        "warning_count": 1,
+        "stdout_tail": "{\"caption\":\"\",\"data\":\"declaration uses `sorry`\",\"endPos\":{\"column\":10,\"line\":6},\"fileName\":\"C:\\\\QEDRank\\\\QEDRank_java\\\\qedrank\\\\test\\\\fixtures\\\\runs\\\\e2e-formalize\\\\items\\\\p002_parity__lower_bound__glm\\\\lean\\\\QRSM_p002_parity_lower_bound_glm_a1r0.lean\",\"isSilent\":false,\"keepFullRange\":false,\"kind\":\"hasSorry\",\"pos\":{\"column\":8,\"line\":6},\"severity\":\"warning\"}\n",
+        "stderr_tail": "",
+        "started_at": "2026-10-27T18:58:09.171Z",
+        "ended_at": "2026-10-27T18:59:10.780Z",
+        "limits": {
+          "timeout_ms": 600000,
+          "memory_mb": 8192,
+          "max_heartbeats": 400000
+        },
+        "lean_version": "Lean (version 4.34.1, x86_64-w64-windows-gnu, commit 5045d0056413266e57c625dcd7c365b10e377c52, Release)",
+        "infra_reason": null,
+        "module": "QRSM_p002_parity_lower_bound_glm_a1r0",
+        "src_sha256": "f9e0e0585a1e92d624d174f560434166b04ed471ff21483cfa903739622dc768",
+        "olean": "C:\\QEDRank\\QEDRank_java\\qedrank\\test\\fixtures\\runs\\e2e-formalize\\items\\p002_parity__lower_bound__glm\\lean\\QRSM_p002_parity_lower_bound_glm_a1r0.olean",
+        "resolved_declaration": "QRModel.lb",
+        "definitions": []
+      },
+      "model_statement_declaration": "lb",
+      "compile": {
+        "label": "proof:p002_parity__lower_bound__glm",
+        "file": "C:\\QEDRank\\QEDRank_java\\qedrank\\test\\fixtures\\runs\\e2e-formalize\\items\\p002_parity__lower_bound__glm\\lean\\QRM_p002_parity_lower_bound_glm_a1r0.lean",
+        "status": "compiler_success",
+        "exit_code": 0,
+        "timed_out": false,
+        "duration_ms": 18879.331200003624,
+        "messages": [],
+        "error_count": 0,
+        "warning_count": 0,
+        "stdout_tail": "",
+        "stderr_tail": "",
+        "started_at": "2026-10-27T19:09:11.692Z",
+        "ended_at": "2026-10-27T19:09:30.571Z",
+        "limits": {
+          "timeout_ms": 600000,
+          "memory_mb": 8192,
+          "max_heartbeats": 400000
+        },
+        "lean_version": "Lean (version 4.34.1, x86_64-w64-windows-gnu, commit 5045d0056413266e57c625dcd7c365b10e377c52, Release)",
+        "infra_reason": null,
+        "module": "QRM_p002_parity_lower_bound_glm_a1r0",
+        "src_sha256": "4dff2fd5466eeb2c514a32272e7cd5b39cfd7dd70299180c0fd9dc6fe2714aec",
+        "olean": "C:\\QEDRank\\QEDRank_java\\qedrank\\test\\fixtures\\runs\\e2e-formalize\\items\\p002_parity__lower_bound__glm\\lean\\QRM_p002_parity_lower_bound_glm_a1r0.olean",
+        "linter_warnings": {}
+      },
+      "audit": {
+        "status": "clean",
+        "target_declaration": "lb",
+        "declarations": 1,
+        "unsafe_declarations": [],
+        "static_flags": [],
+        "axioms": [
+          "propext",
+          "Quot.sound"
+        ],
+        "classification": {
+          "placeholder": false,
+          "native_decide": false,
+          "user_axioms": [],
+          "clean": true
+        },
+        "target_is_prop": true,
+        "target_kind": "theorem"
+      },
+      "ab_consistency": {
+        "consistent": true,
+        "syntactic": true,
+        "status": "compiler_success"
+      },
+      "comparison": {
+        "statement_match": "definitionally_identical",
+        "method": "syntactic_identity",
+        "evidence": {
+          "syntactic_identical": true,
+          "reducible_defeq": true,
+          "default_defeq": true,
+          "fwd_proved": true,
+          "fwd_uses_hyp": true,
+          "bwd_proved": true,
+          "bwd_uses_hyp": true,
+          "model_provable_outright": true,
+          "ref_provable_outright": true,
+          "script_status": "compiler_success",
+          "notes": []
+        },
+        "source": "automated",
+        "script_status": "compiler_success",
+        "duration_ms": 27148.844900012016,
+        "qr_errors": [],
+        "messages": []
+      },
+      "statement_match": "definitionally_identical",
+      "statement_match_source": "automated",
+      "loc": {
+        "model": {
+          "total": 3,
+          "code": 2,
+          "proof": {
+            "total": 1,
+            "code": 1
+          },
+          "rule": "total=newline-separated lines; code=non-blank lines after comment removal; proof=lines from the target declaration's top-level := to the end of the declaration, same code rule"
+        },
+        "reference": {
+          "total": 4,
+          "code": 2,
+          "proof": {
+            "total": 1,
+            "code": 1
+          },
+          "rule": "total=newline-separated lines; code=non-blank lines after comment removal; proof=lines from the target declaration's top-level := to the end of the declaration, same code rule"
+        }
+      },
+      "timing": {
+        "evaluation_started_at": "2026-10-27T18:53:26.118Z",
+        "lean_compile_ms": 18879.331200003624,
+        "lean_audit_ms": 878327.959499985,
+        "lean_compare_ms": 27148.844900012016,
+        "lean_total_ms": 282523.3546999693,
+        "evaluation_total_ms": 1840294.8200000226,
+        "total_ms": 1840305.3941000104,
+        "working_ms": 282533.92879995704,
+        "evaluation_ended_at": "2026-10-27T19:24:06.413Z"
+      },
+      "eligibility": {
+        "statement_track": true,
+        "proof_track": true,
+        "reasons": []
+      },
+      "outcomes": {
+        "infrastructure_failure": false,
+        "compiled": 1,
+        "audit_clean": 1,
+        "statement_faithful": 1,
+        "verified": 1
+      },
+      "notes": [],
+      "evaluation_complete": true
+    },
+    {
+      "schema": "qedrank-item-v1",
+      "item_key": "p002_parity__lower_bound__mistral",
+      "paper_id": "p002_parity",
+      "target_kind": "lower_bound",
+      "provider": "mistral",
+      "model_display_name": "fixture · Leanstral",
+      "model_id": "fixture:mistral",
+      "model_label": "Leanstral",
+      "api_host": null,
+      "response_model": null,
+      "setting": "pass@1",
+      "attempt": 1,
+      "repair_round": 0,
+      "mathematical_status": "established",
+      "reference_proof_status": "complete",
+      "reference_statement_available": true,
+      "contamination": {
+        "model_training_cutoff": null,
+        "problem_publication_date": null,
+        "published_before_cutoff": null,
+        "public_formal_proof": null
+      },
+      "generation": {
+        "mode": "fixture",
+        "error": null,
+        "http_status": null,
+        "finish_reason": "fixture",
+        "observed_latency_ms": 6.708499997854233,
+        "working_ms": 6.708499997854233,
+        "usage": null,
+        "reasoning_chars": null,
+        "provider_attempts": 1,
+        "retry_wait_ms": null,
+        "truncated": false,
+        "prompt_hash": "e8d6d37cfe888ec5a329ead5477006ce32dc431fa96273f6064091a25b1d163c",
+        "prompt_template_version": "qedrank-prompt-v2",
+        "temperature": 0,
+        "max_tokens": 16384,
+        "timeout_ms": 300000,
+        "started_at": "2026-10-27T18:54:25.235Z",
+        "ended_at": "2026-10-27T18:54:25.242Z",
+        "response_chars": 289
+      },
+      "parse": {
+        "notes": [],
+        "parts_found": 4,
+        "has_statement": true,
+        "has_proof_file": true,
+        "mapping_chars": 12
+      },
+      "confidence": {
+        "statement": 96,
+        "proof": 96
+      },
+      "abstained": false,
+      "static_screen": {
+        "ok": true,
+        "rejections": [],
+        "flags": []
+      },
+      "statement_compile": {
+        "label": "stmt:p002_parity__lower_bound__mistral",
+        "file": "C:\\QEDRank\\QEDRank_java\\qedrank\\test\\fixtures\\runs\\e2e-formalize\\items\\p002_parity__lower_bound__mistral\\lean\\QRSM_p002_parity_lower_bound_mistral_a1r0.lean",
+        "status": "compiler_success",
+        "exit_code": 0,
+        "timed_out": false,
+        "duration_ms": 23181.566799998283,
+        "messages": [
+          {
+            "severity": "warning",
+            "line": 6,
+            "column": 8,
+            "file": "C:\\QEDRank\\QEDRank_java\\qedrank\\test\\fixtures\\runs\\e2e-formalize\\items\\p002_parity__lower_bound__mistral\\lean\\QRSM_p002_parity_lower_bound_mistral_a1r0.lean",
+            "text": "declaration uses `sorry`"
+          }
+        ],
+        "error_count": 0,
+        "warning_count": 1,
+        "stdout_tail": "{\"caption\":\"\",\"data\":\"declaration uses `sorry`\",\"endPos\":{\"column\":10,\"line\":6},\"fileName\":\"C:\\\\QEDRank\\\\QEDRank_java\\\\qedrank\\\\test\\\\fixtures\\\\runs\\\\e2e-formalize\\\\items\\\\p002_parity__lower_bound__mistral\\\\lean\\\\QRSM_p002_parity_lower_bound_mistral_a1r0.lean\",\"isSilent\":false,\"keepFullRange\":false,\"kind\":\"hasSorry\",\"pos\":{\"column\":8,\"line\":6},\"severity\":\"warning\"}\n",
+        "stderr_tail": "",
+        "started_at": "2026-10-27T18:59:41.821Z",
+        "ended_at": "2026-10-27T19:00:05.003Z",
+        "limits": {
+          "timeout_ms": 600000,
+          "memory_mb": 8192,
+          "max_heartbeats": 400000
+        },
+        "lean_version": "Lean (version 4.34.1, x86_64-w64-windows-gnu, commit 5045d0056413266e57c625dcd7c365b10e377c52, Release)",
+        "infra_reason": null,
+        "module": "QRSM_p002_parity_lower_bound_mistral_a1r0",
+        "src_sha256": "f9e0e0585a1e92d624d174f560434166b04ed471ff21483cfa903739622dc768",
+        "olean": "C:\\QEDRank\\QEDRank_java\\qedrank\\test\\fixtures\\runs\\e2e-formalize\\items\\p002_parity__lower_bound__mistral\\lean\\QRSM_p002_parity_lower_bound_mistral_a1r0.olean",
+        "resolved_declaration": "QRModel.lb",
+        "definitions": []
+      },
+      "model_statement_declaration": "lb",
+      "compile": {
+        "label": "proof:p002_parity__lower_bound__mistral",
+        "file": "C:\\QEDRank\\QEDRank_java\\qedrank\\test\\fixtures\\runs\\e2e-formalize\\items\\p002_parity__lower_bound__mistral\\lean\\QRM_p002_parity_lower_bound_mistral_a1r0.lean",
+        "status": "compiler_success",
+        "exit_code": 0,
+        "timed_out": false,
+        "duration_ms": 29601.611999988556,
+        "messages": [],
+        "error_count": 0,
+        "warning_count": 0,
+        "stdout_tail": "",
+        "stderr_tail": "",
+        "started_at": "2026-10-27T19:10:01.469Z",
+        "ended_at": "2026-10-27T19:10:31.071Z",
+        "limits": {
+          "timeout_ms": 600000,
+          "memory_mb": 8192,
+          "max_heartbeats": 400000
+        },
+        "lean_version": "Lean (version 4.34.1, x86_64-w64-windows-gnu, commit 5045d0056413266e57c625dcd7c365b10e377c52, Release)",
+        "infra_reason": null,
+        "module": "QRM_p002_parity_lower_bound_mistral_a1r0",
+        "src_sha256": "4dff2fd5466eeb2c514a32272e7cd5b39cfd7dd70299180c0fd9dc6fe2714aec",
+        "olean": "C:\\QEDRank\\QEDRank_java\\qedrank\\test\\fixtures\\runs\\e2e-formalize\\items\\p002_parity__lower_bound__mistral\\lean\\QRM_p002_parity_lower_bound_mistral_a1r0.olean",
+        "linter_warnings": {}
+      },
+      "audit": {
+        "status": "clean",
+        "target_declaration": "lb",
+        "declarations": 1,
+        "unsafe_declarations": [],
+        "static_flags": [],
+        "axioms": [
+          "propext",
+          "Quot.sound"
+        ],
+        "classification": {
+          "placeholder": false,
+          "native_decide": false,
+          "user_axioms": [],
+          "clean": true
+        },
+        "target_is_prop": true,
+        "target_kind": "theorem"
+      },
+      "ab_consistency": {
+        "consistent": true,
+        "syntactic": true,
+        "status": "compiler_success"
+      },
+      "comparison": {
+        "statement_match": "definitionally_identical",
+        "method": "syntactic_identity",
+        "evidence": {
+          "syntactic_identical": true,
+          "reducible_defeq": true,
+          "default_defeq": true,
+          "fwd_proved": true,
+          "fwd_uses_hyp": true,
+          "bwd_proved": true,
+          "bwd_uses_hyp": true,
+          "model_provable_outright": true,
+          "ref_provable_outright": true,
+          "script_status": "compiler_success",
+          "notes": []
+        },
+        "source": "automated",
+        "script_status": "compiler_success",
+        "duration_ms": 25603.29809999466,
+        "qr_errors": [],
+        "messages": []
+      },
+      "statement_match": "definitionally_identical",
+      "statement_match_source": "automated",
+      "loc": {
+        "model": {
+          "total": 3,
+          "code": 2,
+          "proof": {
+            "total": 1,
+            "code": 1
+          },
+          "rule": "total=newline-separated lines; code=non-blank lines after comment removal; proof=lines from the target declaration's top-level := to the end of the declaration, same code rule"
+        },
+        "reference": {
+          "total": 4,
+          "code": 2,
+          "proof": {
+            "total": 1,
+            "code": 1
+          },
+          "rule": "total=newline-separated lines; code=non-blank lines after comment removal; proof=lines from the target declaration's top-level := to the end of the declaration, same code rule"
+        }
+      },
+      "timing": {
+        "evaluation_started_at": "2026-10-27T18:54:25.244Z",
+        "lean_compile_ms": 29601.611999988556,
+        "lean_audit_ms": 839839.0597000122,
+        "lean_compare_ms": 25603.29809999466,
+        "lean_total_ms": 272937.8439999521,
+        "evaluation_total_ms": 1806773.4165000021,
+        "total_ms": 1806780.125,
+        "working_ms": 272944.55249994993,
+        "evaluation_ended_at": "2026-10-27T19:24:32.018Z"
+      },
+      "eligibility": {
+        "statement_track": true,
+        "proof_track": true,
+        "reasons": []
+      },
+      "outcomes": {
+        "infrastructure_failure": false,
+        "compiled": 1,
+        "audit_clean": 1,
+        "statement_faithful": 1,
+        "verified": 1
+      },
+      "notes": [],
+      "evaluation_complete": true
+    },
+    {
+      "schema": "qedrank-item-v1",
+      "item_key": "p002_parity__lower_bound__qwen",
+      "paper_id": "p002_parity",
+      "target_kind": "lower_bound",
+      "provider": "qwen",
+      "model_display_name": "fixture · Qwen3 30B-A3B Instruct",
+      "model_id": "fixture:qwen",
+      "model_label": "Qwen3 30B-A3B Instruct",
+      "api_host": null,
+      "response_model": null,
+      "setting": "pass@1",
+      "attempt": 1,
+      "repair_round": 0,
+      "mathematical_status": "established",
+      "reference_proof_status": "complete",
+      "reference_statement_available": true,
+      "contamination": {
+        "model_training_cutoff": null,
+        "problem_publication_date": null,
+        "published_before_cutoff": null,
+        "public_formal_proof": null
+      },
+      "generation": {
+        "mode": "fixture",
+        "error": null,
+        "http_status": null,
+        "finish_reason": "fixture",
+        "observed_latency_ms": 1.9904999732971191,
+        "working_ms": 1.9904999732971191,
+        "usage": null,
+        "reasoning_chars": null,
+        "provider_attempts": 1,
+        "retry_wait_ms": null,
+        "truncated": false,
+        "prompt_hash": "e8d6d37cfe888ec5a329ead5477006ce32dc431fa96273f6064091a25b1d163c",
+        "prompt_template_version": "qedrank-prompt-v2",
+        "temperature": 0,
+        "max_tokens": 16384,
+        "timeout_ms": 300000,
+        "started_at": "2026-10-27T18:53:07.505Z",
+        "ended_at": "2026-10-27T18:53:07.507Z",
+        "response_chars": 372
+      },
+      "parse": {
+        "notes": [],
+        "parts_found": 4,
+        "has_statement": true,
+        "has_proof_file": false,
+        "mapping_chars": 106
+      },
+      "confidence": {
+        "statement": 5,
+        "proof": 0
+      },
+      "abstained": true,
+      "static_screen": null,
+      "statement_compile": {
+        "label": "stmt:p002_parity__lower_bound__qwen",
+        "file": "C:\\QEDRank\\QEDRank_java\\qedrank\\test\\fixtures\\runs\\e2e-formalize\\items\\p002_parity__lower_bound__qwen\\lean\\QRSM_p002_parity_lower_bound_qwen_a1r0.lean",
+        "status": "compiler_success",
+        "exit_code": 0,
+        "timed_out": false,
+        "duration_ms": 152582.53920000792,
+        "messages": [
+          {
+            "severity": "warning",
+            "line": 6,
+            "column": 8,
+            "file": "C:\\QEDRank\\QEDRank_java\\qedrank\\test\\fixtures\\runs\\e2e-formalize\\items\\p002_parity__lower_bound__qwen\\lean\\QRSM_p002_parity_lower_bound_qwen_a1r0.lean",
+            "text": "declaration uses `sorry`"
+          }
+        ],
+        "error_count": 0,
+        "warning_count": 1,
+        "stdout_tail": "{\"caption\":\"\",\"data\":\"declaration uses `sorry`\",\"endPos\":{\"column\":29,\"line\":6},\"fileName\":\"C:\\\\QEDRank\\\\QEDRank_java\\\\qedrank\\\\test\\\\fixtures\\\\runs\\\\e2e-formalize\\\\items\\\\p002_parity__lower_bound__qwen\\\\lean\\\\QRSM_p002_parity_lower_bound_qwen_a1r0.lean\",\"isSilent\":false,\"keepFullRange\":false,\"kind\":\"hasSorry\",\"pos\":{\"column\":8,\"line\":6},\"severity\":\"warning\"}\n",
+        "stderr_tail": "",
+        "started_at": "2026-10-27T18:55:37.132Z",
+        "ended_at": "2026-10-27T18:58:09.724Z",
+        "limits": {
+          "timeout_ms": 600000,
+          "memory_mb": 8192,
+          "max_heartbeats": 400000
+        },
+        "lean_version": "Lean (version 4.34.1, x86_64-w64-windows-gnu, commit 5045d0056413266e57c625dcd7c365b10e377c52, Release)",
+        "infra_reason": null,
+        "module": "QRSM_p002_parity_lower_bound_qwen_a1r0",
+        "src_sha256": "5afb4e6423d535314d1a440656214bce6a6a7d4fac7b8af2931bb67ff62acdf4",
+        "olean": "C:\\QEDRank\\QEDRank_java\\qedrank\\test\\fixtures\\runs\\e2e-formalize\\items\\p002_parity__lower_bound__qwen\\lean\\QRSM_p002_parity_lower_bound_qwen_a1r0.olean",
+        "resolved_declaration": "QRModel.placeholder_statement",
+        "definitions": []
+      },
+      "model_statement_declaration": "placeholder_statement",
+      "compile": {
+        "status": "not_attempted",
+        "reason": "abstained"
+      },
+      "audit": {
+        "status": "not_audited",
+        "static_flags": []
+      },
+      "ab_consistency": null,
+      "comparison": {
+        "statement_match": "unresolved",
+        "method": "automated_bidirectional_implication",
+        "evidence": {
+          "syntactic_identical": false,
+          "reducible_defeq": false,
+          "default_defeq": false,
+          "fwd_proved": true,
+          "fwd_uses_hyp": false,
+          "bwd_proved": false,
+          "bwd_uses_hyp": false,
+          "model_provable_outright": true,
+          "ref_provable_outright": true,
+          "script_status": "compiler_failure",
+          "notes": [
+            "forward implication proof ignored its hypothesis"
+          ]
+        },
+        "source": "automated",
+        "script_status": "compiler_failure",
+        "duration_ms": 331851.60809999704,
+        "qr_errors": [],
+        "messages": [
+          {
+            "severity": "error",
+            "line": 26,
+            "column": 48,
+            "file": "C:\\QEDRank\\QEDRank_java\\qedrank\\test\\fixtures\\runs\\e2e-formalize\\items\\p002_parity__lower_bound__qwen\\lean\\QRA_cmp_a1r0.lean",
+            "text": "unsolved goals\nn✝ : ℕ\n⊢ n✝ ≤ 2 * n✝"
+          }
+        ]
+      },
+      "statement_match": "unresolved",
+      "statement_match_source": "automated",
+      "loc": null,
+      "timing": {
+        "evaluation_started_at": "2026-10-27T18:53:07.511Z",
+        "lean_compile_ms": null,
+        "lean_audit_ms": 0.0042999982833862305,
+        "lean_compare_ms": 331851.60809999704,
+        "lean_total_ms": 778281.6242000163,
+        "evaluation_total_ms": 1278554.3995999992,
+        "total_ms": 1278556.3900999725,
+        "working_ms": 778283.6146999896,
+        "evaluation_ended_at": "2026-10-27T19:14:26.080Z"
+      },
+      "eligibility": {
+        "statement_track": true,
+        "proof_track": true,
+        "reasons": []
+      },
+      "outcomes": {
+        "infrastructure_failure": false,
+        "compiled": null,
+        "audit_clean": null,
+        "statement_faithful": 0,
+        "verified": 0
+      },
+      "notes": [],
+      "evaluation_complete": true
+    },
+    {
+      "schema": "qedrank-item-v1",
+      "item_key": "p002_parity__main_theorem__fable",
+      "paper_id": "p002_parity",
+      "target_kind": "main_theorem",
+      "provider": "fable",
+      "model_display_name": "fixture · Claude Fable 5.1",
+      "model_id": "fixture:fable",
+      "model_label": "Claude Fable 5.1",
+      "api_host": null,
+      "response_model": null,
+      "setting": "pass@1",
+      "attempt": 1,
+      "repair_round": 0,
+      "mathematical_status": "established",
+      "reference_proof_status": "complete",
+      "reference_statement_available": true,
+      "contamination": {
+        "model_training_cutoff": "2026-06",
+        "problem_publication_date": null,
+        "published_before_cutoff": null,
+        "public_formal_proof": null
+      },
+      "generation": {
+        "mode": "fixture",
+        "error": null,
+        "http_status": null,
+        "finish_reason": "fixture",
+        "observed_latency_ms": 106.23089998960495,
+        "working_ms": 106.23089998960495,
+        "usage": null,
+        "reasoning_chars": null,
+        "provider_attempts": 1,
+        "retry_wait_ms": null,
+        "truncated": false,
+        "prompt_hash": "953b7900292cf19110cae7681c844af0745502b6a541cc19ca0afced4afd8bbc",
+        "prompt_template_version": "qedrank-prompt-v2",
+        "temperature": 0,
+        "max_tokens": 16384,
+        "timeout_ms": 300000,
+        "started_at": "2026-10-27T14:59:45.600Z",
+        "ended_at": "2026-10-27T14:59:45.707Z",
+        "response_chars": 434
+      },
+      "parse": {
+        "notes": [],
+        "parts_found": 4,
+        "has_statement": true,
+        "has_proof_file": true,
+        "mapping_chars": 63
+      },
+      "confidence": {
+        "statement": 85,
+        "proof": 50
+      },
+      "abstained": false,
+      "static_screen": {
+        "ok": true,
+        "rejections": [],
+        "flags": []
+      },
+      "statement_compile": {
+        "label": "stmt:p002_parity__main_theorem__fable",
+        "file": "C:\\QEDRank\\QEDRank_java\\qedrank\\test\\fixtures\\runs\\e2e-formalize\\items\\p002_parity__main_theorem__fable\\lean\\QRSM_p002_parity_main_theorem_fable_a1r0.lean",
+        "status": "compiler_success",
+        "exit_code": 0,
+        "timed_out": false,
+        "duration_ms": 19325.892900019884,
+        "messages": [
+          {
+            "severity": "warning",
+            "line": 6,
+            "column": 8,
+            "file": "C:\\QEDRank\\QEDRank_java\\qedrank\\test\\fixtures\\runs\\e2e-formalize\\items\\p002_parity__main_theorem__fable\\lean\\QRSM_p002_parity_main_theorem_fable_a1r0.lean",
+            "text": "declaration uses `sorry`"
+          }
+        ],
+        "error_count": 0,
+        "warning_count": 1,
+        "stdout_tail": "{\"caption\":\"\",\"data\":\"declaration uses `sorry`\",\"endPos\":{\"column\":20,\"line\":6},\"fileName\":\"C:\\\\QEDRank\\\\QEDRank_java\\\\qedrank\\\\test\\\\fixtures\\\\runs\\\\e2e-formalize\\\\items\\\\p002_parity__main_theorem__fable\\\\lean\\\\QRSM_p002_parity_main_theorem_fable_a1r0.lean\",\"isSilent\":false,\"keepFullRange\":false,\"kind\":\"hasSorry\",\"pos\":{\"column\":8,\"line\":6},\"severity\":\"warning\"}\n",
+        "stderr_tail": "",
+        "started_at": "2026-10-27T18:37:11.491Z",
+        "ended_at": "2026-10-27T18:37:30.817Z",
+        "limits": {
+          "timeout_ms": 600000,
+          "memory_mb": 8192,
+          "max_heartbeats": 400000
+        },
+        "lean_version": "Lean (version 4.34.1, x86_64-w64-windows-gnu, commit 5045d0056413266e57c625dcd7c365b10e377c52, Release)",
+        "infra_reason": null,
+        "module": "QRSM_p002_parity_main_theorem_fable_a1r0",
+        "src_sha256": "5aa2d49272e0a014c16cae56f388bf56f7579bdbec1f455a07ca73422fa87958",
+        "olean": "C:\\QEDRank\\QEDRank_java\\qedrank\\test\\fixtures\\runs\\e2e-formalize\\items\\p002_parity__main_theorem__fable\\lean\\QRSM_p002_parity_main_theorem_fable_a1r0.olean",
+        "resolved_declaration": "QRModel.two_mul_even",
+        "definitions": []
+      },
+      "model_statement_declaration": "two_mul_even",
+      "compile": {
+        "label": "proof:p002_parity__main_theorem__fable",
+        "file": "C:\\QEDRank\\QEDRank_java\\qedrank\\test\\fixtures\\runs\\e2e-formalize\\items\\p002_parity__main_theorem__fable\\lean\\QRM_p002_parity_main_theorem_fable_a1r0.lean",
+        "status": "compiler_failure",
+        "exit_code": 1,
+        "timed_out": false,
+        "duration_ms": 19289.927400022745,
+        "messages": [
+          {
+            "severity": "error",
+            "line": 3,
+            "column": 94,
+            "file": "C:\\QEDRank\\QEDRank_java\\qedrank\\test\\fixtures\\runs\\e2e-formalize\\items\\p002_parity__main_theorem__fable\\lean\\QRM_p002_parity_main_theorem_fable_a1r0.lean",
+            "text": "unknown tactic"
+          }
+        ],
+        "error_count": 1,
+        "warning_count": 0,
+        "stdout_tail": "{\"caption\":\"\",\"data\":\"unknown tactic\",\"endPos\":null,\"fileName\":\"C:\\\\QEDRank\\\\QEDRank_java\\\\qedrank\\\\test\\\\fixtures\\\\runs\\\\e2e-formalize\\\\items\\\\p002_parity__main_theorem__fable\\\\lean\\\\QRM_p002_parity_main_theorem_fable_a1r0.lean\",\"isSilent\":false,\"keepFullRange\":true,\"kind\":\"[anonymous]\",\"pos\":{\"column\":94,\"line\":3},\"severity\":\"error\"}\n",
+        "stderr_tail": "",
+        "started_at": "2026-10-27T18:52:38.888Z",
+        "ended_at": "2026-10-27T18:52:58.178Z",
+        "limits": {
+          "timeout_ms": 600000,
+          "memory_mb": 8192,
+          "max_heartbeats": 400000
+        },
+        "lean_version": "Lean (version 4.34.1, x86_64-w64-windows-gnu, commit 5045d0056413266e57c625dcd7c365b10e377c52, Release)",
+        "infra_reason": null,
+        "module": "QRM_p002_parity_main_theorem_fable_a1r0",
+        "src_sha256": "83a7c8ba2e83d83c6c1a908e66349f58e46b41092ee6499877adf0cf1ac56f66",
+        "olean": null,
+        "linter_warnings": {}
+      },
+      "audit": {
+        "status": "not_audited",
+        "static_flags": []
+      },
+      "ab_consistency": null,
+      "comparison": {
+        "statement_match": "unresolved",
+        "method": "automated_bidirectional_implication",
+        "evidence": {
+          "syntactic_identical": false,
+          "reducible_defeq": false,
+          "default_defeq": false,
+          "fwd_proved": true,
+          "fwd_uses_hyp": false,
+          "bwd_proved": true,
+          "bwd_uses_hyp": false,
+          "model_provable_outright": true,
+          "ref_provable_outright": true,
+          "script_status": "compiler_success",
+          "notes": [
+            "forward implication proof ignored its hypothesis",
+            "backward implication proof ignored its hypothesis"
+          ]
+        },
+        "source": "automated",
+        "script_status": "compiler_success",
+        "duration_ms": 27314.26589998603,
+        "qr_errors": [],
+        "messages": []
+      },
+      "statement_match": "unresolved",
+      "statement_match_source": "automated",
+      "loc": {
+        "model": {
+          "total": 3,
+          "code": 2,
+          "proof": {
+            "total": 1,
+            "code": 1
+          },
+          "rule": "total=newline-separated lines; code=non-blank lines after comment removal; proof=lines from the target declaration's top-level := to the end of the declaration, same code rule"
+        },
+        "reference": {
+          "total": 4,
+          "code": 2,
+          "proof": {
+            "total": 1,
+            "code": 1
+          },
+          "rule": "total=newline-separated lines; code=non-blank lines after comment removal; proof=lines from the target declaration's top-level := to the end of the declaration, same code rule"
+        }
+      },
+      "timing": {
+        "evaluation_started_at": "2026-10-27T14:59:45.721Z",
+        "lean_compile_ms": 19289.927400022745,
+        "lean_audit_ms": 455401.7093999982,
+        "lean_compare_ms": 27314.26589998603,
+        "lean_total_ms": 103015.36170002818,
+        "evaluation_total_ms": 14151425.444999993,
+        "total_ms": 14151531.675899982,
+        "working_ms": 103121.59260001779,
+        "evaluation_ended_at": "2026-10-27T18:55:37.145Z"
+      },
+      "eligibility": {
+        "statement_track": true,
+        "proof_track": true,
+        "reasons": []
+      },
+      "outcomes": {
+        "infrastructure_failure": false,
+        "compiled": 0,
+        "audit_clean": null,
+        "statement_faithful": 0,
+        "verified": 0
+      },
+      "notes": [],
+      "evaluation_complete": true
+    },
+    {
+      "schema": "qedrank-item-v1",
+      "item_key": "p002_parity__main_theorem__glm",
+      "paper_id": "p002_parity",
+      "target_kind": "main_theorem",
+      "provider": "glm",
+      "model_display_name": "fixture · GLM-5.3 Flash",
+      "model_id": "fixture:glm",
+      "model_label": "GLM-5.3 Flash",
+      "api_host": null,
+      "response_model": null,
+      "setting": "pass@1",
+      "attempt": 1,
+      "repair_round": 0,
+      "mathematical_status": "established",
+      "reference_proof_status": "complete",
+      "reference_statement_available": true,
+      "contamination": {
+        "model_training_cutoff": null,
+        "problem_publication_date": null,
+        "published_before_cutoff": null,
+        "public_formal_proof": null
+      },
+      "generation": {
+        "mode": "fixture",
+        "error": null,
+        "http_status": null,
+        "finish_reason": "fixture",
+        "observed_latency_ms": 136.92860001325607,
+        "working_ms": 136.92860001325607,
+        "usage": null,
+        "reasoning_chars": null,
+        "provider_attempts": 1,
+        "retry_wait_ms": null,
+        "truncated": false,
+        "prompt_hash": "953b7900292cf19110cae7681c844af0745502b6a541cc19ca0afced4afd8bbc",
+        "prompt_template_version": "qedrank-prompt-v2",
+        "temperature": 0,
+        "max_tokens": 16384,
+        "timeout_ms": 300000,
+        "started_at": "2026-10-27T14:59:45.466Z",
+        "ended_at": "2026-10-27T14:59:45.603Z",
+        "response_chars": 342
+      },
+      "parse": {
+        "notes": [],
+        "parts_found": 4,
+        "has_statement": true,
+        "has_proof_file": true,
+        "mapping_chars": 33
+      },
+      "confidence": {
+        "statement": 99,
+        "proof": 95
+      },
+      "abstained": false,
+      "static_screen": {
+        "ok": true,
+        "rejections": [],
+        "flags": []
+      },
+      "statement_compile": {
+        "label": "stmt:p002_parity__main_theorem__glm",
+        "file": "C:\\QEDRank\\QEDRank_java\\qedrank\\test\\fixtures\\runs\\e2e-formalize\\items\\p002_parity__main_theorem__glm\\lean\\QRSM_p002_parity_main_theorem_glm_a1r0.lean",
+        "status": "compiler_success",
+        "exit_code": 0,
+        "timed_out": false,
+        "duration_ms": 17431.494000017643,
+        "messages": [
+          {
+            "severity": "warning",
+            "line": 6,
+            "column": 8,
+            "file": "C:\\QEDRank\\QEDRank_java\\qedrank\\test\\fixtures\\runs\\e2e-formalize\\items\\p002_parity__main_theorem__glm\\lean\\QRSM_p002_parity_main_theorem_glm_a1r0.lean",
+            "text": "declaration uses `sorry`"
+          }
+        ],
+        "error_count": 0,
+        "warning_count": 1,
+        "stdout_tail": "{\"caption\":\"\",\"data\":\"declaration uses `sorry`\",\"endPos\":{\"column\":20,\"line\":6},\"fileName\":\"C:\\\\QEDRank\\\\QEDRank_java\\\\qedrank\\\\test\\\\fixtures\\\\runs\\\\e2e-formalize\\\\items\\\\p002_parity__main_theorem__glm\\\\lean\\\\QRSM_p002_parity_main_theorem_glm_a1r0.lean\",\"isSilent\":false,\"keepFullRange\":false,\"kind\":\"hasSorry\",\"pos\":{\"column\":8,\"line\":6},\"severity\":\"warning\"}\n",
+        "stderr_tail": "",
+        "started_at": "2026-10-27T18:37:08.889Z",
+        "ended_at": "2026-10-27T18:37:26.321Z",
+        "limits": {
+          "timeout_ms": 600000,
+          "memory_mb": 8192,
+          "max_heartbeats": 400000
+        },
+        "lean_version": "Lean (version 4.34.1, x86_64-w64-windows-gnu, commit 5045d0056413266e57c625dcd7c365b10e377c52, Release)",
+        "infra_reason": null,
+        "module": "QRSM_p002_parity_main_theorem_glm_a1r0",
+        "src_sha256": "a26cb031ff76541bad48e12dcdbc2550fbf70f238eb21b89f8a2c32d70d92824",
+        "olean": "C:\\QEDRank\\QEDRank_java\\qedrank\\test\\fixtures\\runs\\e2e-formalize\\items\\p002_parity__main_theorem__glm\\lean\\QRSM_p002_parity_main_theorem_glm_a1r0.olean",
+        "resolved_declaration": "QRModel.two_mul_even",
+        "definitions": []
+      },
+      "model_statement_declaration": "two_mul_even",
+      "compile": {
+        "label": "proof:p002_parity__main_theorem__glm",
+        "file": "C:\\QEDRank\\QEDRank_java\\qedrank\\test\\fixtures\\runs\\e2e-formalize\\items\\p002_parity__main_theorem__glm\\lean\\QRM_p002_parity_main_theorem_glm_a1r0.lean",
+        "status": "compiler_success",
+        "exit_code": 0,
+        "timed_out": false,
+        "duration_ms": 19539.12080001831,
+        "messages": [],
+        "error_count": 0,
+        "warning_count": 0,
+        "stdout_tail": "",
+        "stderr_tail": "",
+        "started_at": "2026-10-27T18:52:20.034Z",
+        "ended_at": "2026-10-27T18:52:39.573Z",
+        "limits": {
+          "timeout_ms": 600000,
+          "memory_mb": 8192,
+          "max_heartbeats": 400000
+        },
+        "lean_version": "Lean (version 4.34.1, x86_64-w64-windows-gnu, commit 5045d0056413266e57c625dcd7c365b10e377c52, Release)",
+        "infra_reason": null,
+        "module": "QRM_p002_parity_main_theorem_glm_a1r0",
+        "src_sha256": "430d993c26abdb676333df3a385ecb2ef51c82c6fe454a5b7588dc4cb1e73b3d",
+        "olean": "C:\\QEDRank\\QEDRank_java\\qedrank\\test\\fixtures\\runs\\e2e-formalize\\items\\p002_parity__main_theorem__glm\\lean\\QRM_p002_parity_main_theorem_glm_a1r0.olean",
+        "linter_warnings": {}
+      },
+      "audit": {
+        "status": "clean",
+        "target_declaration": "two_mul_even",
+        "declarations": 1,
+        "unsafe_declarations": [],
+        "static_flags": [],
+        "axioms": [
+          "propext"
+        ],
+        "classification": {
+          "placeholder": false,
+          "native_decide": false,
+          "user_axioms": [],
+          "clean": true
+        },
+        "target_is_prop": true,
+        "target_kind": "theorem"
+      },
+      "ab_consistency": {
+        "consistent": true,
+        "syntactic": true,
+        "status": "compiler_success"
+      },
+      "comparison": {
+        "statement_match": "definitionally_identical",
+        "method": "syntactic_identity",
+        "evidence": {
+          "syntactic_identical": true,
+          "reducible_defeq": true,
+          "default_defeq": true,
+          "fwd_proved": true,
+          "fwd_uses_hyp": true,
+          "bwd_proved": true,
+          "bwd_uses_hyp": true,
+          "model_provable_outright": true,
+          "ref_provable_outright": true,
+          "script_status": "compiler_success",
+          "notes": []
+        },
+        "source": "automated",
+        "script_status": "compiler_success",
+        "duration_ms": 107147.42069998384,
+        "qr_errors": [],
+        "messages": []
+      },
+      "statement_match": "definitionally_identical",
+      "statement_match_source": "automated",
+      "loc": {
+        "model": {
+          "total": 3,
+          "code": 2,
+          "proof": {
+            "total": 1,
+            "code": 1
+          },
+          "rule": "total=newline-separated lines; code=non-blank lines after comment removal; proof=lines from the target declaration's top-level := to the end of the declaration, same code rule"
+        },
+        "reference": {
+          "total": 4,
+          "code": 2,
+          "proof": {
+            "total": 1,
+            "code": 1
+          },
+          "rule": "total=newline-separated lines; code=non-blank lines after comment removal; proof=lines from the target declaration's top-level := to the end of the declaration, same code rule"
+        }
+      },
+      "timing": {
+        "evaluation_started_at": "2026-10-27T14:59:45.629Z",
+        "lean_compile_ms": 19539.12080001831,
+        "lean_audit_ms": 1406425.994999975,
+        "lean_compare_ms": 107147.42069998384,
+        "lean_total_ms": 268491.5257999897,
+        "evaluation_total_ms": 15260552.217799991,
+        "total_ms": 15260689.146400005,
+        "working_ms": 268628.45440000296,
+        "evaluation_ended_at": "2026-10-27T19:14:06.190Z"
+      },
+      "eligibility": {
+        "statement_track": true,
+        "proof_track": true,
+        "reasons": []
+      },
+      "outcomes": {
+        "infrastructure_failure": false,
+        "compiled": 1,
+        "audit_clean": 1,
+        "statement_faithful": 1,
+        "verified": 1
+      },
+      "notes": [],
+      "evaluation_complete": true
+    },
+    {
+      "schema": "qedrank-item-v1",
+      "item_key": "p002_parity__main_theorem__mistral",
+      "paper_id": "p002_parity",
+      "target_kind": "main_theorem",
+      "provider": "mistral",
+      "model_display_name": "fixture · Leanstral",
+      "model_id": "fixture:mistral",
+      "model_label": "Leanstral",
+      "api_host": null,
+      "response_model": null,
+      "setting": "pass@1",
+      "attempt": 1,
+      "repair_round": 0,
+      "mathematical_status": "established",
+      "reference_proof_status": "complete",
+      "reference_statement_available": true,
+      "contamination": {
+        "model_training_cutoff": null,
+        "problem_publication_date": null,
+        "published_before_cutoff": null,
+        "public_formal_proof": null
+      },
+      "generation": {
+        "mode": "fixture",
+        "error": null,
+        "http_status": null,
+        "finish_reason": "fixture",
+        "observed_latency_ms": 6.806800007820129,
+        "working_ms": 6.806800007820129,
+        "usage": null,
+        "reasoning_chars": null,
+        "provider_attempts": 1,
+        "retry_wait_ms": null,
+        "truncated": false,
+        "prompt_hash": "953b7900292cf19110cae7681c844af0745502b6a541cc19ca0afced4afd8bbc",
+        "prompt_template_version": "qedrank-prompt-v2",
+        "temperature": 0,
+        "max_tokens": 16384,
+        "timeout_ms": 300000,
+        "started_at": "2026-10-27T18:51:15.169Z",
+        "ended_at": "2026-10-27T18:51:15.176Z",
+        "response_chars": 347
+      },
+      "parse": {
+        "notes": [],
+        "parts_found": 4,
+        "has_statement": true,
+        "has_proof_file": true,
+        "mapping_chars": 10
+      },
+      "confidence": {
+        "statement": 95,
+        "proof": 90
+      },
+      "abstained": false,
+      "static_screen": {
+        "ok": false,
+        "rejections": [
+          {
+            "code": "forbidden_command",
+            "line": 5,
+            "text": "#eval"
+          }
+        ],
+        "flags": []
+      },
+      "statement_compile": {
+        "label": "stmt:p002_parity__main_theorem__mistral",
+        "file": "C:\\QEDRank\\QEDRank_java\\qedrank\\test\\fixtures\\runs\\e2e-formalize\\items\\p002_parity__main_theorem__mistral\\lean\\QRSM_p002_parity_main_theorem_mistral_a1r0.lean",
+        "status": "compiler_success",
+        "exit_code": 0,
+        "timed_out": false,
+        "duration_ms": 21602.461800009012,
+        "messages": [
+          {
+            "severity": "warning",
+            "line": 6,
+            "column": 8,
+            "file": "C:\\QEDRank\\QEDRank_java\\qedrank\\test\\fixtures\\runs\\e2e-formalize\\items\\p002_parity__main_theorem__mistral\\lean\\QRSM_p002_parity_main_theorem_mistral_a1r0.lean",
+            "text": "declaration uses `sorry`"
+          }
+        ],
+        "error_count": 0,
+        "warning_count": 1,
+        "stdout_tail": "{\"caption\":\"\",\"data\":\"declaration uses `sorry`\",\"endPos\":{\"column\":20,\"line\":6},\"fileName\":\"C:\\\\QEDRank\\\\QEDRank_java\\\\qedrank\\\\test\\\\fixtures\\\\runs\\\\e2e-formalize\\\\items\\\\p002_parity__main_theorem__mistral\\\\lean\\\\QRSM_p002_parity_main_theorem_mistral_a1r0.lean\",\"isSilent\":false,\"keepFullRange\":false,\"kind\":\"hasSorry\",\"pos\":{\"column\":8,\"line\":6},\"severity\":\"warning\"}\n",
+        "stderr_tail": "",
+        "started_at": "2026-10-27T18:53:37.073Z",
+        "ended_at": "2026-10-27T18:53:58.676Z",
+        "limits": {
+          "timeout_ms": 600000,
+          "memory_mb": 8192,
+          "max_heartbeats": 400000
+        },
+        "lean_version": "Lean (version 4.34.1, x86_64-w64-windows-gnu, commit 5045d0056413266e57c625dcd7c365b10e377c52, Release)",
+        "infra_reason": null,
+        "module": "QRSM_p002_parity_main_theorem_mistral_a1r0",
+        "src_sha256": "a26cb031ff76541bad48e12dcdbc2550fbf70f238eb21b89f8a2c32d70d92824",
+        "olean": "C:\\QEDRank\\QEDRank_java\\qedrank\\test\\fixtures\\runs\\e2e-formalize\\items\\p002_parity__main_theorem__mistral\\lean\\QRSM_p002_parity_main_theorem_mistral_a1r0.olean",
+        "resolved_declaration": "QRModel.two_mul_even",
+        "definitions": []
+      },
+      "model_statement_declaration": "two_mul_even",
+      "compile": {
+        "status": "rejected_by_static_screen",
+        "rejections": [
+          {
+            "code": "forbidden_command",
+            "line": 5,
+            "text": "#eval"
+          }
+        ]
+      },
+      "audit": {
+        "status": "forbidden_command",
+        "static_flags": []
+      },
+      "ab_consistency": null,
+      "comparison": {
+        "statement_match": "definitionally_identical",
+        "method": "syntactic_identity",
+        "evidence": {
+          "syntactic_identical": true,
+          "reducible_defeq": true,
+          "default_defeq": true,
+          "fwd_proved": true,
+          "fwd_uses_hyp": true,
+          "bwd_proved": true,
+          "bwd_uses_hyp": true,
+          "model_provable_outright": true,
+          "ref_provable_outright": true,
+          "script_status": "compiler_success",
+          "notes": []
+        },
+        "source": "automated",
+        "script_status": "compiler_success",
+        "duration_ms": 27823.81960001588,
+        "qr_errors": [],
+        "messages": []
+      },
+      "statement_match": "definitionally_identical",
+      "statement_match_source": "automated",
+      "loc": {
+        "model": {
+          "total": 5,
+          "code": 3,
+          "proof": {
+            "total": 1,
+            "code": 1
+          },
+          "rule": "total=newline-separated lines; code=non-blank lines after comment removal; proof=lines from the target declaration's top-level := to the end of the declaration, same code rule"
+        },
+        "reference": {
+          "total": 4,
+          "code": 2,
+          "proof": {
+            "total": 1,
+            "code": 1
+          },
+          "rule": "total=newline-separated lines; code=non-blank lines after comment removal; proof=lines from the target declaration's top-level := to the end of the declaration, same code rule"
+        }
+      },
+      "timing": {
+        "evaluation_started_at": "2026-10-27T18:51:15.179Z",
+        "lean_compile_ms": null,
+        "lean_audit_ms": 0.09459999203681946,
+        "lean_compare_ms": 27823.81960001588,
+        "lean_total_ms": 78893.92340001464,
+        "evaluation_total_ms": 1026054.7409999967,
+        "total_ms": 1026061.5478000045,
+        "working_ms": 78900.73020002246,
+        "evaluation_ended_at": "2026-10-27T19:08:21.235Z"
+      },
+      "eligibility": {
+        "statement_track": true,
+        "proof_track": true,
+        "reasons": []
+      },
+      "outcomes": {
+        "infrastructure_failure": false,
+        "compiled": 0,
+        "audit_clean": null,
+        "statement_faithful": 1,
+        "verified": 0
+      },
+      "notes": [],
+      "evaluation_complete": true
+    },
+    {
+      "schema": "qedrank-item-v1",
+      "item_key": "p002_parity__main_theorem__qwen",
+      "paper_id": "p002_parity",
+      "target_kind": "main_theorem",
+      "provider": "qwen",
+      "model_display_name": "fixture · Qwen3 30B-A3B Instruct",
+      "model_id": "fixture:qwen",
+      "model_label": "Qwen3 30B-A3B Instruct",
+      "api_host": null,
+      "response_model": null,
+      "setting": "pass@1",
+      "attempt": 1,
+      "repair_round": 0,
+      "mathematical_status": "established",
+      "reference_proof_status": "complete",
+      "reference_statement_available": true,
+      "contamination": {
+        "model_training_cutoff": null,
+        "problem_publication_date": null,
+        "published_before_cutoff": null,
+        "public_formal_proof": null
+      },
+      "generation": {
+        "mode": "fixture",
+        "error": null,
+        "http_status": null,
+        "finish_reason": "fixture",
+        "observed_latency_ms": 148.8003999888897,
+        "working_ms": 148.8003999888897,
+        "usage": null,
+        "reasoning_chars": null,
+        "provider_attempts": 1,
+        "retry_wait_ms": null,
+        "truncated": false,
+        "prompt_hash": "953b7900292cf19110cae7681c844af0745502b6a541cc19ca0afced4afd8bbc",
+        "prompt_template_version": "qedrank-prompt-v2",
+        "temperature": 0,
+        "max_tokens": 16384,
+        "timeout_ms": 300000,
+        "started_at": "2026-10-27T14:59:45.358Z",
+        "ended_at": "2026-10-27T14:59:45.507Z",
+        "response_chars": 325
+      },
+      "parse": {
+        "notes": [],
+        "parts_found": 4,
+        "has_statement": true,
+        "has_proof_file": true,
+        "mapping_chars": 10
+      },
+      "confidence": {
+        "statement": 98,
+        "proof": 90
+      },
+      "abstained": false,
+      "static_screen": {
+        "ok": true,
+        "rejections": [],
+        "flags": []
+      },
+      "statement_compile": {
+        "label": "stmt:p002_parity__main_theorem__qwen",
+        "file": "C:\\QEDRank\\QEDRank_java\\qedrank\\test\\fixtures\\runs\\e2e-formalize\\items\\p002_parity__main_theorem__qwen\\lean\\QRSM_p002_parity_main_theorem_qwen_a1r0.lean",
+        "status": "compiler_success",
+        "exit_code": 0,
+        "timed_out": false,
+        "duration_ms": 67234.3546999991,
+        "messages": [
+          {
+            "severity": "warning",
+            "line": 6,
+            "column": 8,
+            "file": "C:\\QEDRank\\QEDRank_java\\qedrank\\test\\fixtures\\runs\\e2e-formalize\\items\\p002_parity__main_theorem__qwen\\lean\\QRSM_p002_parity_main_theorem_qwen_a1r0.lean",
+            "text": "declaration uses `sorry`"
+          }
+        ],
+        "error_count": 0,
+        "warning_count": 1,
+        "stdout_tail": "{\"caption\":\"\",\"data\":\"declaration uses `sorry`\",\"endPos\":{\"column\":20,\"line\":6},\"fileName\":\"C:\\\\QEDRank\\\\QEDRank_java\\\\qedrank\\\\test\\\\fixtures\\\\runs\\\\e2e-formalize\\\\items\\\\p002_parity__main_theorem__qwen\\\\lean\\\\QRSM_p002_parity_main_theorem_qwen_a1r0.lean\",\"isSilent\":false,\"keepFullRange\":false,\"kind\":\"hasSorry\",\"pos\":{\"column\":8,\"line\":6},\"severity\":\"warning\"}\n",
+        "stderr_tail": "",
+        "started_at": "2026-10-27T18:36:01.656Z",
+        "ended_at": "2026-10-27T18:37:08.889Z",
+        "limits": {
+          "timeout_ms": 600000,
+          "memory_mb": 8192,
+          "max_heartbeats": 400000
+        },
+        "lean_version": "Lean (version 4.34.1, x86_64-w64-windows-gnu, commit 5045d0056413266e57c625dcd7c365b10e377c52, Release)",
+        "infra_reason": null,
+        "module": "QRSM_p002_parity_main_theorem_qwen_a1r0",
+        "src_sha256": "a26cb031ff76541bad48e12dcdbc2550fbf70f238eb21b89f8a2c32d70d92824",
+        "olean": "C:\\QEDRank\\QEDRank_java\\qedrank\\test\\fixtures\\runs\\e2e-formalize\\items\\p002_parity__main_theorem__qwen\\lean\\QRSM_p002_parity_main_theorem_qwen_a1r0.olean",
+        "resolved_declaration": "QRModel.two_mul_even",
+        "definitions": []
+      },
+      "model_statement_declaration": "two_mul_even",
+      "compile": {
+        "label": "proof:p002_parity__main_theorem__qwen",
+        "file": "C:\\QEDRank\\QEDRank_java\\qedrank\\test\\fixtures\\runs\\e2e-formalize\\items\\p002_parity__main_theorem__qwen\\lean\\QRM_p002_parity_main_theorem_qwen_a1r0.lean",
+        "status": "compiler_failure",
+        "exit_code": 1,
+        "timed_out": false,
+        "duration_ms": 64924.71439999342,
+        "messages": [
+          {
+            "severity": "error",
+            "line": 3,
+            "column": 47,
+            "file": "C:\\QEDRank\\QEDRank_java\\qedrank\\test\\fixtures\\runs\\e2e-formalize\\items\\p002_parity__main_theorem__qwen\\lean\\QRM_p002_parity_main_theorem_qwen_a1r0.lean",
+            "text": "Unknown constant `Nat.even_two_times`"
+          }
+        ],
+        "error_count": 1,
+        "warning_count": 0,
+        "stdout_tail": "{\"caption\":\"\",\"data\":\"Unknown constant `Nat.even_two_times`\",\"endPos\":{\"column\":65,\"line\":3},\"fileName\":\"C:\\\\QEDRank\\\\QEDRank_java\\\\qedrank\\\\test\\\\fixtures\\\\runs\\\\e2e-formalize\\\\items\\\\p002_parity__main_theorem__qwen\\\\lean\\\\QRM_p002_parity_main_theorem_qwen_a1r0.lean\",\"isSilent\":false,\"keepFullRange\":false,\"kind\":\"lean.unknownIdentifier._namedError\",\"pos\":{\"column\":47,\"line\":3},\"severity\":\"error\"}\n",
+        "stderr_tail": "",
+        "started_at": "2026-10-27T18:51:15.122Z",
+        "ended_at": "2026-10-27T18:52:20.034Z",
+        "limits": {
+          "timeout_ms": 600000,
+          "memory_mb": 8192,
+          "max_heartbeats": 400000
+        },
+        "lean_version": "Lean (version 4.34.1, x86_64-w64-windows-gnu, commit 5045d0056413266e57c625dcd7c365b10e377c52, Release)",
+        "infra_reason": null,
+        "module": "QRM_p002_parity_main_theorem_qwen_a1r0",
+        "src_sha256": "b85946f396761b99f8914567df6505a770d169b1c3136f6837ce22e4141b9f0d",
+        "olean": null,
+        "linter_warnings": {}
+      },
+      "audit": {
+        "status": "not_audited",
+        "static_flags": []
+      },
+      "ab_consistency": null,
+      "comparison": {
+        "statement_match": "definitionally_identical",
+        "method": "syntactic_identity",
+        "evidence": {
+          "syntactic_identical": true,
+          "reducible_defeq": true,
+          "default_defeq": true,
+          "fwd_proved": true,
+          "fwd_uses_hyp": true,
+          "bwd_proved": true,
+          "bwd_uses_hyp": true,
+          "model_provable_outright": true,
+          "ref_provable_outright": true,
+          "script_status": "compiler_success",
+          "notes": []
+        },
+        "source": "automated",
+        "script_status": "compiler_success",
+        "duration_ms": 26511.143600016832,
+        "qr_errors": [],
+        "messages": []
+      },
+      "statement_match": "definitionally_identical",
+      "statement_match_source": "automated",
+      "loc": {
+        "model": {
+          "total": 3,
+          "code": 2,
+          "proof": {
+            "total": 1,
+            "code": 1
+          },
+          "rule": "total=newline-separated lines; code=non-blank lines after comment removal; proof=lines from the target declaration's top-level := to the end of the declaration, same code rule"
+        },
+        "reference": {
+          "total": 4,
+          "code": 2,
+          "proof": {
+            "total": 1,
+            "code": 1
+          },
+          "rule": "total=newline-separated lines; code=non-blank lines after comment removal; proof=lines from the target declaration's top-level := to the end of the declaration, same code rule"
+        }
+      },
+      "timing": {
+        "evaluation_started_at": "2026-10-27T14:59:45.520Z",
+        "lean_compile_ms": 64924.71439999342,
+        "lean_audit_ms": 408905.3398000002,
+        "lean_compare_ms": 26511.143600016832,
+        "lean_total_ms": 247783.2475000322,
+        "evaluation_total_ms": 14079670.093499988,
+        "total_ms": 14079818.893899977,
+        "working_ms": 247932.04790002108,
+        "evaluation_ended_at": "2026-10-27T18:54:25.198Z"
+      },
+      "eligibility": {
+        "statement_track": true,
+        "proof_track": true,
+        "reasons": []
+      },
+      "outcomes": {
+        "infrastructure_failure": false,
+        "compiled": 0,
+        "audit_clean": null,
+        "statement_faithful": 1,
+        "verified": 0
+      },
+      "notes": [],
+      "evaluation_complete": true
+    },
+    {
+      "schema": "qedrank-item-v1",
+      "item_key": "p002_parity__upper_bound__fable",
+      "paper_id": "p002_parity",
+      "target_kind": "upper_bound",
+      "provider": "fable",
+      "model_display_name": "fixture · Claude Fable 5.1",
+      "model_id": "fixture:fable",
+      "model_label": "Claude Fable 5.1",
+      "api_host": null,
+      "response_model": null,
+      "setting": "pass@1",
+      "attempt": 1,
+      "repair_round": 0,
+      "mathematical_status": "established",
+      "reference_proof_status": "complete",
+      "reference_statement_available": false,
+      "contamination": {
+        "model_training_cutoff": "2026-06",
+        "problem_publication_date": null,
+        "published_before_cutoff": null,
+        "public_formal_proof": null
+      },
+      "generation": {
+        "mode": "fixture",
+        "error": null,
+        "http_status": null,
+        "finish_reason": "fixture",
+        "observed_latency_ms": 10.407299995422363,
+        "working_ms": 10.407299995422363,
+        "usage": null,
+        "reasoning_chars": null,
+        "provider_attempts": 1,
+        "retry_wait_ms": null,
+        "truncated": false,
+        "prompt_hash": "230c960179205288937aaa46d458c4112cdf2575422673369639987255272715",
+        "prompt_template_version": "qedrank-prompt-v2",
+        "temperature": 0,
+        "max_tokens": 16384,
+        "timeout_ms": 300000,
+        "started_at": "2026-10-27T18:53:07.435Z",
+        "ended_at": "2026-10-27T18:53:07.446Z",
+        "response_chars": 311
+      },
+      "parse": {
+        "notes": [],
+        "parts_found": 4,
+        "has_statement": false,
+        "has_proof_file": false,
+        "mapping_chars": 61
+      },
+      "confidence": {
+        "statement": 15,
+        "proof": 0
+      },
+      "abstained": true,
+      "static_screen": null,
+      "statement_compile": null,
+      "model_statement_declaration": null,
+      "compile": {
+        "status": "not_attempted",
+        "reason": "abstained"
+      },
+      "audit": {
+        "status": "not_audited",
+        "static_flags": []
+      },
+      "ab_consistency": null,
+      "comparison": {
+        "statement_match": "not_evaluated",
+        "method": "none",
+        "evidence": {
+          "notes": [
+            "not_eligible"
+          ]
+        },
+        "source": "automated",
+        "script_status": "not_attempted"
+      },
+      "statement_match": "not_evaluated",
+      "statement_match_source": "automated",
+      "loc": null,
+      "timing": {
+        "evaluation_started_at": "2026-10-27T18:53:07.449Z",
+        "lean_compile_ms": null,
+        "lean_audit_ms": 0.024499982595443726,
+        "lean_compare_ms": null,
+        "lean_total_ms": 0,
+        "evaluation_total_ms": 9.76919999718666,
+        "total_ms": 20.176499992609024,
+        "working_ms": 10.407299995422363,
+        "evaluation_ended_at": "2026-10-27T18:53:07.458Z"
+      },
+      "eligibility": {
+        "statement_track": false,
+        "proof_track": false,
+        "reasons": [
+          "reference_statement_unavailable"
+        ]
+      },
+      "outcomes": {
+        "infrastructure_failure": false,
+        "compiled": null,
+        "audit_clean": null,
+        "statement_faithful": null,
+        "verified": null
+      },
+      "notes": [
+        "no_statement_returned"
+      ],
+      "evaluation_complete": true
+    },
+    {
+      "schema": "qedrank-item-v1",
+      "item_key": "p002_parity__upper_bound__glm",
+      "paper_id": "p002_parity",
+      "target_kind": "upper_bound",
+      "provider": "glm",
+      "model_display_name": "fixture · GLM-5.3 Flash",
+      "model_id": "fixture:glm",
+      "model_label": "GLM-5.3 Flash",
+      "api_host": null,
+      "response_model": null,
+      "setting": "pass@1",
+      "attempt": 1,
+      "repair_round": 0,
+      "mathematical_status": "established",
+      "reference_proof_status": "complete",
+      "reference_statement_available": false,
+      "contamination": {
+        "model_training_cutoff": null,
+        "problem_publication_date": null,
+        "published_before_cutoff": null,
+        "public_formal_proof": null
+      },
+      "generation": {
+        "mode": "fixture",
+        "error": null,
+        "http_status": null,
+        "finish_reason": "fixture",
+        "observed_latency_ms": 5.631599992513657,
+        "working_ms": 5.631599992513657,
+        "usage": null,
+        "reasoning_chars": null,
+        "provider_attempts": 1,
+        "retry_wait_ms": null,
+        "truncated": false,
+        "prompt_hash": "230c960179205288937aaa46d458c4112cdf2575422673369639987255272715",
+        "prompt_template_version": "qedrank-prompt-v2",
+        "temperature": 0,
+        "max_tokens": 16384,
+        "timeout_ms": 300000,
+        "started_at": "2026-10-27T18:52:38.917Z",
+        "ended_at": "2026-10-27T18:52:38.923Z",
+        "response_chars": 315
+      },
+      "parse": {
+        "notes": [],
+        "parts_found": 4,
+        "has_statement": true,
+        "has_proof_file": true,
+        "mapping_chars": 22
+      },
+      "confidence": {
+        "statement": 97,
+        "proof": 97
+      },
+      "abstained": false,
+      "static_screen": {
+        "ok": true,
+        "rejections": [],
+        "flags": []
+      },
+      "statement_compile": {
+        "label": "stmt:p002_parity__upper_bound__glm",
+        "file": "C:\\QEDRank\\QEDRank_java\\qedrank\\test\\fixtures\\runs\\e2e-formalize\\items\\p002_parity__upper_bound__glm\\lean\\QRSM_p002_parity_upper_bound_glm_a1r0.lean",
+        "status": "compiler_success",
+        "exit_code": 0,
+        "timed_out": false,
+        "duration_ms": 19481.493299990892,
+        "messages": [
+          {
+            "severity": "warning",
+            "line": 6,
+            "column": 8,
+            "file": "C:\\QEDRank\\QEDRank_java\\qedrank\\test\\fixtures\\runs\\e2e-formalize\\items\\p002_parity__upper_bound__glm\\lean\\QRSM_p002_parity_upper_bound_glm_a1r0.lean",
+            "text": "declaration uses `sorry`"
+          }
+        ],
+        "error_count": 0,
+        "warning_count": 1,
+        "stdout_tail": "{\"caption\":\"\",\"data\":\"declaration uses `sorry`\",\"endPos\":{\"column\":10,\"line\":6},\"fileName\":\"C:\\\\QEDRank\\\\QEDRank_java\\\\qedrank\\\\test\\\\fixtures\\\\runs\\\\e2e-formalize\\\\items\\\\p002_parity__upper_bound__glm\\\\lean\\\\QRSM_p002_parity_upper_bound_glm_a1r0.lean\",\"isSilent\":false,\"keepFullRange\":false,\"kind\":\"hasSorry\",\"pos\":{\"column\":8,\"line\":6},\"severity\":\"warning\"}\n",
+        "stderr_tail": "",
+        "started_at": "2026-10-27T18:54:25.187Z",
+        "ended_at": "2026-10-27T18:54:44.659Z",
+        "limits": {
+          "timeout_ms": 600000,
+          "memory_mb": 8192,
+          "max_heartbeats": 400000
+        },
+        "lean_version": "Lean (version 4.34.1, x86_64-w64-windows-gnu, commit 5045d0056413266e57c625dcd7c365b10e377c52, Release)",
+        "infra_reason": null,
+        "module": "QRSM_p002_parity_upper_bound_glm_a1r0",
+        "src_sha256": "0a25e9306b911b3b11f9da766524e4fb03906b3847b4c46763d1189914578d0f",
+        "olean": "C:\\QEDRank\\QEDRank_java\\qedrank\\test\\fixtures\\runs\\e2e-formalize\\items\\p002_parity__upper_bound__glm\\lean\\QRSM_p002_parity_upper_bound_glm_a1r0.olean",
+        "resolved_declaration": "QRModel.ub",
+        "definitions": []
+      },
+      "model_statement_declaration": "ub",
+      "compile": {
+        "label": "proof:p002_parity__upper_bound__glm",
+        "file": "C:\\QEDRank\\QEDRank_java\\qedrank\\test\\fixtures\\runs\\e2e-formalize\\items\\p002_parity__upper_bound__glm\\lean\\QRM_p002_parity_upper_bound_glm_a1r0.lean",
+        "status": "compiler_success",
+        "exit_code": 0,
+        "timed_out": false,
+        "duration_ms": 19879.50870001316,
+        "messages": [],
+        "error_count": 0,
+        "warning_count": 0,
+        "stdout_tail": "",
+        "stderr_tail": "",
+        "started_at": "2026-10-27T19:07:56.510Z",
+        "ended_at": "2026-10-27T19:08:16.389Z",
+        "limits": {
+          "timeout_ms": 600000,
+          "memory_mb": 8192,
+          "max_heartbeats": 400000
+        },
+        "lean_version": "Lean (version 4.34.1, x86_64-w64-windows-gnu, commit 5045d0056413266e57c625dcd7c365b10e377c52, Release)",
+        "infra_reason": null,
+        "module": "QRM_p002_parity_upper_bound_glm_a1r0",
+        "src_sha256": "d19e4e1af71f146c071d128a4498d941b6691cd05951654d9d92c4b6f767c67c",
+        "olean": "C:\\QEDRank\\QEDRank_java\\qedrank\\test\\fixtures\\runs\\e2e-formalize\\items\\p002_parity__upper_bound__glm\\lean\\QRM_p002_parity_upper_bound_glm_a1r0.olean",
+        "linter_warnings": {}
+      },
+      "audit": {
+        "status": "clean",
+        "target_declaration": "ub",
+        "declarations": 1,
+        "unsafe_declarations": [],
+        "static_flags": [],
+        "axioms": [
+          "propext",
+          "Quot.sound"
+        ],
+        "classification": {
+          "placeholder": false,
+          "native_decide": false,
+          "user_axioms": [],
+          "clean": true
+        },
+        "target_is_prop": true,
+        "target_kind": "theorem"
+      },
+      "ab_consistency": {
+        "consistent": true,
+        "syntactic": true,
+        "status": "compiler_success"
+      },
+      "comparison": {
+        "statement_match": "not_evaluated",
+        "method": "none",
+        "evidence": {
+          "notes": [
+            "not_eligible"
+          ]
+        },
+        "source": "automated",
+        "script_status": "not_attempted"
+      },
+      "statement_match": "not_evaluated",
+      "statement_match_source": "automated",
+      "loc": {
+        "model": {
+          "total": 3,
+          "code": 2,
+          "proof": {
+            "total": 1,
+            "code": 1
+          },
+          "rule": "total=newline-separated lines; code=non-blank lines after comment removal; proof=lines from the target declaration's top-level := to the end of the declaration, same code rule"
+        },
+        "reference": {
+          "total": 4,
+          "code": 2,
+          "proof": {
+            "total": 1,
+            "code": 1
+          },
+          "rule": "total=newline-separated lines; code=non-blank lines after comment removal; proof=lines from the target declaration's top-level := to the end of the declaration, same code rule"
+        }
+      },
+      "timing": {
+        "evaluation_started_at": "2026-10-27T18:52:38.926Z",
+        "lean_compile_ms": 19879.50870001316,
+        "lean_audit_ms": 1231506.7573999763,
+        "lean_compare_ms": null,
+        "lean_total_ms": 180765.76140007377,
+        "evaluation_total_ms": 1727056.8581999838,
+        "total_ms": 1727062.4897999763,
+        "working_ms": 180771.39300006628,
+        "evaluation_ended_at": "2026-10-27T19:21:25.997Z"
+      },
+      "eligibility": {
+        "statement_track": false,
+        "proof_track": false,
+        "reasons": [
+          "reference_statement_unavailable"
+        ]
+      },
+      "outcomes": {
+        "infrastructure_failure": false,
+        "compiled": 1,
+        "audit_clean": 1,
+        "statement_faithful": null,
+        "verified": null
+      },
+      "notes": [],
+      "evaluation_complete": true
+    },
+    {
+      "schema": "qedrank-item-v1",
+      "item_key": "p002_parity__upper_bound__mistral",
+      "paper_id": "p002_parity",
+      "target_kind": "upper_bound",
+      "provider": "mistral",
+      "model_display_name": "fixture · Leanstral",
+      "model_id": "fixture:mistral",
+      "model_label": "Leanstral",
+      "api_host": null,
+      "response_model": null,
+      "setting": "pass@1",
+      "attempt": 1,
+      "repair_round": 0,
+      "mathematical_status": "established",
+      "reference_proof_status": "complete",
+      "reference_statement_available": false,
+      "contamination": {
+        "model_training_cutoff": null,
+        "problem_publication_date": null,
+        "published_before_cutoff": null,
+        "public_formal_proof": null
+      },
+      "generation": {
+        "mode": "fixture",
+        "error": null,
+        "http_status": null,
+        "finish_reason": "fixture",
+        "observed_latency_ms": 6.2360000014305115,
+        "working_ms": 6.2360000014305115,
+        "usage": null,
+        "reasoning_chars": null,
+        "provider_attempts": 1,
+        "retry_wait_ms": null,
+        "truncated": false,
+        "prompt_hash": "230c960179205288937aaa46d458c4112cdf2575422673369639987255272715",
+        "prompt_template_version": "qedrank-prompt-v2",
+        "temperature": 0,
+        "max_tokens": 16384,
+        "timeout_ms": 300000,
+        "started_at": "2026-10-27T18:53:07.473Z",
+        "ended_at": "2026-10-27T18:53:07.479Z",
+        "response_chars": 238
+      },
+      "parse": {
+        "notes": [],
+        "parts_found": 4,
+        "has_statement": false,
+        "has_proof_file": false,
+        "mapping_chars": 21
+      },
+      "confidence": {
+        "statement": 10,
+        "proof": 0
+      },
+      "abstained": true,
+      "static_screen": null,
+      "statement_compile": null,
+      "model_statement_declaration": null,
+      "compile": {
+        "status": "not_attempted",
+        "reason": "abstained"
+      },
+      "audit": {
+        "status": "not_audited",
+        "static_flags": []
+      },
+      "ab_consistency": null,
+      "comparison": {
+        "statement_match": "not_evaluated",
+        "method": "none",
+        "evidence": {
+          "notes": [
+            "not_eligible"
+          ]
+        },
+        "source": "automated",
+        "script_status": "not_attempted"
+      },
+      "statement_match": "not_evaluated",
+      "statement_match_source": "automated",
+      "loc": null,
+      "timing": {
+        "evaluation_started_at": "2026-10-27T18:53:07.483Z",
+        "lean_compile_ms": null,
+        "lean_audit_ms": 0.015499979257583618,
+        "lean_compare_ms": null,
+        "lean_total_ms": 0,
+        "evaluation_total_ms": 5.9664000272750854,
+        "total_ms": 12.202400028705597,
+        "working_ms": 6.2360000014305115,
+        "evaluation_ended_at": "2026-10-27T18:53:07.489Z"
+      },
+      "eligibility": {
+        "statement_track": false,
+        "proof_track": false,
+        "reasons": [
+          "reference_statement_unavailable"
+        ]
+      },
+      "outcomes": {
+        "infrastructure_failure": false,
+        "compiled": null,
+        "audit_clean": null,
+        "statement_faithful": null,
+        "verified": null
+      },
+      "notes": [
+        "no_statement_returned"
+      ],
+      "evaluation_complete": true
+    },
+    {
+      "schema": "qedrank-item-v1",
+      "item_key": "p002_parity__upper_bound__qwen",
+      "paper_id": "p002_parity",
+      "target_kind": "upper_bound",
+      "provider": "qwen",
+      "model_display_name": "fixture · Qwen3 30B-A3B Instruct",
+      "model_id": "fixture:qwen",
+      "model_label": "Qwen3 30B-A3B Instruct",
+      "api_host": null,
+      "response_model": null,
+      "setting": "pass@1",
+      "attempt": 1,
+      "repair_round": 0,
+      "mathematical_status": "established",
+      "reference_proof_status": "complete",
+      "reference_statement_available": false,
+      "contamination": {
+        "model_training_cutoff": null,
+        "problem_publication_date": null,
+        "published_before_cutoff": null,
+        "public_formal_proof": null
+      },
+      "generation": {
+        "mode": "fixture",
+        "error": null,
+        "http_status": null,
+        "finish_reason": "fixture",
+        "observed_latency_ms": 7.400600016117096,
+        "working_ms": 7.400600016117096,
+        "usage": null,
+        "reasoning_chars": null,
+        "provider_attempts": 1,
+        "retry_wait_ms": null,
+        "truncated": false,
+        "prompt_hash": "230c960179205288937aaa46d458c4112cdf2575422673369639987255272715",
+        "prompt_template_version": "qedrank-prompt-v2",
+        "temperature": 0,
+        "max_tokens": 16384,
+        "timeout_ms": 300000,
+        "started_at": "2026-10-27T18:51:30.664Z",
+        "ended_at": "2026-10-27T18:51:30.672Z",
+        "response_chars": 372
+      },
+      "parse": {
+        "notes": [],
+        "parts_found": 4,
+        "has_statement": true,
+        "has_proof_file": false,
+        "mapping_chars": 106
+      },
+      "confidence": {
+        "statement": 5,
+        "proof": 0
+      },
+      "abstained": true,
+      "static_screen": null,
+      "statement_compile": {
+        "label": "stmt:p002_parity__upper_bound__qwen",
+        "file": "C:\\QEDRank\\QEDRank_java\\qedrank\\test\\fixtures\\runs\\e2e-formalize\\items\\p002_parity__upper_bound__qwen\\lean\\QRSM_p002_parity_upper_bound_qwen_a1r0.lean",
+        "status": "compiler_success",
+        "exit_code": 0,
+        "timed_out": false,
+        "duration_ms": 253331.53449997306,
+        "messages": [
+          {
+            "severity": "warning",
+            "line": 6,
+            "column": 8,
+            "file": "C:\\QEDRank\\QEDRank_java\\qedrank\\test\\fixtures\\runs\\e2e-formalize\\items\\p002_parity__upper_bound__qwen\\lean\\QRSM_p002_parity_upper_bound_qwen_a1r0.lean",
+            "text": "declaration uses `sorry`"
+          }
+        ],
+        "error_count": 0,
+        "warning_count": 1,
+        "stdout_tail": "{\"caption\":\"\",\"data\":\"declaration uses `sorry`\",\"endPos\":{\"column\":29,\"line\":6},\"fileName\":\"C:\\\\QEDRank\\\\QEDRank_java\\\\qedrank\\\\test\\\\fixtures\\\\runs\\\\e2e-formalize\\\\items\\\\p002_parity__upper_bound__qwen\\\\lean\\\\QRSM_p002_parity_upper_bound_qwen_a1r0.lean\",\"isSilent\":false,\"keepFullRange\":false,\"kind\":\"hasSorry\",\"pos\":{\"column\":8,\"line\":6},\"severity\":\"warning\"}\n",
+        "stderr_tail": "",
+        "started_at": "2026-10-27T18:53:55.839Z",
+        "ended_at": "2026-10-27T18:58:09.171Z",
+        "limits": {
+          "timeout_ms": 600000,
+          "memory_mb": 8192,
+          "max_heartbeats": 400000
+        },
+        "lean_version": "Lean (version 4.34.1, x86_64-w64-windows-gnu, commit 5045d0056413266e57c625dcd7c365b10e377c52, Release)",
+        "infra_reason": null,
+        "module": "QRSM_p002_parity_upper_bound_qwen_a1r0",
+        "src_sha256": "5afb4e6423d535314d1a440656214bce6a6a7d4fac7b8af2931bb67ff62acdf4",
+        "olean": "C:\\QEDRank\\QEDRank_java\\qedrank\\test\\fixtures\\runs\\e2e-formalize\\items\\p002_parity__upper_bound__qwen\\lean\\QRSM_p002_parity_upper_bound_qwen_a1r0.olean",
+        "resolved_declaration": "QRModel.placeholder_statement",
+        "definitions": []
+      },
+      "model_statement_declaration": "placeholder_statement",
+      "compile": {
+        "status": "not_attempted",
+        "reason": "abstained"
+      },
+      "audit": {
+        "status": "not_audited",
+        "static_flags": []
+      },
+      "ab_consistency": null,
+      "comparison": {
+        "statement_match": "not_evaluated",
+        "method": "none",
+        "evidence": {
+          "notes": [
+            "not_eligible"
+          ]
+        },
+        "source": "automated",
+        "script_status": "not_attempted"
+      },
+      "statement_match": "not_evaluated",
+      "statement_match_source": "automated",
+      "loc": null,
+      "timing": {
+        "evaluation_started_at": "2026-10-27T18:51:30.675Z",
+        "lean_compile_ms": null,
+        "lean_audit_ms": 0.008699983358383179,
+        "lean_compare_ms": null,
+        "lean_total_ms": 580275.2927999794,
+        "evaluation_total_ms": 876594.9056000113,
+        "total_ms": 876602.3062000275,
+        "working_ms": 580282.6933999956,
+        "evaluation_ended_at": "2026-10-27T19:06:07.270Z"
+      },
+      "eligibility": {
+        "statement_track": false,
+        "proof_track": false,
+        "reasons": [
+          "reference_statement_unavailable"
+        ]
+      },
+      "outcomes": {
+        "infrastructure_failure": false,
+        "compiled": null,
+        "audit_clean": null,
+        "statement_faithful": null,
+        "verified": null
+      },
+      "notes": [],
+      "evaluation_complete": true
+    },
+    {
+      "schema": "qedrank-item-v1",
+      "item_key": "p003_open__main_theorem__fable",
+      "paper_id": "p003_open",
+      "target_kind": "main_theorem",
+      "provider": "fable",
+      "model_display_name": "fixture · Claude Fable 5.1",
+      "model_id": "fixture:fable",
+      "model_label": "Claude Fable 5.1",
+      "api_host": null,
+      "response_model": null,
+      "setting": "pass@1",
+      "attempt": 1,
+      "repair_round": 0,
+      "mathematical_status": "open",
+      "reference_proof_status": "invalid",
+      "reference_statement_available": false,
+      "contamination": {
+        "model_training_cutoff": "2026-06",
+        "problem_publication_date": null,
+        "published_before_cutoff": null,
+        "public_formal_proof": null
+      },
+      "generation": {
+        "mode": "fixture",
+        "error": null,
+        "http_status": null,
+        "finish_reason": "fixture",
+        "observed_latency_ms": 5.386700004339218,
+        "working_ms": 5.386700004339218,
+        "usage": null,
+        "reasoning_chars": null,
+        "provider_attempts": 1,
+        "retry_wait_ms": null,
+        "truncated": false,
+        "prompt_hash": "fdc04bec2321e3ac69a69969b64b5ebccea9d318a8da8ddb57f0e62562ebee1b",
+        "prompt_template_version": "qedrank-prompt-v2",
+        "temperature": 0,
+        "max_tokens": 16384,
+        "timeout_ms": 300000,
+        "started_at": "2026-10-27T19:11:06.579Z",
+        "ended_at": "2026-10-27T19:11:06.585Z",
+        "response_chars": 311
+      },
+      "parse": {
+        "notes": [],
+        "parts_found": 4,
+        "has_statement": false,
+        "has_proof_file": false,
+        "mapping_chars": 61
+      },
+      "confidence": {
+        "statement": 15,
+        "proof": 0
+      },
+      "abstained": true,
+      "static_screen": null,
+      "statement_compile": null,
+      "model_statement_declaration": null,
+      "compile": {
+        "status": "not_attempted",
+        "reason": "abstained"
+      },
+      "audit": {
+        "status": "not_audited",
+        "static_flags": []
+      },
+      "ab_consistency": null,
+      "comparison": {
+        "statement_match": "not_evaluated",
+        "method": "none",
+        "evidence": {
+          "notes": [
+            "not_eligible"
+          ]
+        },
+        "source": "automated",
+        "script_status": "not_attempted"
+      },
+      "statement_match": "not_evaluated",
+      "statement_match_source": "automated",
+      "loc": null,
+      "timing": {
+        "evaluation_started_at": "2026-10-27T19:11:06.587Z",
+        "lean_compile_ms": null,
+        "lean_audit_ms": 0.003500014543533325,
+        "lean_compare_ms": null,
+        "lean_total_ms": 0,
+        "evaluation_total_ms": 7.268299996852875,
+        "total_ms": 12.655000001192093,
+        "working_ms": 5.386700004339218,
+        "evaluation_ended_at": "2026-10-27T19:11:06.595Z"
+      },
+      "eligibility": {
+        "statement_track": false,
+        "proof_track": false,
+        "reasons": [
+          "reference_statement_unavailable",
+          "mathematical_status_open"
+        ]
+      },
+      "outcomes": {
+        "infrastructure_failure": false,
+        "compiled": null,
+        "audit_clean": null,
+        "statement_faithful": null,
+        "verified": null
+      },
+      "notes": [
+        "no_statement_returned"
+      ],
+      "evaluation_complete": true
+    },
+    {
+      "schema": "qedrank-item-v1",
+      "item_key": "p003_open__main_theorem__glm",
+      "paper_id": "p003_open",
+      "target_kind": "main_theorem",
+      "provider": "glm",
+      "model_display_name": "fixture · GLM-5.3 Flash",
+      "model_id": "fixture:glm",
+      "model_label": "GLM-5.3 Flash",
+      "api_host": null,
+      "response_model": null,
+      "setting": "pass@1",
+      "attempt": 1,
+      "repair_round": 0,
+      "mathematical_status": "open",
+      "reference_proof_status": "invalid",
+      "reference_statement_available": false,
+      "contamination": {
+        "model_training_cutoff": null,
+        "problem_publication_date": null,
+        "published_before_cutoff": null,
+        "public_formal_proof": null
+      },
+      "generation": {
+        "mode": "fixture",
+        "error": null,
+        "http_status": null,
+        "finish_reason": "fixture",
+        "observed_latency_ms": 5.033600002527237,
+        "working_ms": 5.033600002527237,
+        "usage": null,
+        "reasoning_chars": null,
+        "provider_attempts": 1,
+        "retry_wait_ms": null,
+        "truncated": false,
+        "prompt_hash": "fdc04bec2321e3ac69a69969b64b5ebccea9d318a8da8ddb57f0e62562ebee1b",
+        "prompt_template_version": "qedrank-prompt-v2",
+        "temperature": 0,
+        "max_tokens": 16384,
+        "timeout_ms": 300000,
+        "started_at": "2026-10-27T19:11:06.555Z",
+        "ended_at": "2026-10-27T19:11:06.560Z",
+        "response_chars": 361
+      },
+      "parse": {
+        "notes": [],
+        "parts_found": 4,
+        "has_statement": false,
+        "has_proof_file": false,
+        "mapping_chars": 76
+      },
+      "confidence": {
+        "statement": 10,
+        "proof": 0
+      },
+      "abstained": true,
+      "static_screen": null,
+      "statement_compile": null,
+      "model_statement_declaration": null,
+      "compile": {
+        "status": "not_attempted",
+        "reason": "abstained"
+      },
+      "audit": {
+        "status": "not_audited",
+        "static_flags": []
+      },
+      "ab_consistency": null,
+      "comparison": {
+        "statement_match": "not_evaluated",
+        "method": "none",
+        "evidence": {
+          "notes": [
+            "not_eligible"
+          ]
+        },
+        "source": "automated",
+        "script_status": "not_attempted"
+      },
+      "statement_match": "not_evaluated",
+      "statement_match_source": "automated",
+      "loc": null,
+      "timing": {
+        "evaluation_started_at": "2026-10-27T19:11:06.563Z",
+        "lean_compile_ms": null,
+        "lean_audit_ms": 0.005600005388259888,
+        "lean_compare_ms": null,
+        "lean_total_ms": 0,
+        "evaluation_total_ms": 6.975199997425079,
+        "total_ms": 12.008799999952316,
+        "working_ms": 5.033600002527237,
+        "evaluation_ended_at": "2026-10-27T19:11:06.570Z"
+      },
+      "eligibility": {
+        "statement_track": false,
+        "proof_track": false,
+        "reasons": [
+          "reference_statement_unavailable",
+          "mathematical_status_open"
+        ]
+      },
+      "outcomes": {
+        "infrastructure_failure": false,
+        "compiled": null,
+        "audit_clean": null,
+        "statement_faithful": null,
+        "verified": null
+      },
+      "notes": [
+        "no_statement_returned"
+      ],
+      "evaluation_complete": true
+    },
+    {
+      "schema": "qedrank-item-v1",
+      "item_key": "p003_open__main_theorem__mistral",
+      "paper_id": "p003_open",
+      "target_kind": "main_theorem",
+      "provider": "mistral",
+      "model_display_name": "fixture · Leanstral",
+      "model_id": "fixture:mistral",
+      "model_label": "Leanstral",
+      "api_host": null,
+      "response_model": null,
+      "setting": "pass@1",
+      "attempt": 1,
+      "repair_round": 0,
+      "mathematical_status": "open",
+      "reference_proof_status": "invalid",
+      "reference_statement_available": false,
+      "contamination": {
+        "model_training_cutoff": null,
+        "problem_publication_date": null,
+        "published_before_cutoff": null,
+        "public_formal_proof": null
+      },
+      "generation": {
+        "mode": "fixture",
+        "error": null,
+        "http_status": null,
+        "finish_reason": "fixture",
+        "observed_latency_ms": 1.5165999829769135,
+        "working_ms": 1.5165999829769135,
+        "usage": null,
+        "reasoning_chars": null,
+        "provider_attempts": 1,
+        "retry_wait_ms": null,
+        "truncated": false,
+        "prompt_hash": "fdc04bec2321e3ac69a69969b64b5ebccea9d318a8da8ddb57f0e62562ebee1b",
+        "prompt_template_version": "qedrank-prompt-v2",
+        "temperature": 0,
+        "max_tokens": 16384,
+        "timeout_ms": 300000,
+        "started_at": "2026-10-27T19:11:06.603Z",
+        "ended_at": "2026-10-27T19:11:06.605Z",
+        "response_chars": 238
+      },
+      "parse": {
+        "notes": [],
+        "parts_found": 4,
+        "has_statement": false,
+        "has_proof_file": false,
+        "mapping_chars": 21
+      },
+      "confidence": {
+        "statement": 10,
+        "proof": 0
+      },
+      "abstained": true,
+      "static_screen": null,
+      "statement_compile": null,
+      "model_statement_declaration": null,
+      "compile": {
+        "status": "not_attempted",
+        "reason": "abstained"
+      },
+      "audit": {
+        "status": "not_audited",
+        "static_flags": []
+      },
+      "ab_consistency": null,
+      "comparison": {
+        "statement_match": "not_evaluated",
+        "method": "none",
+        "evidence": {
+          "notes": [
+            "not_eligible"
+          ]
+        },
+        "source": "automated",
+        "script_status": "not_attempted"
+      },
+      "statement_match": "not_evaluated",
+      "statement_match_source": "automated",
+      "loc": null,
+      "timing": {
+        "evaluation_started_at": "2026-10-27T19:11:06.607Z",
+        "lean_compile_ms": null,
+        "lean_audit_ms": 0.005299985408782959,
+        "lean_compare_ms": null,
+        "lean_total_ms": 0,
+        "evaluation_total_ms": 5.451100021600723,
+        "total_ms": 6.967700004577637,
+        "working_ms": 1.5165999829769135,
+        "evaluation_ended_at": "2026-10-27T19:11:06.613Z"
+      },
+      "eligibility": {
+        "statement_track": false,
+        "proof_track": false,
+        "reasons": [
+          "reference_statement_unavailable",
+          "mathematical_status_open"
+        ]
+      },
+      "outcomes": {
+        "infrastructure_failure": false,
+        "compiled": null,
+        "audit_clean": null,
+        "statement_faithful": null,
+        "verified": null
+      },
+      "notes": [
+        "no_statement_returned"
+      ],
+      "evaluation_complete": true
+    },
+    {
+      "schema": "qedrank-item-v1",
+      "item_key": "p003_open__main_theorem__qwen",
+      "paper_id": "p003_open",
+      "target_kind": "main_theorem",
+      "provider": "qwen",
+      "model_display_name": "fixture · Qwen3 30B-A3B Instruct",
+      "model_id": "fixture:qwen",
+      "model_label": "Qwen3 30B-A3B Instruct",
+      "api_host": null,
+      "response_model": null,
+      "setting": "pass@1",
+      "attempt": 1,
+      "repair_round": 0,
+      "mathematical_status": "open",
+      "reference_proof_status": "invalid",
+      "reference_statement_available": false,
+      "contamination": {
+        "model_training_cutoff": null,
+        "problem_publication_date": null,
+        "published_before_cutoff": null,
+        "public_formal_proof": null
+      },
+      "generation": {
+        "mode": "fixture",
+        "error": null,
+        "http_status": null,
+        "finish_reason": "fixture",
+        "observed_latency_ms": 13.368900001049042,
+        "working_ms": 13.368900001049042,
+        "usage": null,
+        "reasoning_chars": null,
+        "provider_attempts": 1,
+        "retry_wait_ms": null,
+        "truncated": false,
+        "prompt_hash": "fdc04bec2321e3ac69a69969b64b5ebccea9d318a8da8ddb57f0e62562ebee1b",
+        "prompt_template_version": "qedrank-prompt-v2",
+        "temperature": 0,
+        "max_tokens": 16384,
+        "timeout_ms": 300000,
+        "started_at": "2026-10-27T19:10:01.537Z",
+        "ended_at": "2026-10-27T19:10:01.550Z",
+        "response_chars": 372
+      },
+      "parse": {
+        "notes": [],
+        "parts_found": 4,
+        "has_statement": true,
+        "has_proof_file": false,
+        "mapping_chars": 106
+      },
+      "confidence": {
+        "statement": 5,
+        "proof": 0
+      },
+      "abstained": true,
+      "static_screen": null,
+      "statement_compile": {
+        "label": "stmt:p003_open__main_theorem__qwen",
+        "file": "C:\\QEDRank\\QEDRank_java\\qedrank\\test\\fixtures\\runs\\e2e-formalize\\items\\p003_open__main_theorem__qwen\\lean\\QRSM_p003_open_main_theorem_qwen_a1r0.lean",
+        "status": "compiler_success",
+        "exit_code": 0,
+        "timed_out": false,
+        "duration_ms": 372990.9010000229,
+        "messages": [
+          {
+            "severity": "warning",
+            "line": 6,
+            "column": 8,
+            "file": "C:\\QEDRank\\QEDRank_java\\qedrank\\test\\fixtures\\runs\\e2e-formalize\\items\\p003_open__main_theorem__qwen\\lean\\QRSM_p003_open_main_theorem_qwen_a1r0.lean",
+            "text": "declaration uses `sorry`"
+          }
+        ],
+        "error_count": 0,
+        "warning_count": 1,
+        "stdout_tail": "{\"caption\":\"\",\"data\":\"declaration uses `sorry`\",\"endPos\":{\"column\":29,\"line\":6},\"fileName\":\"C:\\\\QEDRank\\\\QEDRank_java\\\\qedrank\\\\test\\\\fixtures\\\\runs\\\\e2e-formalize\\\\items\\\\p003_open__main_theorem__qwen\\\\lean\\\\QRSM_p003_open_main_theorem_qwen_a1r0.lean\",\"isSilent\":false,\"keepFullRange\":false,\"kind\":\"hasSorry\",\"pos\":{\"column\":8,\"line\":6},\"severity\":\"warning\"}\n",
+        "stderr_tail": "",
+        "started_at": "2026-10-27T19:14:54.952Z",
+        "ended_at": "2026-10-27T19:21:07.943Z",
+        "limits": {
+          "timeout_ms": 600000,
+          "memory_mb": 8192,
+          "max_heartbeats": 400000
+        },
+        "lean_version": "Lean (version 4.34.1, x86_64-w64-windows-gnu, commit 5045d0056413266e57c625dcd7c365b10e377c52, Release)",
+        "infra_reason": null,
+        "module": "QRSM_p003_open_main_theorem_qwen_a1r0",
+        "src_sha256": "5afb4e6423d535314d1a440656214bce6a6a7d4fac7b8af2931bb67ff62acdf4",
+        "olean": "C:\\QEDRank\\QEDRank_java\\qedrank\\test\\fixtures\\runs\\e2e-formalize\\items\\p003_open__main_theorem__qwen\\lean\\QRSM_p003_open_main_theorem_qwen_a1r0.olean",
+        "resolved_declaration": "QRModel.placeholder_statement",
+        "definitions": []
+      },
+      "model_statement_declaration": "placeholder_statement",
+      "compile": {
+        "status": "not_attempted",
+        "reason": "abstained"
+      },
+      "audit": {
+        "status": "not_audited",
+        "static_flags": []
+      },
+      "ab_consistency": null,
+      "comparison": {
+        "statement_match": "not_evaluated",
+        "method": "none",
+        "evidence": {
+          "notes": [
+            "not_eligible"
+          ]
+        },
+        "source": "automated",
+        "script_status": "not_attempted"
+      },
+      "statement_match": "not_evaluated",
+      "statement_match_source": "automated",
+      "loc": null,
+      "timing": {
+        "evaluation_started_at": "2026-10-27T19:10:01.553Z",
+        "lean_compile_ms": null,
+        "lean_audit_ms": 0.0033999979496002197,
+        "lean_compare_ms": null,
+        "lean_total_ms": 707435.3944000304,
+        "evaluation_total_ms": 1073692.0967000127,
+        "total_ms": 1073705.4656000137,
+        "working_ms": 707448.7633000314,
+        "evaluation_ended_at": "2026-10-27T19:27:55.242Z"
+      },
+      "eligibility": {
+        "statement_track": false,
+        "proof_track": false,
+        "reasons": [
+          "reference_statement_unavailable",
+          "mathematical_status_open"
+        ]
+      },
+      "outcomes": {
+        "infrastructure_failure": false,
+        "compiled": null,
+        "audit_clean": null,
+        "statement_faithful": null,
+        "verified": null
+      },
+      "notes": [],
+      "evaluation_complete": true
+    }
+  ]
+}

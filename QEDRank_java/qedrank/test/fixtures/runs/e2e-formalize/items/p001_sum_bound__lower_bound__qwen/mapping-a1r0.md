@@ -1,0 +1,1 @@
+The excerpt does not determine the claim; I return a trivial placeholder statement, which is NOT faithful.

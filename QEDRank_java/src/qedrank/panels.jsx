@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import axios from 'axios'
+import { useAppState } from '../state/AppState.jsx'
 import { TARGET_KINDS, TARGET_LABELS, download } from './helpers.js'
 
 const STAGES = ['discovery', 'preparation', 'generation', 'compilation', 'audit', 'comparison', 'statistics']
@@ -83,13 +84,19 @@ const TASKS = [
   { id: 'prove', label: 'Prove the given statement (fill the sorry)', note: 'The challenge file is sent as it is; the completed file is checked for compilation, no sorry, standard axioms, unchanged statement and definitions as compiled, and kernel replay. Needs no PDF. The task ProofBench is built for.' },
   { id: 'formalize', label: 'Formalize statement and proof from the paper', note: 'The model writes the Lean statement from the paper text and proves it; its statement is compared with the audited reference. Needs the paper PDF.' },
 ]
+const EFFORTS = ['low', 'medium', 'high', 'xhigh', 'max']
+
+/** One line for a run configuration's generation block, as the launcher lists it. */
+function describeGeneration(g = {}) {
+  return `attempts ${g.attempts ?? 1} · T ${g.temperature ?? 0} · effort ${g.effort ?? 'default'} · ${(g.maxTokens ?? 16384).toLocaleString()} tokens · ${Math.round((g.timeoutMs ?? 300000) / 60000)} min · ${g.providerConcurrency ?? 1} in flight`
+}
 
 export function RunLauncher({ manifest, selectedModels = [], onLoaded = null }) {
   const src = manifest.source || {}
   const papers = manifest.papers || []
   const ids = papers.map((p) => p.paper_id)
   const withPdf = papers.filter((p) => p.pdf).map((p) => p.paper_id)
-  const [base, setBase] = useState('http://127.0.0.1:8787')
+  const { runServer: base, setRunServer: setBase } = useAppState()
   const [task, setTask] = useState('prove')
   const [targets, setTargets] = useState(['main_theorem'])
   const [papersText, setPapersText] = useState(ids.slice(0, 5).join(','))
@@ -108,6 +115,11 @@ export function RunLauncher({ manifest, selectedModels = [], onLoaded = null }) 
   const [harness, setHarness] = useState('qedrank-single')
   const [harnesses, setHarnesses] = useState(null)
   const [attempts, setAttempts] = useState(1)
+  // Run configurations (configs/*.json on the run server's machine) and generation settings for
+  // the single-call protocol; a chosen configuration sets the defaults, the fields override it.
+  const [configs, setConfigs] = useState([])
+  const [runConfig, setRunConfig] = useState('')
+  const [gen, setGen] = useState({ temperature: '', effort: '', maxTokens: '', timeoutMin: '', inFlight: '' })
   const [limits, setLimits] = useState({ sessions: 10, sessionOutputTokens: 30000, sessionWorkingTime: 1800, maxTokens: 16000, timeLimit: '', messageLimit: '', maxSamples: 2, maxCostUsd: '' })
   const [effort, setEffort] = useState('')
   const [comparator, setComparator] = useState(true)
@@ -120,7 +132,31 @@ export function RunLauncher({ manifest, selectedModels = [], onLoaded = null }) 
     axios.get(`${base}/harnesses`, { timeout: 4000 }).then((r) => { if (alive) setHarnesses(r.data.harnesses || []) }).catch(() => { if (alive) setHarnesses(null) })
     return () => { alive = false }
   }, [base])
+  useEffect(() => {
+    let alive = true
+    axios.get(`${base}/configs`, { timeout: 4000 }).then((r) => { if (alive) setConfigs((r.data.configs || []).filter((c) => !c.error)) }).catch(() => { if (alive) setConfigs([]) })
+    return () => { alive = false }
+  }, [base])
   const harnessInfo = harnesses?.find((h) => h.id === harness) || null
+  const cfgGen = configs.find((c) => c.file === runConfig)?.generation || {}
+  const chooseConfig = (file) => {
+    setRunConfig(file)
+    const g = configs.find((c) => c.file === file)?.generation
+    if (g?.attempts) setAttempts(Math.max(1, Math.min(16, Number(g.attempts))))
+  }
+  // Attempts above 1 need sampling: when neither a field nor the configuration gives a temperature above 0, 1.0 is sent.
+  const effectiveTemperature = gen.temperature !== '' ? Number(gen.temperature) : (cfgGen.temperature ?? 0)
+  const autoTemperature = harness !== 'proofbench' && attempts > 1 && !(effectiveTemperature > 0)
+  const temperatureToSend = gen.temperature !== '' ? Number(gen.temperature) : autoTemperature ? 1 : undefined
+  const genRequest = {
+    config: runConfig || undefined,
+    temperature: temperatureToSend,
+    effort: gen.effort || undefined,
+    maxTokens: gen.maxTokens !== '' ? Number(gen.maxTokens) : undefined,
+    timeoutMs: gen.timeoutMin !== '' ? Math.round(Number(gen.timeoutMin) * 60000) : undefined,
+    providerConcurrency: gen.inFlight !== '' ? Number(gen.inFlight) : undefined,
+  }
+  const genFlags = [runConfig ? `--config configs/${runConfig}` : '', temperatureToSend !== undefined ? `--temperature ${temperatureToSend}` : '', gen.effort ? `--effort ${gen.effort}` : '', genRequest.maxTokens !== undefined ? `--max-tokens ${genRequest.maxTokens}` : '', genRequest.timeoutMs !== undefined ? `--timeout-ms ${genRequest.timeoutMs}` : '', genRequest.providerConcurrency !== undefined ? `--provider-concurrency ${genRequest.providerConcurrency}` : '']
   const difficulties = [...new Set(papers.map((p) => p.difficulty).filter(Boolean))].sort()
   const subjects = [...new Set(papers.flatMap((p) => p.subject_tags || []))].sort()
   const applyFilters = () => setPapersText(papers.filter((p) => (!difficulty || p.difficulty === difficulty) && (!subject || (p.subject_tags || []).includes(subject))).map((p) => p.paper_id).join(','))
@@ -133,10 +169,12 @@ export function RunLauncher({ manifest, selectedModels = [], onLoaded = null }) 
       command: 'run', repo: src.url, ref: src.commit, subdir: src.subdir || undefined,
       models: selectedModels, targets, papers: problemList,
       runId: runId.trim(), task, leanProject: leanProject.trim() || undefined, dryRun,
+      attempts: attempts > 1 ? attempts : undefined,
+      ...genRequest,
     }
   const commandLine = agentRun
     ? ['node qedrank/cli.js agent-run', `--run-id ${runId.trim() || '<id>'}`, `--models ${selectedModels.join(',') || '<models>'}`, `--problems ${problemList.join(',') || '<problems>'}`, `--attempts ${attempts}`, `--ref ${src.commit}`, ...Object.entries(limits).filter(([, v]) => v !== '' && v !== null).map(([k, v]) => `--${k.replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`)} ${v}`), effort ? `--effort ${effort}` : '', comparator ? '' : '--comparator off', retryInfra ? '--retry-infra' : '', regrade ? '--regrade' : ''].filter(Boolean).join(' ')
-    : ['node qedrank/cli.js run', `--repo ${src.url}`, `--ref ${src.commit}`, src.subdir ? `--subdir "${src.subdir}"` : '', `--models ${selectedModels.join(',') || '<models>'}`, targets.length ? `--targets ${targets.join(',')}` : '', problemList.length ? `--papers ${problemList.join(',')}` : '', task !== 'formalize' ? `--task ${task}` : '', leanProject.trim() ? `--lean-project "${leanProject.trim()}"` : '', dryRun ? '--dry-run' : '', `--run-id ${runId.trim() || '<id>'}`].filter(Boolean).join(' ')
+    : ['node qedrank/cli.js run', `--repo ${src.url}`, `--ref ${src.commit}`, src.subdir ? `--subdir "${src.subdir}"` : '', `--models ${selectedModels.join(',') || '<models>'}`, targets.length ? `--targets ${targets.join(',')}` : '', problemList.length ? `--papers ${problemList.join(',')}` : '', task !== 'formalize' ? `--task ${task}` : '', attempts > 1 ? `--attempts ${attempts}` : '', ...genFlags, leanProject.trim() ? `--lean-project "${leanProject.trim()}"` : '', dryRun ? '--dry-run' : '', `--run-id ${runId.trim() || '<id>'}`].filter(Boolean).join(' ')
 
   const stopPolling = () => { if (timer.current) { clearInterval(timer.current); timer.current = null } }
   useEffect(() => () => stopPolling(), [])
@@ -191,6 +229,13 @@ export function RunLauncher({ manifest, selectedModels = [], onLoaded = null }) 
   }
 
   const running = job && (job.status === 'running' || job.status === 'stopping')
+  // A finished job's run is loaded into Evaluation by itself: nothing to click, no second step.
+  const autoLoaded = useRef(null)
+  useEffect(() => {
+    if (!job || !onLoaded || running) return
+    if (autoLoaded.current !== job.id) { autoLoaded.current = job.id; loadRun() }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [job?.id, running])
   return (
     <div className="qr-launch">
       <h3>2. Run the benchmark from here</h3>
@@ -240,7 +285,7 @@ export function RunLauncher({ manifest, selectedModels = [], onLoaded = null }) 
         {difficulties.length === 0 && subjects.length === 0 && <div className="qr-small">This corpus carries no difficulty or subject labels; the results show them as “Unknown”.</div>}
         <label>Run id<input value={runId} onChange={(e) => setRunId(e.target.value)} /></label>
         <label>Independent attempts per problem and model (1–16)<input type="number" min="1" max="16" value={attempts} onChange={(e) => setAttempts(Math.max(1, Math.min(16, Number(e.target.value) || 1)))} /></label>
-        <div className="qr-small">{agentRun ? 'Each attempt is a separate Inspect run (fresh agent state, fresh sandboxes).' : 'Attempts above 1 need a temperature above 0 (configure it in qedrank.config.json); pass@k is reported for every k up to this number.'}</div>
+        <div className="qr-small">{agentRun ? 'Each attempt is a separate Inspect run (fresh agent state, fresh sandboxes).' : 'pass@k is reported for every k from 1 up to this number (16 at most). Attempts above 1 sample with the temperature below; when none is set, 1.0 is used.'}</div>
         {agentRun ? (
           <>
             <div className="qr-form-row">
@@ -265,6 +310,20 @@ export function RunLauncher({ manifest, selectedModels = [], onLoaded = null }) 
           </>
         ) : (
           <>
+            <label>Run configuration (a file under configs/ on the run server's machine; sets the defaults below)
+              <select className="qr-run-config" value={runConfig} onChange={(e) => chooseConfig(e.target.value)}>
+                <option value="">run defaults — {describeGeneration({})}{configs.length ? '' : ' (the run server lists no configs/*.json)'}</option>
+                {configs.map((c) => <option key={c.file} value={c.file}>{c.file} — {describeGeneration(c.generation)}</option>)}
+              </select>
+            </label>
+            <div className="qr-form-row">
+              <label>Temperature<input type="number" min="0" max="2" step="0.1" value={gen.temperature} onChange={(e) => setGen({ ...gen, temperature: e.target.value })} placeholder={String(cfgGen.temperature ?? 0)} /></label>
+              <label>Reasoning effort<select value={gen.effort} onChange={(e) => setGen({ ...gen, effort: e.target.value })}><option value="">{cfgGen.effort ? `configuration: ${cfgGen.effort}` : 'default (high)'}</option>{EFFORTS.map((x) => <option key={x} value={x}>{x}</option>)}</select></label>
+              <label>Max output tokens<input type="number" min="256" step="1024" value={gen.maxTokens} onChange={(e) => setGen({ ...gen, maxTokens: e.target.value })} placeholder={String(cfgGen.maxTokens ?? 16384)} /></label>
+              <label>Timeout per answer (minutes)<input type="number" min="1" max="120" value={gen.timeoutMin} onChange={(e) => setGen({ ...gen, timeoutMin: e.target.value })} placeholder={String(Math.round((cfgGen.timeoutMs ?? 300000) / 60000))} /></label>
+              <label>Requests in flight per provider<input type="number" min="1" max="16" value={gen.inFlight} onChange={(e) => setGen({ ...gen, inFlight: e.target.value })} placeholder={String(cfgGen.providerConcurrency ?? 1)} /></label>
+            </div>
+            {autoTemperature && <div className="qr-small">Attempts above 1 need sampling: temperature 1.0 will be sent (set a temperature above to change it).</div>}
             <label>Lean project on this machine (optional)<input value={leanProject} onChange={(e) => setLeanProject(e.target.value)} placeholder="default for the prove task: the built ProofBench checkout named in qedrank.config.json (harnesses.proofbench.leanProject, e.g. C:\QEDRank\proofbench-statements); for formalize: this repository's lean/ (Mathlib only). The run stops before any model call if the challenges import a library the project lacks." /></label>
             <label className="qr-check"><input type="checkbox" checked={dryRun} onChange={(e) => setDryRun(e.target.checked)} /> Dry run: discovery and preparation only, no model calls</label>
           </>
@@ -274,7 +333,7 @@ export function RunLauncher({ manifest, selectedModels = [], onLoaded = null }) 
         <div className="qr-form-row">
           <button type="button" className="qr-btn" onClick={start} disabled={running}>{running ? 'Running…' : 'Start run'}</button>
           {running && <button type="button" className="qr-btn qr-btn-secondary" onClick={stop}>Stop</button>}
-          {job && !running && <button type="button" className="qr-btn qr-btn-secondary" onClick={loadRun} disabled={loading}>{loading ? 'Loading…' : 'Load into Evaluation'}</button>}
+          {job && !running && <span className="qr-small">{loading ? 'Loading the run into Evaluation…' : 'The run is loaded into Evaluation (see "Explore the loaded run" below).'}</span>}
         </div>
       </div>
       {error && <div className="error-message">{error}</div>}
@@ -353,59 +412,100 @@ export function ManifestView({ manifest, modelsArg = '' }) {
 }
 
 /* ------------------------------------------------------------------ */
-/* Run loader: local files or the local run server                     */
+/* Runs on this machine: loaded by themselves from the local run server */
 /* ------------------------------------------------------------------ */
 
-export function RunPanel({ onLoaded }) {
-  const [base, setBase] = useState('http://127.0.0.1:8787')
-  const [runs, setRuns] = useState([])
-  const [runId, setRunId] = useState('')
-  const [poll, setPoll] = useState(false)
-  const [status, setStatus] = useState('')
-  const [progress, setProgress] = useState(null)
-  const [runMeta, setRunMeta] = useState(null)
-  const timer = useRef(null)
+/** run.json, progress.json, summary.json and exports/items.json of one run on the run server. */
+export async function fetchRunBundle(base, runId) {
+  const [run, progress, summary, items] = await Promise.all([
+    axios.get(`${base}/runs/${runId}/run.json`).then((r) => r.data),
+    axios.get(`${base}/runs/${runId}/progress.json`).then((r) => r.data).catch(() => null),
+    axios.get(`${base}/runs/${runId}/summary.json`).then((r) => r.data).catch(() => null),
+    axios.get(`${base}/runs/${runId}/exports/items.json`).then((r) => r.data.items).catch(() => null),
+  ])
+  return { run, progress, summary, items }
+}
 
-  const listRuns = async () => {
-    setStatus('')
+function describeBundle(runId, { run, summary, items }) {
+  if (summary) return ''
+  if (items) return 'No summary yet (statistics stage not run). Showing item records only.'
+  const pending = Object.entries(run?.stages || {}).filter(([, s]) => s?.status !== 'done').map(([k, s]) => `${k} ${s?.status || 'pending'}`)
+  return `This run has no results yet${pending.length ? ` (${pending.join(', ')})` : ''}: no model answer has been graded. A dry run stops after preparation. Continue it on your machine with: node qedrank/cli.js resume --run-id ${runId}`
+}
+
+/**
+ * The runs on the local run server, loaded without a dialog: when nothing is loaded yet, the
+ * newest run with statistics (else the newest run) is fetched and shared with every page.
+ * Returns the list, the loading status and `load(runId)` for switching.
+ */
+export function useAutoLoadRun({ auto = true } = {}) {
+  const { loaded, setLoaded, runServer } = useAppState()
+  const [runs, setRuns] = useState(null) // null: the server has not been asked yet
+  const [status, setStatus] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [reachable, setReachable] = useState(null)
+  const attempted = useRef(null)
+  const hasRun = Boolean(loaded.summary || loaded.items)
+
+  const load = async (runId) => {
+    if (!runId) return
+    setBusy(true)
+    setStatus('Loading…')
     try {
-      const res = await axios.get(`${base}/runs`)
-      setRuns(res.data.runs || [])
-      if (!runId && res.data.runs?.length) setRunId(res.data.runs[0].run_id)
+      const bundle = await fetchRunBundle(runServer, runId)
+      setStatus(describeBundle(runId, bundle))
+      setLoaded({ run: bundle.run, summary: bundle.summary, items: bundle.items, server: runServer })
     } catch (err) {
-      setStatus(`Could not reach ${base}: ${err.message}. Start it with: npm run qedrank:serve`)
+      setStatus(`Load failed: ${err.message}`)
+    } finally {
+      setBusy(false)
     }
   }
 
-  const load = async () => {
-    if (!runId) return
-    setStatus('Loading…')
+  const refresh = async () => {
     try {
-      const [run, prog, summary, items] = await Promise.all([
-        axios.get(`${base}/runs/${runId}/run.json`).then((r) => r.data),
-        axios.get(`${base}/runs/${runId}/progress.json`).then((r) => r.data).catch(() => null),
-        axios.get(`${base}/runs/${runId}/summary.json`).then((r) => r.data).catch(() => null),
-        axios.get(`${base}/runs/${runId}/exports/items.json`).then((r) => r.data.items).catch(() => null),
-      ])
-      setRunMeta(run)
-      setProgress(prog)
-      const pendingStages = Object.entries(run?.stages || {}).filter(([, s]) => s?.status !== 'done').map(([k, s]) => `${k} ${s?.status || 'pending'}`)
-      setStatus(summary ? ''
-        : items ? 'No summary yet (statistics stage not run). Showing item records only.'
-        : `This run has no results yet${pendingStages.length ? ` (${pendingStages.join(', ')})` : ''}: no model answer has been graded. A dry run stops after preparation. Continue it on your machine with: node qedrank/cli.js resume --run-id ${runId}`)
-      onLoaded({ run, summary, items, server: base })
+      const res = await axios.get(`${runServer}/runs`, { timeout: 4000 })
+      const list = res.data.runs || []
+      setRuns(list)
+      setReachable(true)
+      if (!list.length) setStatus(`No runs on ${runServer} yet: run a benchmark from Evaluate Models (or node qedrank/cli.js run …); the newest run appears here by itself.`)
+      return list
     } catch (err) {
-      setStatus(`Load failed: ${err.message}`)
+      setRuns([])
+      setReachable(false)
+      setStatus(`No run server at ${runServer} (${err.message}). Start it on this machine with npm run qedrank:serve, then run a benchmark from Evaluate Models; the newest run appears here by itself.`)
+      return []
     }
   }
 
   useEffect(() => {
-    if (poll && runId) {
-      timer.current = setInterval(load, 10000)
-      return () => clearInterval(timer.current)
-    }
-    return undefined
-  }, [poll, runId, base])
+    let alive = true
+    refresh().then((list) => {
+      if (!alive || !auto || hasRun || attempted.current === runServer) return
+      attempted.current = runServer
+      const pick = list.find((r) => r.stages?.statistics?.status === 'done') || list[0]
+      if (pick) load(pick.run_id)
+    })
+    return () => { alive = false }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [runServer])
+
+  return { runs: runs || [], asked: runs !== null, reachable, status, busy, load, refresh, loadedRunId: loaded.summary?.run?.run_id || loaded.run?.run_id || null, runServer }
+}
+
+/**
+ * The runs on this machine as one row: a chooser to switch runs, the loading status, and —
+ * folded away — the run server address and the run files for a page opened without a server.
+ * Nothing to click in the usual case: the newest run is already loaded.
+ */
+export function RunSwitcher({ auto = true, compact = false }) {
+  const { setLoaded, runServer, setRunServer } = useAppState()
+  const { runs, asked, reachable, status, busy, load, refresh, loadedRunId } = useAutoLoadRun({ auto })
+  const [runId, setRunId] = useState('')
+  const [runMeta, setRunMeta] = useState(null)
+  const [fileStatus, setStatus] = useState('')
+  const onLoaded = setLoaded
+  useEffect(() => { if (!runId && loadedRunId) setRunId(loadedRunId) }, [loadedRunId, runId])
 
   const onFiles = async (e) => {
     const files = Array.from(e.target.files || [])
@@ -430,28 +530,31 @@ export function RunPanel({ onLoaded }) {
     onLoaded({ ...bundle, server: null }) // opened from files: proof text cannot be fetched
   }
 
+  const loadedLabel = loadedRunId ? `loaded: ${loadedRunId}` : !asked ? 'looking for runs…' : reachable === false ? 'no run server' : runs.length ? 'no run loaded' : 'no runs yet'
   return (
-    <section className="qr-card">
-      <h2>2. Load a run</h2>
-      <p className="qr-muted">A <b>run</b> is the folder <code>runs/&lt;run id&gt;/</code> that <code>node qedrank/cli.js run …</code> (or <code>resume</code>, or <code>import-agent</code>) writes on your machine: the model answers, the Lean verdicts and the statistics. This page only displays such a folder; it computes nothing itself. Two ways to open one: start the small local server with <code>npm run qedrank:serve</code>, click <b>List runs</b>, choose a run and <b>Load</b> — or pick the run's <code>summary.json</code>, <code>run.json</code> and <code>exports/items.json</code> under <b>Or open files</b>. A <code>manifest.json</code> is the corpus preview, not a run.</p>
+    <section className={compact ? 'qr-run-switch qr-run-switch-compact' : 'qr-card qr-run-switch'} data-loaded-run={loadedRunId || ''} data-run-server={runServer}>
+      {!compact && <h2>Runs on this machine</h2>}
       <div className="qr-form qr-form-row">
-        <label>Run server<input value={base} onChange={(e) => setBase(e.target.value)} /></label>
-        <button type="button" className="qr-btn qr-btn-secondary" onClick={listRuns}>List runs</button>
-        <label>Run
-          <select value={runId} onChange={(e) => setRunId(e.target.value)}>
-            <option value="">— choose —</option>
-            {runs.map((r) => <option key={r.run_id} value={r.run_id}>{r.run_id} · {r.mode} · {r.source?.commit?.slice(0, 8) || 'no source'}</option>)}
+        <label>{compact ? 'Run' : 'Runs on this machine'}
+          <select className="qr-run-select" value={runId} onChange={(e) => setRunId(e.target.value)} disabled={!runs.length}>
+            {!runs.length && <option value="">— {loadedLabel} —</option>}
+            {runs.map((r) => <option key={r.run_id} value={r.run_id}>{r.run_id} · {r.task || r.protocol || r.mode}{r.stages?.statistics?.status === 'done' ? '' : ' · in progress'}</option>)}
           </select>
         </label>
-        <button type="button" className="qr-btn" onClick={load} disabled={!runId}>Load</button>
-        <label className="qr-check"><input type="checkbox" checked={poll} onChange={(e) => setPoll(e.target.checked)} /> Auto-refresh every 10 s (for a run that is still in progress)</label>
+        <button type="button" className="qr-btn" onClick={() => load(runId)} disabled={!runId || busy || runId === loadedRunId}>{busy ? 'Loading…' : runId && runId === loadedRunId ? 'Loaded' : 'Load'}</button>
+        <button type="button" className="qr-btn qr-btn-secondary" onClick={refresh} title={`Ask ${runServer} for its runs again`}>Refresh</button>
+        <span className="qr-small">{loadedLabel}</span>
       </div>
-      <div className="qr-form qr-form-row">
-        <label>Or open files<input type="file" multiple accept="application/json" onChange={onFiles} /></label>
-      </div>
-      {status && <div className="qr-note">{status}</div>}
-      {runMeta && <RunMeta run={runMeta} />}
-      {(progress || runMeta) && <ProgressView run={runMeta} progress={progress} />}
+      {status && <div className={reachable === false ? 'qr-note' : 'qr-small'}>{status}</div>}
+      <details className="qr-small qr-run-switch-more">
+        <summary>Run server and files</summary>
+        <div className="qr-form qr-form-row">
+          <label>Run server<input value={runServer} onChange={(e) => setRunServer(e.target.value)} /></label>
+          <label>Open run files (summary.json, run.json, exports/items.json)<input type="file" multiple accept="application/json" onChange={onFiles} /></label>
+        </div>
+        {fileStatus && <div className="qr-note">{fileStatus}</div>}
+        {runMeta && <RunMeta run={runMeta} />}
+      </details>
     </section>
   )
 }

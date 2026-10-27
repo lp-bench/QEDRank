@@ -1,0 +1,93 @@
+{
+  "paper_id": "p003_open",
+  "target_kind": "main_theorem",
+  "lean_path": "papers/p003_open/main.lean",
+  "sha256": "71430eef3bac5ac16de172b43f8824a7c27016aec7952466935a2a7c15f193de",
+  "declaration_name": "open_claim",
+  "resolved_declaration": null,
+  "reference_proof_status": "invalid",
+  "reference_proof_status_source": "compile_timeout",
+  "compile": {
+    "label": "ref:p003_open:main_theorem:QRP_p003_open.main",
+    "file": "C:\\QEDRank\\QEDRank_java\\qedrank\\test\\fixtures\\runs\\e2e-formalize\\prepared\\p003_open\\lean\\refs\\QRP_p003_open\\main.lean",
+    "status": "timeout",
+    "exit_code": null,
+    "timed_out": false,
+    "duration_ms": 955758.4009999931,
+    "messages": [],
+    "error_count": 0,
+    "warning_count": 0,
+    "stdout_tail": "",
+    "stderr_tail": "",
+    "started_at": "2026-10-27T13:36:00.855Z",
+    "ended_at": "2026-10-27T13:51:56.613Z",
+    "limits": {
+      "timeout_ms": 600000,
+      "memory_mb": 8192,
+      "max_heartbeats": 400000
+    },
+    "lean_version": "Lean (version 4.34.1, x86_64-w64-windows-gnu, commit 5045d0056413266e57c625dcd7c365b10e377c52, Release)",
+    "infra_reason": null
+  },
+  "audit": null,
+  "axioms": null,
+  "static_screen": {
+    "ok": true,
+    "rejections": [],
+    "flags": [
+      "placeholder"
+    ]
+  },
+  "statement_module": "QRSR_p003_open_main_theorem",
+  "statement_compile": {
+    "label": "refstmt:p003_open:main_theorem",
+    "file": "C:\\QEDRank\\QEDRank_java\\qedrank\\test\\fixtures\\runs\\e2e-formalize\\prepared\\p003_open\\lean\\cmp\\QRSR_p003_open_main_theorem.lean",
+    "status": "timeout",
+    "exit_code": null,
+    "timed_out": false,
+    "duration_ms": 4062542.1518999934,
+    "messages": [],
+    "error_count": 0,
+    "warning_count": 0,
+    "stdout_tail": "",
+    "stderr_tail": "",
+    "started_at": "2026-10-27T13:51:56.693Z",
+    "ended_at": "2026-10-27T14:59:39.227Z",
+    "limits": {
+      "timeout_ms": 600000,
+      "memory_mb": 8192,
+      "max_heartbeats": 400000
+    },
+    "lean_version": "Lean (version 4.34.1, x86_64-w64-windows-gnu, commit 5045d0056413266e57c625dcd7c365b10e377c52, Release)",
+    "infra_reason": null,
+    "module": "QRSR_p003_open_main_theorem",
+    "src_sha256": "9442c464995ad088304c2d9d3be698e4d1cd6648c730e84b6fb7ee501f9fbbfd",
+    "olean": null
+  },
+  "statement_declaration": null,
+  "statement_available": false,
+  "definitions_in_statement_module": [],
+  "loc": {
+    "total": 5,
+    "code": 3,
+    "proof": {
+      "total": 2,
+      "code": 2
+    },
+    "rule": "total=newline-separated lines; code=non-blank lines after comment removal; proof=lines from the target declaration's top-level := to the end of the declaration, same code rule"
+  },
+  "flags": [
+    "reference_compile_failed:QRP_p003_open.main:timeout",
+    "reference_statement_module_timeout"
+  ],
+  "prepared_at": "2026-10-27T13:36:00.852Z",
+  "dependency_compiles": [
+    {
+      "module": "QRP_p003_open.main",
+      "status": "timeout",
+      "duration_ms": 955758.4009999931,
+      "error_count": 0
+    }
+  ],
+  "leak_guard": []
+}

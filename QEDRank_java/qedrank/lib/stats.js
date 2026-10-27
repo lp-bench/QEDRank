@@ -260,7 +260,7 @@ export function passAtKLevels(n) {
 }
 
 /** The k values given prominence in summaries and on the page. */
-export const PASS_K_PROMINENT = Object.freeze([1, 2, 4, 8]);
+export const PASS_K_PROMINENT = Object.freeze([1, 2, 4, 8, 16]);
 
 export function meanPerAttempt(attempts) {
   if (attempts.length === 0) return null;

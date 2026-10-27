@@ -4,7 +4,7 @@
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAppState } from '../state/AppState.jsx'
-import { RunPanel } from '../qedrank/panels.jsx'
+import { RunSwitcher } from '../qedrank/panels.jsx'
 import { TARGET_KINDS, TARGET_LABELS, fmtRate, fmtCI, fmtMs, fmtNum, fmtInt, download, toCsv } from '../qedrank/helpers.js'
 import { ChartSizing, Enlargeable, Figure, HBars, GroupedBars, Heatmap, RangeDots, StackedBars, Reliability, PairMatrix, pct1 } from '../charts/primitives.jsx'
 import { shortLabel, slotColor } from '../components/vendor.js'
@@ -68,6 +68,7 @@ export default function EvaluationPage() {
           <span className="eyebrow">QEDRank · evaluation</span>
           <h1>Evaluation matrix &amp; analysis</h1>
           <p>All rates are numerator / eligible denominator at pass@1 with 95% paper-cluster bootstrap intervals. Verified success is the strict primary endpoint; statement fidelity, compilation and audit are reported alongside and never folded into a score.</p>
+          <RunSwitcher compact />
         </div>
         <div className="row">
           {summary && <button className="btn btn-secondary btn-sm" onClick={() => download(`${summary.run?.run_id || 'qedrank'}-summary.json`, JSON.stringify(summary, null, 2), 'application/json')}>Summary JSON</button>}
@@ -95,7 +96,8 @@ function EmptyState({ onLoaded }) {
         <h1>Evaluate Models on a Benchmark</h1>
         <p>Assess how effectively different language models formalize mathematics by running them on a selected benchmark corpus. Each model generates Lean 4 code that is checked by the Lean compiler, allowing you to compare verified proof rates, statement fidelity, Pass@1 and Pass@k performance, error patterns, response latency, token usage, computational cost, resource consumption, and results across different difficulty levels and mathematical subject areas.</p>
       </div>
-      <RunPanel onLoaded={onLoaded} />
+      {/* The newest run on this machine loads by itself; this shows what was found (or that no run server answers). */}
+      <RunSwitcher auto />
     </main>
   )
 }
@@ -184,7 +186,7 @@ function SummaryAnalysis({ summary, run, items = null, server = null }) {
       <section id="grid" className="ev-section">
         <h2 className="ev-h2"><span className="ev-num">{N.grid}</span>Problems × models</h2>
         <p className="small">Which model fully solved, partially solved or failed each problem, attempt by attempt{summary.run?.harnesses?.length > 1 ? ', grouped by harness' : ''}. Fully solved = every required check of the harness passed; partially solved = independently verified auxiliary lemmas without a complete proof (never counted as verified); infrastructure errors are not the model's.</p>
-        {items ? <ProblemMatrix summary={summary} items={items} runId={runId} server={server} /> : <p className="muted">Load the run's <code>exports/items.json</code> (List runs → Load, or open the file) to see the grid.</p>}
+        {items ? <ProblemMatrix summary={summary} items={items} runId={runId} server={server} /> : <p className="muted">This run has no <code>exports/items.json</code> yet (the statistics stage writes it: <code>node qedrank/cli.js stats --run-id {runId}</code>, then Refresh above).</p>}
       </section>
 
       <section id="leaderboard" className="ev-section">

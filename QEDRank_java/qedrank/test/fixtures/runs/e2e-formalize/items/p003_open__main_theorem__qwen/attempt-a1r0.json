@@ -1,0 +1,145 @@
+{
+  "schema": "qedrank-item-v1",
+  "item_key": "p003_open__main_theorem__qwen",
+  "paper_id": "p003_open",
+  "target_kind": "main_theorem",
+  "provider": "qwen",
+  "model_display_name": "fixture · Qwen3 30B-A3B Instruct",
+  "model_id": "fixture:qwen",
+  "model_label": "Qwen3 30B-A3B Instruct",
+  "api_host": null,
+  "response_model": null,
+  "setting": "pass@1",
+  "attempt": 1,
+  "repair_round": 0,
+  "mathematical_status": "open",
+  "reference_proof_status": "invalid",
+  "reference_statement_available": false,
+  "contamination": {
+    "model_training_cutoff": null,
+    "problem_publication_date": null,
+    "published_before_cutoff": null,
+    "public_formal_proof": null
+  },
+  "generation": {
+    "mode": "fixture",
+    "error": null,
+    "http_status": null,
+    "finish_reason": "fixture",
+    "observed_latency_ms": 13.368900001049042,
+    "working_ms": 13.368900001049042,
+    "usage": null,
+    "reasoning_chars": null,
+    "provider_attempts": 1,
+    "retry_wait_ms": null,
+    "truncated": false,
+    "prompt_hash": "fdc04bec2321e3ac69a69969b64b5ebccea9d318a8da8ddb57f0e62562ebee1b",
+    "prompt_template_version": "qedrank-prompt-v2",
+    "temperature": 0,
+    "max_tokens": 16384,
+    "timeout_ms": 300000,
+    "started_at": "2026-10-27T19:10:01.537Z",
+    "ended_at": "2026-10-27T19:10:01.550Z",
+    "response_chars": 372
+  },
+  "parse": {
+    "notes": [],
+    "parts_found": 4,
+    "has_statement": true,
+    "has_proof_file": false,
+    "mapping_chars": 106
+  },
+  "confidence": {
+    "statement": 5,
+    "proof": 0
+  },
+  "abstained": true,
+  "static_screen": null,
+  "statement_compile": {
+    "label": "stmt:p003_open__main_theorem__qwen",
+    "file": "C:\\QEDRank\\QEDRank_java\\qedrank\\test\\fixtures\\runs\\e2e-formalize\\items\\p003_open__main_theorem__qwen\\lean\\QRSM_p003_open_main_theorem_qwen_a1r0.lean",
+    "status": "compiler_success",
+    "exit_code": 0,
+    "timed_out": false,
+    "duration_ms": 372990.9010000229,
+    "messages": [
+      {
+        "severity": "warning",
+        "line": 6,
+        "column": 8,
+        "file": "C:\\QEDRank\\QEDRank_java\\qedrank\\test\\fixtures\\runs\\e2e-formalize\\items\\p003_open__main_theorem__qwen\\lean\\QRSM_p003_open_main_theorem_qwen_a1r0.lean",
+        "text": "declaration uses `sorry`"
+      }
+    ],
+    "error_count": 0,
+    "warning_count": 1,
+    "stdout_tail": "{\"caption\":\"\",\"data\":\"declaration uses `sorry`\",\"endPos\":{\"column\":29,\"line\":6},\"fileName\":\"C:\\\\QEDRank\\\\QEDRank_java\\\\qedrank\\\\test\\\\fixtures\\\\runs\\\\e2e-formalize\\\\items\\\\p003_open__main_theorem__qwen\\\\lean\\\\QRSM_p003_open_main_theorem_qwen_a1r0.lean\",\"isSilent\":false,\"keepFullRange\":false,\"kind\":\"hasSorry\",\"pos\":{\"column\":8,\"line\":6},\"severity\":\"warning\"}\n",
+    "stderr_tail": "",
+    "started_at": "2026-10-27T19:14:54.952Z",
+    "ended_at": "2026-10-27T19:21:07.943Z",
+    "limits": {
+      "timeout_ms": 600000,
+      "memory_mb": 8192,
+      "max_heartbeats": 400000
+    },
+    "lean_version": "Lean (version 4.34.1, x86_64-w64-windows-gnu, commit 5045d0056413266e57c625dcd7c365b10e377c52, Release)",
+    "infra_reason": null,
+    "module": "QRSM_p003_open_main_theorem_qwen_a1r0",
+    "src_sha256": "5afb4e6423d535314d1a440656214bce6a6a7d4fac7b8af2931bb67ff62acdf4",
+    "olean": "C:\\QEDRank\\QEDRank_java\\qedrank\\test\\fixtures\\runs\\e2e-formalize\\items\\p003_open__main_theorem__qwen\\lean\\QRSM_p003_open_main_theorem_qwen_a1r0.olean",
+    "resolved_declaration": "QRModel.placeholder_statement",
+    "definitions": []
+  },
+  "model_statement_declaration": "placeholder_statement",
+  "compile": {
+    "status": "not_attempted",
+    "reason": "abstained"
+  },
+  "audit": {
+    "status": "not_audited",
+    "static_flags": []
+  },
+  "ab_consistency": null,
+  "comparison": {
+    "statement_match": "not_evaluated",
+    "method": "none",
+    "evidence": {
+      "notes": [
+        "not_eligible"
+      ]
+    },
+    "source": "automated",
+    "script_status": "not_attempted"
+  },
+  "statement_match": "not_evaluated",
+  "statement_match_source": "automated",
+  "loc": null,
+  "timing": {
+    "evaluation_started_at": "2026-10-27T19:10:01.553Z",
+    "lean_compile_ms": null,
+    "lean_audit_ms": 0.0033999979496002197,
+    "lean_compare_ms": null,
+    "lean_total_ms": 707435.3944000304,
+    "evaluation_total_ms": 1073692.0967000127,
+    "total_ms": 1073705.4656000137,
+    "working_ms": 707448.7633000314,
+    "evaluation_ended_at": "2026-10-27T19:27:55.242Z"
+  },
+  "eligibility": {
+    "statement_track": false,
+    "proof_track": false,
+    "reasons": [
+      "reference_statement_unavailable",
+      "mathematical_status_open"
+    ]
+  },
+  "outcomes": {
+    "infrastructure_failure": false,
+    "compiled": null,
+    "audit_clean": null,
+    "statement_faithful": null,
+    "verified": null
+  },
+  "notes": [],
+  "evaluation_complete": true
+}

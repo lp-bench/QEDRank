@@ -1,0 +1,487 @@
+{
+  "schema": "qedrank-manifest-v1",
+  "generated_at": "2026-10-27T10:48:42.116Z",
+  "source": {
+    "kind": "local",
+    "url": "file://C:/QEDRank/QEDRank_java/qedrank/test/fixtures/corpus-a",
+    "requested_ref": null,
+    "resolved_ref": null,
+    "ref_type": "local_git_tree",
+    "commit": "6d6845273a0fb2c6663d39035fe702706895d8a6",
+    "head_commit": "377a33e43d312f9ddeb8627101b60a37b651a4a2",
+    "dirty": true,
+    "subdir": null
+  },
+  "download_policy": {
+    "maxFiles": 20000,
+    "maxTotalBytes": 2147483648,
+    "maxFileBytes": 62914560,
+    "allowedExtensions": [
+      ".pdf",
+      ".lean",
+      ".json",
+      ".md",
+      ".bib",
+      ".yaml",
+      ".yml",
+      ".txt",
+      ".toml",
+      ".tex",
+      ".csv"
+    ],
+    "ignoredPathParts": [
+      "/.git/",
+      "/.lake/",
+      "/node_modules/",
+      "/build/",
+      "/dist/"
+    ]
+  },
+  "counts": {
+    "subdir": null,
+    "files_listed": 49,
+    "files_listed_repository": 49,
+    "blobs_total": 49,
+    "pdfs": 1,
+    "lean_files": 9,
+    "papers": 3,
+    "papers_by_parent_dir": {
+      "papers": 3
+    },
+    "papers_with_pdf": 1,
+    "papers_with_index_entry": 0,
+    "index_files": [],
+    "index_join_rules": {
+      "none": 3
+    },
+    "index_entries_without_paper": [],
+    "targets": {
+      "main_theorem": 3,
+      "upper_bound": 2,
+      "lower_bound": 2,
+      "disproof": 1
+    },
+    "papers_with_all_three_bounds": 2,
+    "papers_flagged": 3,
+    "orphan_lean_files": 0,
+    "lean_files_inspected": 8,
+    "flags_by_code": {
+      "missing_pdf": 2,
+      "target_needs_review": 1,
+      "missing_target_file": 2
+    },
+    "expected_count": 108,
+    "expected_count_matches": false,
+    "discovery_ms": 52
+  },
+  "flags": [],
+  "papers": [
+    {
+      "paper_id": "p001_sum_bound",
+      "dir": "papers/p001_sum_bound",
+      "layout": "dir_per_paper",
+      "title": "A Bound on the Sum of the First n Naturals",
+      "citation": "A. Fixture and B. Example. A Bound on the Sum of the First n Naturals. Fixture Journal 1 (2026).",
+      "title_source": "papers/p001_sum_bound/metadata.json",
+      "pdf": null,
+      "pdf_candidates": [],
+      "index_entry": null,
+      "index_entry_rejected": null,
+      "lean_header_title": null,
+      "metadata_files": [
+        "papers/p001_sum_bound/metadata.json"
+      ],
+      "shared_definition_files": [
+        {
+          "path": "papers/p001_sum_bound/Defs.lean",
+          "size": 201
+        }
+      ],
+      "targets": {
+        "main_theorem": {
+          "target_kind": "main_theorem",
+          "lean_path": "papers/p001_sum_bound/main_theorem.lean",
+          "size": 243,
+          "sha256": "2695e59d1e8b8e958d13cc66527ade5d054b00510d29cfad60a78d003b6a53fe",
+          "candidates": [
+            "papers/p001_sum_bound/main_theorem.lean"
+          ],
+          "mapping_rule": "file_name_tokens",
+          "declaration_name": "main_theorem",
+          "declaration_candidates": [
+            {
+              "name": "main_theorem",
+              "line": 5,
+              "score": 2
+            }
+          ],
+          "declaration_source": "only_theorem",
+          "local_imports": [
+            "Defs"
+          ],
+          "required_shared_definitions": [
+            "Defs"
+          ],
+          "mathematical_status": "established",
+          "mathematical_status_source": "metadata",
+          "reference_proof_status": "unknown",
+          "reference_proof_status_source": "not_compiled",
+          "static_flags": [],
+          "source_locator": null,
+          "context_file": null,
+          "mapping_flags": [],
+          "weak_match": false
+        },
+        "upper_bound": {
+          "target_kind": "upper_bound",
+          "lean_path": "papers/p001_sum_bound/upper_bound.lean",
+          "size": 458,
+          "sha256": "9c42c460f767252c8cda8a3e80051e03bf09e0a101509a44fb417ad9d107cb05",
+          "candidates": [
+            "papers/p001_sum_bound/upper_bound.lean"
+          ],
+          "mapping_rule": "file_name_tokens",
+          "declaration_name": "upper_bound",
+          "declaration_candidates": [
+            {
+              "name": "upper_bound",
+              "line": 7,
+              "score": 1
+            }
+          ],
+          "declaration_source": "only_theorem",
+          "local_imports": [
+            "Defs"
+          ],
+          "required_shared_definitions": [
+            "Defs"
+          ],
+          "mathematical_status": "established",
+          "mathematical_status_source": "metadata",
+          "reference_proof_status": "unknown",
+          "reference_proof_status_source": "not_compiled",
+          "static_flags": [],
+          "source_locator": null,
+          "context_file": null,
+          "mapping_flags": [],
+          "weak_match": false
+        },
+        "lower_bound": {
+          "target_kind": "lower_bound",
+          "lean_path": "papers/p001_sum_bound/lower_bound.lean",
+          "size": 205,
+          "sha256": "fab8b9db8378efc107da80f10f9ce4d349bfdd5a0f6939b5fc0e717788cc6443",
+          "candidates": [
+            "papers/p001_sum_bound/lower_bound.lean"
+          ],
+          "mapping_rule": "file_name_tokens",
+          "declaration_name": "lower_bound",
+          "declaration_candidates": [
+            {
+              "name": "lower_bound",
+              "line": 5,
+              "score": 1
+            }
+          ],
+          "declaration_source": "only_theorem",
+          "local_imports": [
+            "Defs"
+          ],
+          "required_shared_definitions": [
+            "Defs"
+          ],
+          "mathematical_status": "established",
+          "mathematical_status_source": "metadata",
+          "reference_proof_status": "contains_placeholder",
+          "reference_proof_status_source": "static_scan",
+          "static_flags": [
+            "placeholder"
+          ],
+          "source_locator": null,
+          "context_file": null,
+          "mapping_flags": [],
+          "weak_match": false
+        },
+        "disproof": null
+      },
+      "unclassified_lean_files": [],
+      "subject_tags": [
+        "05A",
+        "11B"
+      ],
+      "subject_tags_source": "annotations",
+      "difficulty": "easy",
+      "publication_date": "2026",
+      "public_formal_proof": null,
+      "requires_figures": false,
+      "bridge_checks": [],
+      "annotations_applied": true,
+      "flags": [
+        {
+          "code": "missing_pdf",
+          "message": "No PDF found for this paper"
+        }
+      ]
+    },
+    {
+      "paper_id": "p002_parity",
+      "dir": "papers/p002_parity",
+      "layout": "dir_per_paper",
+      "title": null,
+      "citation": "p002_parity",
+      "title_source": "none",
+      "pdf": {
+        "path": "papers/p002_parity/paper.pdf",
+        "size": 671,
+        "sha256": null,
+        "origin": "paper_folder"
+      },
+      "pdf_candidates": [
+        {
+          "path": "papers/p002_parity/paper.pdf",
+          "size": 671,
+          "origin": "paper_folder"
+        }
+      ],
+      "index_entry": null,
+      "index_entry_rejected": null,
+      "lean_header_title": null,
+      "metadata_files": [],
+      "shared_definition_files": [],
+      "targets": {
+        "main_theorem": {
+          "target_kind": "main_theorem",
+          "lean_path": "papers/p002_parity/lean/Main.lean",
+          "size": 100,
+          "sha256": "f59e0fff017193e1c5433e205a3466bed280eb1a4773f3e3762bebcb4e9fd73d",
+          "candidates": [
+            "papers/p002_parity/lean/Main.lean"
+          ],
+          "mapping_rule": "file_name_tokens",
+          "declaration_name": "two_mul_even",
+          "declaration_candidates": [
+            {
+              "name": "two_mul_even",
+              "line": 3,
+              "score": 0
+            }
+          ],
+          "declaration_source": "only_theorem",
+          "local_imports": [],
+          "required_shared_definitions": [],
+          "mathematical_status": "established",
+          "mathematical_status_source": "annotations",
+          "reference_proof_status": "unknown",
+          "reference_proof_status_source": "not_compiled",
+          "static_flags": [],
+          "source_locator": null,
+          "context_file": null,
+          "mapping_flags": [],
+          "weak_match": false
+        },
+        "upper_bound": {
+          "target_kind": "upper_bound",
+          "lean_path": "papers/p002_parity/lean/UpperBound.lean",
+          "size": 96,
+          "sha256": "25001502adc6304ff279f12c1b85ac86c085a806d91301cf5e40f4199baf8ef0",
+          "candidates": [
+            "papers/p002_parity/lean/UpperBound.lean"
+          ],
+          "mapping_rule": "file_name_tokens",
+          "declaration_name": "ub",
+          "declaration_candidates": [
+            {
+              "name": "ub",
+              "line": 3,
+              "score": 1
+            }
+          ],
+          "declaration_source": "only_theorem",
+          "local_imports": [],
+          "required_shared_definitions": [],
+          "mathematical_status": "established",
+          "mathematical_status_source": "annotations",
+          "reference_proof_status": "unknown",
+          "reference_proof_status_source": "not_compiled",
+          "static_flags": [],
+          "source_locator": null,
+          "context_file": null,
+          "mapping_flags": [],
+          "weak_match": false
+        },
+        "lower_bound": {
+          "target_kind": "lower_bound",
+          "lean_path": "papers/p002_parity/lean/LowerBound.lean",
+          "size": 83,
+          "sha256": "c1d567e2908a3789d18009f6e607df998fe8b770f2308e6642826ad1d4363a29",
+          "candidates": [
+            "papers/p002_parity/lean/LowerBound.lean"
+          ],
+          "mapping_rule": "file_name_tokens",
+          "declaration_name": "lb",
+          "declaration_candidates": [
+            {
+              "name": "lb",
+              "line": 3,
+              "score": 1
+            }
+          ],
+          "declaration_source": "only_theorem",
+          "local_imports": [],
+          "required_shared_definitions": [],
+          "mathematical_status": "established",
+          "mathematical_status_source": "annotations",
+          "reference_proof_status": "unknown",
+          "reference_proof_status_source": "not_compiled",
+          "static_flags": [],
+          "source_locator": null,
+          "context_file": null,
+          "mapping_flags": [],
+          "weak_match": false
+        },
+        "disproof": {
+          "target_kind": "disproof",
+          "lean_path": "papers/p002_parity/lean/Disprove.lean",
+          "size": 234,
+          "sha256": "e2e7f6299ee22dc30ad6db92b155c96527fd68bb4d22f139994898495bbd401f",
+          "candidates": [
+            "papers/p002_parity/lean/Disprove.lean"
+          ],
+          "mapping_rule": "file_name_tokens",
+          "declaration_name": "not_all_odd",
+          "declaration_candidates": [
+            {
+              "name": "not_all_odd",
+              "line": 4,
+              "score": 1
+            }
+          ],
+          "declaration_source": "only_theorem",
+          "local_imports": [],
+          "required_shared_definitions": [],
+          "mathematical_status": "uncertain",
+          "mathematical_status_source": "default_uncertain",
+          "reference_proof_status": "unknown",
+          "reference_proof_status_source": "not_compiled",
+          "static_flags": [],
+          "source_locator": null,
+          "context_file": null,
+          "mapping_flags": [
+            "disproof_polarity_unconfirmed"
+          ],
+          "weak_match": false
+        }
+      },
+      "unclassified_lean_files": [],
+      "subject_tags": [
+        "11A"
+      ],
+      "subject_tags_source": "annotations",
+      "difficulty": "easy",
+      "publication_date": null,
+      "public_formal_proof": null,
+      "requires_figures": false,
+      "bridge_checks": [],
+      "annotations_applied": true,
+      "flags": [
+        {
+          "code": "target_needs_review",
+          "message": "disproof: disproof_polarity_unconfirmed",
+          "paths": [
+            "papers/p002_parity/lean/Disprove.lean"
+          ]
+        }
+      ]
+    },
+    {
+      "paper_id": "p003_open",
+      "dir": "papers/p003_open",
+      "layout": "dir_per_paper",
+      "title": "An Open Bound Conjecture",
+      "citation": "An Open Bound Conjecture",
+      "title_source": "papers/p003_open/README.md",
+      "pdf": null,
+      "pdf_candidates": [],
+      "index_entry": null,
+      "index_entry_rejected": null,
+      "lean_header_title": null,
+      "metadata_files": [
+        "papers/p003_open/README.md"
+      ],
+      "shared_definition_files": [],
+      "targets": {
+        "main_theorem": {
+          "target_kind": "main_theorem",
+          "lean_path": "papers/p003_open/main.lean",
+          "size": 71,
+          "sha256": "71430eef3bac5ac16de172b43f8824a7c27016aec7952466935a2a7c15f193de",
+          "candidates": [
+            "papers/p003_open/main.lean"
+          ],
+          "mapping_rule": "file_name_tokens",
+          "declaration_name": "open_claim",
+          "declaration_candidates": [
+            {
+              "name": "open_claim",
+              "line": 3,
+              "score": 0
+            }
+          ],
+          "declaration_source": "only_theorem",
+          "local_imports": [],
+          "required_shared_definitions": [],
+          "mathematical_status": "open",
+          "mathematical_status_source": "annotations",
+          "reference_proof_status": "contains_placeholder",
+          "reference_proof_status_source": "static_scan",
+          "static_flags": [
+            "placeholder"
+          ],
+          "source_locator": null,
+          "context_file": null,
+          "mapping_flags": [],
+          "weak_match": false
+        },
+        "upper_bound": null,
+        "lower_bound": null,
+        "disproof": null
+      },
+      "unclassified_lean_files": [],
+      "subject_tags": [
+        "11B"
+      ],
+      "subject_tags_source": "annotations",
+      "difficulty": "hard",
+      "publication_date": null,
+      "public_formal_proof": null,
+      "requires_figures": "unknown",
+      "bridge_checks": [],
+      "annotations_applied": true,
+      "flags": [
+        {
+          "code": "missing_pdf",
+          "message": "No PDF found for this paper"
+        },
+        {
+          "code": "missing_target_file",
+          "message": "No Lean file classified as upper_bound",
+          "paths": []
+        },
+        {
+          "code": "missing_target_file",
+          "message": "No Lean file classified as lower_bound",
+          "paths": []
+        }
+      ]
+    }
+  ],
+  "orphan_lean_files": [],
+  "notes": [
+    "Paper folders are found from Lean target files; PDFs are attached from the paper folder or, by file name, from elsewhere in the repository.",
+    "Target kinds are inferred from file names (<Id>.lean = main theorem, _UB/_LB/_DISPROVE, …); see targets[].mapping_rule and mapping_flags.",
+    "reference_proof_status is a static scan until the Lean stage compiles the reference.",
+    "mathematical_status defaults to uncertain unless annotations, metadata or a repository index state otherwise; index-derived statuses apply to the main theorem only and are flagged for review. A DISPROOF file is never assumed to contain a proved counterexample.",
+    "Index files contribute titles, subject codes, difficulty and reference keys only; their formal statements and proofs are never copied into the manifest or given to models.",
+    "expected_count (108) is an expectation, not a result; expected_count_matches reports whether discovery agrees."
+  ]
+}

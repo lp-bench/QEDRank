@@ -1,0 +1,1 @@
+{"decls":{"lb":[2,0,2,42,2,8,2,10]},"directImports":[["Mathlib.Algebra.Ring.Parity",false,false,false]],"module":"QRP_p002_parity.lean.LowerBound","references":{"{\"c\":{\"m\":\"Init.Prelude\",\"n\":\"Nat\"}}":{"definition":null,"usages":[[2,16,2,17,"lb"]]},"{\"c\":{\"m\":\"QRP_p002_parity.lean.LowerBound\",\"n\":\"lb\"}}":{"definition":[2,8,2,10],"usages":[]}},"version":5}

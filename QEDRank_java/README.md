@@ -126,6 +126,7 @@ Protection (Project → Settings → Deployment Protection) or put only low-cost
 │   └── lib/             # source, corpus, pdf, prompt, models, lean, evaluate, compare, grade, agent, metrics, analysis, stats, export
 ├── harness/             # Inspect AI agent harness: sessions, handoff, tools, sandbox image, export (see harness/README.md)
 ├── lean/                # pinned Lean 4 + Mathlib sandbox (QEDRank.Prelude, QEDRank.Audit = evaluator commands)
+├── lean-env/            # Dockerfile + Apptainer .def: any pinned Lean project as an image (docker/apptainer backends)
 ├── scripts/
 │   ├── set-llm-keys.ps1     # masked key entry (Vercel / user env / session; -Advanced per-slot endpoints)
 │   └── qedrank-preview.ps1  # masked GitHub token for private corpus previews
@@ -152,7 +153,9 @@ Protection (Project → Settings → Deployment Protection) or put only low-cost
    ```bash
    node qedrank/cli.js run --repo https://github.com/<owner>/<corpus> --ref <commit> --models gpt54,deepseek,llama
    ```
-3. Serve the runs (`npm run qedrank:serve`), load one on **Benchmark**, and open **Evaluation**.
+3. Serve the runs (`npm run qedrank:serve`) and open **Evaluation**: the newest run loads by itself
+   (a run started from the Benchmark page is loaded the moment it finishes); "Runs on this
+   machine" switches between runs.
    Partial runs can be polled while in progress and resumed with `node qedrank/cli.js resume --run-id <id>`.
 
 Full details (measurements, eligibility rules, corpus layout, annotations, expert-review inputs,
@@ -170,8 +173,9 @@ audit, kernel replay, completeness); results come back into QEDRank with
 ## Testing
 
 How to test each level — unit tests, the Lean grading fixtures (the grader's attack list), provider
-smoke tests, corpus dry runs, small live runs, the agent harness, and the checklist before a
-reported run — is in [TESTING.md](TESTING.md).
+smoke tests, corpus dry runs, small live runs, the agent harness, the Selenium end-to-end suite of
+the page (`npm run e2e`, also run by GitHub Actions), and the checklist before a reported run — is
+in [TESTING.md](TESTING.md).
 
 ## Local development
 

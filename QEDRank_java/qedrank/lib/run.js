@@ -10,7 +10,8 @@ import { ensureDir, exists, readJson, writeJson, writeText, sha256, isoNow, nowM
 import { openSource } from './source.js';
 import { discoverCorpus } from './corpus.js';
 import { extractPdfText, guessTitle, buildContext, findPages, figureMentions } from './pdf.js';
-import { detectToolchain, LeanRunner } from './lean.js';
+import { LeanRunner } from './lean.js';
+import { selectToolchain, environmentRecord } from './leanenv.js';
 import { preparePrelude, prepareReference, evaluateAttempt } from './evaluate.js';
 import { renderPrompt, PROMPT_TEMPLATE_VERSION, SYSTEM_PROMPT } from './prompt.js';
 import { generateOnce, listModels, loadFixtureProvider, providerHalt } from './models.js';
@@ -155,7 +156,7 @@ RunContext.prototype.getSource = async function getSource() {
 
 export async function initLean(ctx) {
   if (ctx.toolchain) return;
-  ctx.toolchain = await detectToolchain(ctx.config.leanDir, { log: ctx.log });
+  ctx.toolchain = await selectToolchain(ctx.config, { leanDir: ctx.config.leanDir, log: ctx.log });
   ctx.run.toolchain = {
     available: ctx.toolchain.available,
     reason: ctx.toolchain.reason,
@@ -166,6 +167,7 @@ export async function initLean(ctx) {
     mathlib: ctx.toolchain.mathlib,
     mathlib_built: ctx.toolchain.mathlib_built,
     audit_built: ctx.toolchain.audit_built,
+    environment: environmentRecord(ctx.toolchain),
   };
   await ctx.saveRun();
   const runner = new LeanRunner(ctx.toolchain, { ...ctx.config.lean, log: ctx.log });
@@ -540,7 +542,7 @@ export async function stagePreflightProve(ctx, { selection = null, papers = null
       if (await exists(file)) challenges.push({ paper_id: paper.paper_id, kind, src: await fs.readFile(file, 'utf8') });
     }
   }
-  const check = await checkChallengeImports({ challenges, toolchain: ctx.toolchain });
+  const check = await checkChallengeImports({ challenges, toolchain: ctx.toolchain, runner: ctx.runner });
   ctx.run.import_check = {
     checked_at: isoNow(), lean_project: ctx.toolchain.lean_dir, challenge_files: challenges.length, challenge_papers: check.challenge_papers,
     modules: check.modules, available: check.available, missing: check.missing.slice(0, 50), missing_total: check.missing.length,

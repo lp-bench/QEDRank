@@ -1,0 +1,118 @@
+{
+  "paper_id": "p001_sum_bound",
+  "target_kind": "upper_bound",
+  "lean_path": "papers/p001_sum_bound/upper_bound.lean",
+  "sha256": "9c42c460f767252c8cda8a3e80051e03bf09e0a101509a44fb417ad9d107cb05",
+  "declaration_name": "upper_bound",
+  "resolved_declaration": "upper_bound",
+  "reference_proof_status": "complete",
+  "reference_proof_status_source": "axiom_audit",
+  "compile": {
+    "label": "ref:p001_sum_bound:upper_bound:QRP_p001_sum_bound.upper_bound",
+    "file": "C:\\QEDRank\\QEDRank_java\\qedrank\\test\\fixtures\\runs\\e2e-formalize\\prepared\\p001_sum_bound\\lean\\refs\\QRP_p001_sum_bound\\upper_bound.lean",
+    "status": "compiler_success",
+    "exit_code": 0,
+    "timed_out": false,
+    "duration_ms": 27871.402799993753,
+    "messages": [],
+    "error_count": 0,
+    "warning_count": 0,
+    "stdout_tail": "",
+    "stderr_tail": "",
+    "started_at": "2026-10-27T10:55:57.766Z",
+    "ended_at": "2026-10-27T10:56:25.638Z",
+    "limits": {
+      "timeout_ms": 600000,
+      "memory_mb": 8192,
+      "max_heartbeats": 400000
+    },
+    "lean_version": "Lean (version 4.34.1, x86_64-w64-windows-gnu, commit 5045d0056413266e57c625dcd7c365b10e377c52, Release)",
+    "infra_reason": null
+  },
+  "audit": {
+    "status": "compiler_success",
+    "duration_ms": 43964.933499991894
+  },
+  "axioms": [
+    "propext",
+    "Classical.choice",
+    "Quot.sound"
+  ],
+  "static_screen": {
+    "ok": true,
+    "rejections": [],
+    "flags": []
+  },
+  "statement_module": "QRSR_p001_sum_bound_upper_bound",
+  "statement_compile": {
+    "label": "refstmt:p001_sum_bound:upper_bound",
+    "file": "C:\\QEDRank\\QEDRank_java\\qedrank\\test\\fixtures\\runs\\e2e-formalize\\prepared\\p001_sum_bound\\lean\\cmp\\QRSR_p001_sum_bound_upper_bound.lean",
+    "status": "compiler_success",
+    "exit_code": 0,
+    "timed_out": false,
+    "duration_ms": 48073.58550000191,
+    "messages": [
+      {
+        "severity": "warning",
+        "line": 9,
+        "column": 8,
+        "file": "C:\\QEDRank\\QEDRank_java\\qedrank\\test\\fixtures\\runs\\e2e-formalize\\prepared\\p001_sum_bound\\lean\\cmp\\QRSR_p001_sum_bound_upper_bound.lean",
+        "text": "declaration uses `sorry`"
+      }
+    ],
+    "error_count": 0,
+    "warning_count": 1,
+    "stdout_tail": "{\"caption\":\"\",\"data\":\"declaration uses `sorry`\",\"endPos\":{\"column\":19,\"line\":9},\"fileName\":\"C:\\\\QEDRank\\\\QEDRank_java\\\\qedrank\\\\test\\\\fixtures\\\\runs\\\\e2e-formalize\\\\prepared\\\\p001_sum_bound\\\\lean\\\\cmp\\\\QRSR_p001_sum_bound_upper_bound.lean\",\"isSilent\":false,\"keepFullRange\":false,\"kind\":\"hasSorry\",\"pos\":{\"column\":8,\"line\":9},\"severity\":\"warning\"}\n",
+    "stderr_tail": "",
+    "started_at": "2026-10-27T10:57:40.832Z",
+    "ended_at": "2026-10-27T10:58:28.902Z",
+    "limits": {
+      "timeout_ms": 600000,
+      "memory_mb": 8192,
+      "max_heartbeats": 400000
+    },
+    "lean_version": "Lean (version 4.34.1, x86_64-w64-windows-gnu, commit 5045d0056413266e57c625dcd7c365b10e377c52, Release)",
+    "infra_reason": null,
+    "module": "QRSR_p001_sum_bound_upper_bound",
+    "src_sha256": "998a0f58d7b8718d648f4a2e4e0626d4f437088f10dc5f1dcca3db440f324a5b",
+    "olean": "C:\\QEDRank\\QEDRank_java\\qedrank\\test\\fixtures\\runs\\e2e-formalize\\prepared\\p001_sum_bound\\lean\\cmp\\QRSR_p001_sum_bound_upper_bound.olean"
+  },
+  "statement_declaration": "QRRef.upper_bound",
+  "statement_available": true,
+  "definitions_in_statement_module": [],
+  "loc": {
+    "total": 13,
+    "code": 10,
+    "proof": {
+      "total": 6,
+      "code": 6
+    },
+    "rule": "total=newline-separated lines; code=non-blank lines after comment removal; proof=lines from the target declaration's top-level := to the end of the declaration, same code rule"
+  },
+  "flags": [],
+  "prepared_at": "2026-10-27T10:55:26.689Z",
+  "dependency_compiles": [
+    {
+      "module": "QRP_p001_sum_bound.Defs",
+      "status": "compiler_success",
+      "duration_ms": 31068.488499999046,
+      "error_count": 0
+    },
+    {
+      "module": "QRP_p001_sum_bound.upper_bound",
+      "status": "compiler_success",
+      "duration_ms": 27871.402799993753,
+      "error_count": 0
+    }
+  ],
+  "axiom_classification": {
+    "placeholder": false,
+    "native_decide": false,
+    "user_axioms": [],
+    "clean": true
+  },
+  "declaration_is_prop": true,
+  "leak_guard": [
+    ":= by\n  unfold sumBelow\n  calc (Finset.range n).sum id ≤ (Finset.range n).sum (fun _ => n) :=\n        Finset.sum_le_sum (fun i hi => le_of_lt (Finset.mem_range.mp hi))\n    _ = n * n := by simp\n    _ ="
+  ]
+}

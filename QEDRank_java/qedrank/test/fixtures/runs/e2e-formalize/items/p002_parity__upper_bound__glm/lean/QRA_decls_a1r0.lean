@@ -1,0 +1,3 @@
+import QRM_p002_parity_upper_bound_glm_a1r0
+import QEDRank.Audit
+#qr_decls QRM_p002_parity_upper_bound_glm_a1r0

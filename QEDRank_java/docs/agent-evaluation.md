@@ -140,7 +140,7 @@ solved:
     pass@k = 1 − C(n − c, k) / C(n, k),   for n ≥ k
 
 computed as the product ∏_{i=n−c+1..n} (1 − k/i) (no large binomials). Reported for every integer
-k from 1 to the planned attempts (1, 2, 4 and 8 marked prominent), averaged over proof-track
+k from 1 to the planned attempts (1, 2, 4, 8 and 16 marked prominent), averaged over proof-track
 problems with n ≥ k; a problem with fewer attempts is left out of that k and counted in
 `items_short`. A k with no eligible problem is **unavailable**, never 0. Each point carries the
 number of problems and attempts behind it, a 95 % paper-cluster bootstrap interval, and
@@ -175,7 +175,7 @@ model columns grouped by harness, one glyph per planned attempt, filters by stat
 subject and harness, sortable headers, grid CSV), a drawer per cell (attempt table; tabs for the
 final proof file, the grading record and the attempt record with its sessions, fetched from the
 run server), the "Attempts & failures" section (protocol block, status and failure-class
-charts) and the pass@k table (every k, prominent 1/2/4/8, estimate with interval, observed
+charts) and the pass@k table (every k, prominent 1/2/4/8/16, estimate with interval, observed
 num/den, "—" where fewer than k attempts exist). The item-level table at the end filters by
 status, failure class and harness as well as the single-call fields. A single-call run merged in
 with `--merge-run` contributes its first attempts as primary records, so its compile, statement
@@ -232,14 +232,54 @@ Not executed: a ProofBench run with a real model from QEDRank (needs the self-ho
 or a priced API key), `--regrade` on the DGX, MathArena (not integrated), `harness/` (fallback),
 a persistent Lean backend (Section 9).
 
-## 9. Verification backend
+## 9. Verification backend and Lean environments
 
-`node qedrank/cli.js lean-bench --project C:/proofbench-statements --files 5` times Lean on
-challenge files of the pinned project and prints a median per file and an assessment. A
-persistent backend (Kimina Lean Server, LeanInteract) is added only when that measurement shows
-compilation is the bottleneck on the target machine *and* the backend runs the exact toolchain
-(`leanprover/lean4:v4.33.1`, this Mathlib, the Matroid fork). `verification.backend` in the config
-is `lean-cli` and is the only implemented value.
+Every grading is one `lean` process per file. Where that process runs is the **Lean environment**
+(`qedrank/lib/leanenv.js`, `lean-env/README.md`), chosen by `verification.backend` in
+`qedrank.config.json` or `--backend`:
+
+| Backend | What runs | Needs on the machine |
+|---|---|---|
+| `host` | `lake env lean` in the built project directory (`--lean-project`) | elan, the project built (Mathlib: ~7.5 GB) |
+| `docker` | `docker run --rm --network none` per Lean process, run folders mounted at `/work` | Docker and the image from `node qedrank/cli.js lean-env build --project <dir>` |
+| `apptainer` | `apptainer exec --containall` per Lean process from the `.sif` | Apptainer and the `.sif` (`lean-env build --apptainer`) |
+
+`auto` (the default) takes the first usable one in that order, so this PC still grades in
+`C:\QEDRank\proofbench-statements`. `node qedrank/cli.js lean-env status` prints what the machine
+has and what a run would use; `run.json` records it (`toolchain.environment`), and the import
+check of the prove task runs inside the container when one is used. The image is benchmark-neutral
+(one Dockerfile for any Lean project; the evaluator module is compiled at grading time into
+`runs/.grade-cache`, which is mounted). Limits: the formalize task's `lake build` of per-paper
+preludes needs a host project; `lean-bench` and `proof-metrics` read the project's files from the
+host.
+
+`node qedrank/cli.js lean-bench --project C:/QEDRank/proofbench-statements --files 5` times Lean on
+challenge files of the pinned project and prints a median per file and an assessment. A persistent
+server (Kimina Lean Server, LeanInteract) is added only when that measurement shows compilation is
+the bottleneck on the target machine *and* the server runs the exact toolchain
+(`leanprover/lean4:v4.33.1`, this Mathlib, the Matroid fork); none is implemented.
+
+## 10a. Re-grading on an HPC cluster (the single-call protocol)
+
+Model calls and Lean grading are separable, and only the grading benefits from a cluster: the
+model side is bounded by the provider (GWDG: 30/min, 200/h, 1,000/day per account), the Lean side
+by cores. Many clusters give compute nodes no internet, which settles the split:
+
+```bash
+# on the PC: the model calls (hours to days, mostly waiting on the provider)
+node qedrank/cli.js run ... --config configs/glm-prove-pass4.json --attempts 8 --run-id glm-pass8
+# once, where Docker exists: the Lean environment as a .sif (or a docker-archive tar + the apptainer build command)
+node qedrank/cli.js lean-env build --project C:/QEDRank/proofbench-statements --tag qedrank-lean:proofbench-466b32a --modules ProofBench,Matroid --apptainer
+# on the cluster, inside a Slurm job: grade every stored answer again, no model call
+rsync -a runs/glm-pass8 hpc:~/QEDRank/QEDRank_java/runs/
+node qedrank/cli.js resume --run-id glm-pass8 --reevaluate --no-generate --backend apptainer --sif qedrank-lean.sif --lean-timeout 600000
+# back on the PC
+rsync -a hpc:~/QEDRank/QEDRank_java/runs/glm-pass8 runs/ && node qedrank/cli.js stats --run-id glm-pass8
+```
+
+Set `lean.concurrency` to the node's cores (`qedrank.config.json` on the cluster, or a `--config`
+file) and `lean.memoryMb` so that concurrency × memory fits the node. The run server and the page
+stay on the PC; they read the copied run folder.
 
 ## 10. Reproducible evaluation on the DGX
 
