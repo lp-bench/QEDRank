@@ -6,6 +6,9 @@
 TESTING.md
 dist
 /harness
+/lean-env
+/e2e
+/.github
 lean/.lake
 lean/QEDRank/Papers
 node_modules

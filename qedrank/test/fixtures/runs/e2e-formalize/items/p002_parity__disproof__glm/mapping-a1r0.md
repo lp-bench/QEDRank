@@ -1,0 +1,1 @@
+The paper's remark that the converse fails; n = 0 is the witness.

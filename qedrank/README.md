@@ -47,6 +47,9 @@ npm install                      # adds pdfjs-dist for PDF text extraction
 # 1. Lean sandbox (pinned toolchain + Mathlib). Needs elan (https://github.com/leanprover/elan).
 cd lean && lake update && lake exe cache get && lake build && cd ..
 node qedrank/cli.js toolchain    # must report available=true, mathlib_built=true, audit_built=true
+#    Without elan on this machine (a DGX, a cluster, a reviewer's laptop): build the project into
+#    an image once and let runs use it — node qedrank/cli.js lean-env build --project lean
+#    then node qedrank/cli.js lean-env status (lean-env/README.md; --backend docker|apptainer)
 
 # 2. API keys for the roster (see "Model roster"): enter them with hidden input
 #    .\scripts\set-llm-keys.ps1 -Target User     then check with: node qedrank/cli.js ping
@@ -57,7 +60,7 @@ node qedrank/cli.js discover --repo https://github.com/<owner>/<corpus> --ref ma
 # 4. Run the benchmark at an immutable commit (defaults: pass@1, temperature 0)
 node qedrank/cli.js run --repo https://github.com/<owner>/<corpus> --ref <sha-or-tag> --run-id my-run
 
-# 5. Explore: serve runs to the web app (npm run dev → "QEDRank benchmark" tab → Load a run)
+# 5. Explore: serve runs to the web app (npm run dev → Evaluation: the newest run loads by itself; "Runs on this machine" switches)
 node qedrank/cli.js serve        # http://127.0.0.1:8787/runs
 ```
 
@@ -188,7 +191,13 @@ score of unsolved files; the matrix, intervals and tests are the same as for `fo
 `npm run qedrank:serve` also lets the Benchmark page start and watch runs (step 2 under the
 corpus preview): it posts the validated request to `POST /jobs` on the local server, which runs
 `node qedrank/cli.js run …` with the GitHub token from `gh auth token` (never typed into the page),
-streams the log, and loads the finished run into the Evaluation page. The server binds to
+streams the log, and loads the finished run into the Evaluation page. The launcher offers the run
+configurations under `configs/` (`GET /configs`: attempts, temperature, effort, token budget,
+timeout, requests in flight) and the same settings as fields that override the chosen file; they
+become `--config configs/<file>`, `--attempts`, `--temperature`, `--effort`, `--max-tokens`,
+`--timeout-ms` and `--provider-concurrency`. Attempts above 1 sample at temperature 1.0 unless a
+temperature is given, and pass@k is reported for every k from 1 to the attempts (16 at most on the
+page; the CLI warns when attempts > 1 would run at temperature 0). The server binds to
 127.0.0.1, accepts job requests only from the app's own origins with a custom header, and runs
 only allow-listed commands with validated arguments — never a shell. `--no-jobs` turns this off.
 
@@ -493,9 +502,20 @@ serve yourself (vLLM, SGLang), point its slot at the server:
   "bootstrap": { "B": 2000, "seed": 20260930 },
   "exploratoryThreshold": 10,
   "pricing": { "gpt-4": { "input": 30, "output": 60 } },
-  "expectedPaperCount": 108
+  "expectedPaperCount": 108,
+  "verification": { "backend": "auto", "image": "qedrank-lean:latest", "sif": null }
 }
 ```
+
+`verification` says where Lean runs (`lean-env/README.md`): `backend` auto | host | docker |
+apptainer (CLI `--backend`), `image` the Docker image that `node qedrank/cli.js lean-env build`
+produced from the Lean project (CLI `--image`), `sif` its Apptainer form for HPC nodes (CLI
+`--sif`), `mounts` extra host directories the container may use (the run folders and the temp
+directory always are). `auto` takes the host project when it is built, else the image, else the
+`.sif`, so a machine with a built project behaves as before. `run.json` records the environment
+that graded the run (`toolchain.environment`: kind, image id or `.sif`, the project's commit), and
+a resumed run keeps it unless `--backend` says otherwise — which is how a run generated on one
+machine is re-graded on another (`resume --reevaluate --no-generate --backend apptainer`).
 
 ### Private corpus
 
@@ -539,7 +559,10 @@ The original and corrected reference versions both stay in the run directory
 - Compilation uses the pinned toolchain from `lean/lean-toolchain` and the
   Mathlib commit in `lean/lake-manifest.json`, with `-M`, `-DmaxHeartbeats` and a
   wall-clock timeout. Timeouts and toolchain faults are `timeout` /
-  `infrastructure_failure`, never successes.
+  `infrastructure_failure`, never successes. With the docker or apptainer
+  backend every Lean process is a fresh container without network that sees
+  only the run folder; nothing of the host environment is passed in, and the
+  timeout kills the container as well.
 - Statement comparison runs in a scratch environment that imports only
   statement-only modules (every proof replaced by an evaluator-attached `sorry`,
   which is never credited) plus `QEDRank.Audit`; implication witnesses are

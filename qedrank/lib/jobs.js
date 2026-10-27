@@ -19,6 +19,8 @@ export const TASKS = ['formalize', 'prove'];
 /** Harnesses the page may start through `agent-run` (only the ones with a driver). */
 export const AGENT_HARNESSES = ['proofbench'];
 export const EFFORTS = ['low', 'medium', 'high', 'xhigh', 'max'];
+/** A run configuration is a file name under configs/ (never a path). */
+const CONFIG_RE = /^[A-Za-z0-9][A-Za-z0-9._-]{0,80}\.json$/;
 /** Numeric budgets of an agent run: flag, lower and upper bound, integer or not. */
 export const AGENT_LIMITS = Object.freeze({
   attempts: ['--attempts', 1, 16, true],
@@ -43,10 +45,35 @@ function listOf(v) {
 }
 
 /**
+ * The run configurations under configs/: file name and the settings the page shows (never a
+ * secret; the files hold generation, Lean and concurrency settings only).
+ */
+export async function listRunConfigs(dir) {
+  const out = [];
+  let names = [];
+  try { names = (await fs.readdir(dir)).filter((f) => CONFIG_RE.test(f)).sort(); } catch { return out; }
+  for (const file of names) {
+    try {
+      const j = JSON.parse(await fs.readFile(path.join(dir, file), 'utf8'));
+      const g = j.generation || {};
+      out.push({
+        file, path: `configs/${file}`, task: j.task ?? null,
+        generation: { attempts: g.attempts ?? null, temperature: g.temperature ?? null, topP: g.topP ?? null, effort: g.effort ?? null, maxTokens: g.maxTokens ?? null, timeoutMs: g.timeoutMs ?? null, providerConcurrency: g.providerConcurrency ?? null, retries: g.retries ?? null },
+        lean: j.lean ?? null, concurrency: j.concurrency ?? null,
+      });
+    } catch {
+      out.push({ file, path: `configs/${file}`, error: 'not valid JSON' });
+    }
+  }
+  return out;
+}
+
+/**
  * Validate a job request and build the CLI arguments. Throws with a plain message on anything
  * outside the allow-list. Returns { argv (after `node cli.js`), run_id, command, summary }.
+ * `configs` (file names under configs/) restricts `config` to known files when given.
  */
-export function buildRunArgv(req = {}) {
+export function buildRunArgv(req = {}, { configs = null } = {}) {
   const command = ['run', 'resume', 'agent-run'].includes(req.command) ? req.command : null;
   if (!command) throw new Error('command must be "run", "resume" or "agent-run"');
   const runId = String(req.runId || '').trim();
@@ -98,6 +125,28 @@ export function buildRunArgv(req = {}) {
         if (!Number.isInteger(n) || n < 0 || n > 20) throw new Error(`${key} must be a whole number between 0 and 20`);
         argv.push(flag, String(n));
       }
+    }
+    // A run configuration (configs/*.json) and generation settings, as the CLI flags they become.
+    if (req.config !== undefined && req.config !== null && req.config !== '') {
+      const name = String(req.config).trim();
+      if (!CONFIG_RE.test(name) || name.includes('..')) throw new Error('config must be the file name of a configs/*.json file');
+      if (Array.isArray(configs) && !configs.includes(name)) throw new Error(`unknown run configuration ${name}; the run server lists the files under configs/`);
+      argv.push('--config', `configs/${name}`);
+    }
+    const num = (key, flag, lo, hi, integer) => {
+      if (req[key] === undefined || req[key] === null || req[key] === '') return;
+      const n = Number(req[key]);
+      if (!Number.isFinite(n) || (integer && !Number.isInteger(n)) || n < lo || n > hi) throw new Error(`${key} must be a ${integer ? 'whole ' : ''}number between ${lo} and ${hi}`);
+      argv.push(flag, String(n));
+    };
+    num('temperature', '--temperature', 0, 2, false);
+    num('topP', '--top-p', 0, 1, false);
+    num('maxTokens', '--max-tokens', 256, 1000000, true);
+    num('timeoutMs', '--timeout-ms', 10000, 7200000, true);
+    num('providerConcurrency', '--provider-concurrency', 1, 16, true);
+    if (req.effort !== undefined && req.effort !== null && req.effort !== '') {
+      if (!EFFORTS.includes(String(req.effort))) throw new Error(`effort must be one of ${EFFORTS.join(', ')}`);
+      argv.push('--effort', String(req.effort));
     }
     if (req.dryRun) argv.push('--dry-run');
   } else if (command === 'agent-run') {
@@ -187,7 +236,8 @@ export class JobManager {
   }
 
   async start(req) {
-    const built = buildRunArgv(req);
+    const known = (await listRunConfigs(path.join(this.cwd, 'configs'))).map((c) => c.file);
+    const built = buildRunArgv(req, { configs: known });
     if (this.running().some((j) => j.run_id === built.run_id)) throw new Error(`a job for run ${built.run_id} is already running`);
     const id = `job-${Date.now()}-${(this.seq += 1)}`;
     await ensureDir(this.logDir);

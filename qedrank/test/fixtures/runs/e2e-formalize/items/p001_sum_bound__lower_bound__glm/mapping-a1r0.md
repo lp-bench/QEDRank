@@ -1,0 +1,1 @@
+Statement matches the paper's Proposition 2 (n − 1 ≤ S(n)); proof gap remains.

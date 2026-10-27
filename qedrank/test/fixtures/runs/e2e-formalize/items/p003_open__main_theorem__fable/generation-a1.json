@@ -1,0 +1,43 @@
+{
+  "provider": "fable",
+  "display_name": "fixture · Claude Fable 5.1",
+  "label": "Claude Fable 5.1",
+  "vendor": "Anthropic",
+  "model_id": "fixture:fable",
+  "api_host": null,
+  "response_model": null,
+  "mode": "fixture",
+  "text": "=== PART A ===\nI am not confident enough in the claim's exact hypotheses to state it.\n=== PART B ===\nI cannot complete the proof and return no purported complete proof file.\n=== PART C ===\nAmbiguity: the excerpt does not fix the quantifier structure.\n=== PART D ===\nstatement_confidence: 15\nproof_confidence: 0\n",
+  "usage": null,
+  "sampling": null,
+  "reasoning_chars": null,
+  "observed_latency_ms": 5.386700004339218,
+  "working_ms": 5.386700004339218,
+  "http_status": null,
+  "finish_reason": "fixture",
+  "provider_attempts": 1,
+  "retry_wait_ms": null,
+  "error": null,
+  "started_at": "2026-10-27T19:11:06.579Z",
+  "started_mono_ms": 202588126.4131,
+  "ended_at": "2026-10-27T19:11:06.585Z",
+  "ended_mono_ms": 202588131.7998,
+  "fixture_file": "fable\\default.md",
+  "facts": {
+    "released": "2026-09-01",
+    "training_cutoff": "2026-06",
+    "parameters_b": null,
+    "active_parameters_b": null,
+    "sources": {
+      "released": "https://platform.claude.com/docs/en/models/fable-5-1/overview",
+      "training_cutoff": "https://platform.claude.com/docs/en/models/fable-5-1/overview"
+    },
+    "note": "Cutoff is given to the month. Parameter count not disclosed."
+  },
+  "prompt_hash": "fdc04bec2321e3ac69a69969b64b5ebccea9d318a8da8ddb57f0e62562ebee1b",
+  "prompt_template_version": "qedrank-prompt-v2",
+  "temperature": 0,
+  "effort": null,
+  "max_tokens": 16384,
+  "timeout_ms": 300000
+}

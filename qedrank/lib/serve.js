@@ -36,7 +36,7 @@ async function readBody(req, limit = 64 * 1024) {
   return text ? JSON.parse(text) : {};
 }
 
-export function createServer({ runsDir, jobs = null, allowOrigins = [], compare = undefined, harnesses = null }) {
+export function createServer({ runsDir, jobs = null, allowOrigins = [], compare = undefined, harnesses = null, configs = null }) {
   const root = path.resolve(runsDir);
   // compare: false disables the endpoint; a function replaces the handler (tests).
   const compareHandler = compare === false ? null : compare || createCompareHandler({ runsDir: root });
@@ -96,6 +96,11 @@ export function createServer({ runsDir, jobs = null, allowOrigins = [], compare 
       if (url.pathname === '/harnesses') {
         if (!harnesses) return json(res, 404, { error: 'harness listing is not enabled on this server' });
         return json(res, 200, { harnesses: await harnesses() });
+      }
+      // The run configurations (configs/*.json) a run can be started with: settings only, no secrets.
+      if (url.pathname === '/configs') {
+        if (!configs) return json(res, 404, { error: 'run configurations are not listed on this server' });
+        return json(res, 200, { configs: await configs() });
       }
       if (url.pathname === '/' || url.pathname === '/runs' || url.pathname === '/runs/') {
         const entries = await fs.readdir(root, { withFileTypes: true }).catch(() => []);

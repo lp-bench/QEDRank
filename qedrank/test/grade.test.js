@@ -6,6 +6,7 @@ import { promises as fs } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { classifyStatementDiff, completenessFrom, formatCompilerOutput, proofLength, removedImports, screenSolution, gradeSubmission } from '../lib/grade.js';
 import { parseQrLine, parseLeanOptions, detectToolchain, LeanRunner } from '../lib/lean.js';
+import { selectToolchain } from '../lib/leanenv.js';
 import { staticScreen } from '../lib/leansrc.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -220,11 +221,18 @@ const EXPECTED = {
   hidden_import: { verdict: 'not_solved', reasons: ['disallowed_import'] },
 };
 
+// With QEDRANK_LEAN_BACKEND=docker (and QEDRANK_LEAN_IMAGE, built from fixtures/lean-core with
+// `node qedrank/cli.js lean-env build --project qedrank/test/fixtures/lean-core --tag <image>`) the
+// same fixtures are graded inside the container: the end-to-end check of the container runner.
 test('grade fixtures end to end (QEDRANK_LEAN_TESTS=1)', { skip: !process.env.QEDRANK_LEAN_TESTS }, async (t) => {
   const leanDir = path.join(here, 'fixtures', 'lean-core');
-  const toolchain = await detectToolchain(leanDir);
+  const backend = process.env.QEDRANK_LEAN_BACKEND || 'host';
+  const toolchain = backend === 'host'
+    ? await detectToolchain(leanDir)
+    : await selectToolchain({ runsDir: path.join(here, '..', '..', 'runs'), verification: { backend, image: process.env.QEDRANK_LEAN_IMAGE || 'qedrank-lean:lean-core', sif: process.env.QEDRANK_LEAN_SIF || null } }, { leanDir, log: (m) => t.diagnostic(m) });
   assert.equal(toolchain.available, true, toolchain.reason);
   assert.deepEqual(toolchain.lean_options, ['-DrelaxedAutoImplicit=false']);
+  t.diagnostic(`environment: ${toolchain.environment.kind}${toolchain.environment.image ? ` ${toolchain.environment.image}` : ''}`);
   const runner = new LeanRunner(toolchain, { timeoutMs: 900000 });
   const challenge = await read('challenge');
   const scratch = await fs.mkdtemp(path.join(here, '..', '..', 'runs', 'grade-test-'));

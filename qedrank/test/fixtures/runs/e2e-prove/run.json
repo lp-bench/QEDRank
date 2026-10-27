@@ -1,0 +1,357 @@
+{
+  "schema": "qedrank-run-v1",
+  "run_id": "e2e-prove",
+  "created_at": "2026-10-27T10:44:12.272Z",
+  "updated_at": "2026-10-27T10:46:32.224Z",
+  "source_request": {
+    "url": null,
+    "path": "qedrank/test/fixtures/corpus-prove",
+    "ref": null,
+    "subdir": null
+  },
+  "source": {
+    "kind": "local",
+    "url": "file://C:/QEDRank/QEDRank_java/qedrank/test/fixtures/corpus-prove",
+    "requested_ref": null,
+    "resolved_ref": null,
+    "ref_type": "local_git_tree",
+    "commit": "038bcd3c184260e6a2e4becbcc5c873b8b652cbe",
+    "head_commit": "377a33e43d312f9ddeb8627101b60a37b651a4a2",
+    "dirty": false,
+    "subdir": null
+  },
+  "mode": "fixture",
+  "models": [
+    "qwen",
+    "kimi",
+    "llama"
+  ],
+  "model_ids": {
+    "qwen": "fixture:qwen",
+    "kimi": "fixture:kimi",
+    "llama": "fixture:llama"
+  },
+  "protocol": "single_call",
+  "task": "prove",
+  "harness": {
+    "commit": "377a33e43d312f9ddeb8627101b60a37b651a4a2",
+    "short": "377a33e43d",
+    "branch": "QEDRank",
+    "dirty": true,
+    "changed_files": [
+      ".gitignore",
+      ".vercelignore",
+      "README.md",
+      "TESTING.md",
+      "docs/agent-evaluation.md",
+      "docs/handoff-proofbench-gwdg.md",
+      "paper/benchmark-comparison.tex",
+      "qedrank/README.md",
+      "qedrank/cli.js",
+      "qedrank/lib/config.js",
+      "qedrank/lib/evaluate.js",
+      "qedrank/lib/harness/proofbench.js",
+      "qedrank/lib/lean.js",
+      "qedrank/lib/ping.js",
+      "qedrank/lib/preflight.js",
+      "qedrank/lib/run.js",
+      "qedrank/test/grade.test.js"
+    ],
+    "source": "git"
+  },
+  "prompt_template_version": "qedrank-prove-v1",
+  "primary_endpoint": {
+    "id": "verified_pass1_prove",
+    "description": "Strict verified success at pass@1 on the given statement: the model's completed file compiles under the pinned toolchain, contains no sorry, its main theorem depends only on the standard axioms, the theorem statement and every definition of the challenge file are unchanged as compiled declarations, and every declaration replays through the kernel. Claims that are not established are excluded."
+  },
+  "system_prompt": "You are an expert Lean 4 formal verification agent. Provide valid Lean 4 code.",
+  "settings": {
+    "temperature": 0,
+    "sampling_extras": null,
+    "max_tokens": 16384,
+    "generation_timeout_ms": 300000,
+    "attempts_k": 1,
+    "repair_rounds": 0,
+    "lean": {
+      "timeoutMs": 600000,
+      "memoryMb": 8192,
+      "maxHeartbeats": 400000,
+      "concurrency": 2
+    },
+    "context_max_chars": 24000,
+    "primary_endpoint": {
+      "id": "verified_pass1_main_theorem",
+      "description": "Strict verified success at pass@1 on the main_theorem target: original model file compiles under the pinned toolchain, its target declaration depends only on the allowed axioms, its statement is an accepted match to the audited reference, and the paper claim is established."
+    }
+  },
+  "toolchain": {
+    "available": true,
+    "reason": "Mathlib.olean not found on LEAN_PATH; run `lake exe cache get && lake build` in lean/. Files importing Mathlib will fail as infrastructure_failure.",
+    "lean_project": "C:\\QEDRank\\QEDRank_java\\qedrank\\test\\fixtures\\lean-core",
+    "lean_options": [
+      "-DrelaxedAutoImplicit=false"
+    ],
+    "toolchain": "leanprover/lean4:v4.34.1",
+    "lean_version": "Lean (version 4.34.1, x86_64-w64-windows-gnu, commit 5045d0056413266e57c625dcd7c365b10e377c52, Release)",
+    "mathlib": {
+      "rev": null,
+      "input_rev": null,
+      "url": null,
+      "note": "lake-manifest.json missing or without mathlib; run `lake update` in lean/"
+    },
+    "mathlib_built": false,
+    "audit_built": false,
+    "environment": {
+      "kind": "host",
+      "backend_requested": "auto"
+    }
+  },
+  "machine": {
+    "platform": "win32",
+    "release": "10.0.26200",
+    "cpus": 14,
+    "total_memory_mb": 32270,
+    "node": "v24.15.0"
+  },
+  "config": {
+    "runsDir": "C:\\QEDRank\\QEDRank_java\\qedrank\\test\\fixtures\\runs",
+    "leanDir": "C:\\QEDRank\\QEDRank_java\\qedrank\\test\\fixtures\\lean-core",
+    "expectedPaperCount": 108,
+    "task": "prove",
+    "grade": {
+      "libraryPrefixes": [
+        "ProofBench.Mathlib_Problems"
+      ],
+      "allowExtraImports": false,
+      "allowUnusedSorry": false,
+      "kernelReplay": true
+    },
+    "models": [
+      "fable",
+      "opus",
+      "qwen",
+      "qwen35",
+      "gpt6_astra",
+      "gpt6_sol",
+      "gpt56_terra",
+      "gpt54",
+      "glm",
+      "deepseek_flash"
+    ],
+    "generation": {
+      "temperature": 0,
+      "effort": "high",
+      "maxTokens": 16384,
+      "timeoutMs": 300000,
+      "retries": 4,
+      "retryBaseDelayMs": 2000,
+      "retryMaxDelayMs": 60000,
+      "providerConcurrency": 1,
+      "attempts": 1,
+      "repairRounds": 0
+    },
+    "lean": {
+      "timeoutMs": 600000,
+      "memoryMb": 8192,
+      "maxHeartbeats": 400000,
+      "concurrency": 2
+    },
+    "concurrency": {
+      "items": 10
+    },
+    "context": {
+      "maxChars": 24000
+    },
+    "download": {},
+    "bootstrap": {
+      "B": 2000,
+      "seed": 20260930
+    },
+    "exploratoryThreshold": 10,
+    "privacy": {
+      "privateCorpus": true,
+      "allowedHosts": [
+        "chat-ai.academiccloud.de"
+      ]
+    },
+    "preflight": {
+      "importCheck": true,
+      "allowMissingImports": false
+    },
+    "primaryEndpoint": {
+      "id": "verified_pass1_main_theorem",
+      "description": "Strict verified success at pass@1 on the main_theorem target: original model file compiles under the pinned toolchain, its target declaration depends only on the allowed axioms, its statement is an accepted match to the audited reference, and the paper claim is established."
+    },
+    "pricing": {},
+    "modelFacts": {},
+    "allowedAxioms": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "harnesses": {
+      "proofbench": {
+        "dir": "C:/QEDRank/QEDRank-ProofBencheval",
+        "bash": null,
+        "python": null,
+        "statements": "proofbench-statements",
+        "leanProject": "C:/QEDRank/proofbench-statements",
+        "image": "proofbench-sandbox:latest",
+        "statementsUrl": "https://github.com/proof-bench/proofbench-statements"
+      },
+      "matharena-arxivlean": {
+        "dir": null,
+        "datasetMode": "adapted"
+      },
+      "qedrank-harness": {
+        "dir": "harness"
+      }
+    },
+    "verification": {
+      "backend": "auto",
+      "image": "qedrank-lean:latest",
+      "sif": null,
+      "mounts": null,
+      "dockerArgs": [],
+      "apptainerArgs": []
+    },
+    "configFile": "C:\\QEDRank\\QEDRank_java\\qedrank.config.json"
+  },
+  "stages": {
+    "discovery": {
+      "status": "done",
+      "updated_at": "2026-10-27T10:44:13.604Z",
+      "papers": 1,
+      "flags": {
+        "missing_pdf": 1,
+        "target_needs_review": 1,
+        "missing_target_file": 2
+      }
+    },
+    "preparation": {
+      "status": "done",
+      "papers": 1,
+      "task": "prove",
+      "updated_at": "2026-10-27T10:44:13.640Z",
+      "done": 1,
+      "errors": []
+    },
+    "generation": {
+      "status": "done",
+      "updated_at": "2026-10-27T10:46:32.113Z",
+      "generated": 3,
+      "failed": 0,
+      "skipped": 0,
+      "halted": 0
+    },
+    "compilation": {
+      "status": "done",
+      "updated_at": "2026-10-27T10:46:32.116Z",
+      "compiled": 2
+    },
+    "audit": {
+      "status": "done",
+      "updated_at": "2026-10-27T10:46:32.120Z"
+    },
+    "comparison": {
+      "status": "done",
+      "updated_at": "2026-10-27T10:46:32.123Z"
+    },
+    "statistics": {
+      "status": "done",
+      "updated_at": "2026-10-27T10:46:32.224Z",
+      "items": 3
+    }
+  },
+  "selection": {
+    "papers": [
+      "P900"
+    ],
+    "models": [
+      "qwen",
+      "kimi",
+      "llama"
+    ],
+    "targets": [
+      "main_theorem"
+    ]
+  },
+  "fixture_dir": "C:\\QEDRank\\QEDRank_java\\qedrank\\test\\fixtures\\corpus-prove\\responses",
+  "model_hosts": {
+    "qwen": null,
+    "kimi": null,
+    "llama": null
+  },
+  "model_facts": {
+    "qwen": {
+      "released": "2025-07-30",
+      "training_cutoff": null,
+      "parameters_b": 30.5,
+      "active_parameters_b": 3.3,
+      "sources": {
+        "released": "https://github.com/QwenLM/Qwen3",
+        "parameters_b": "https://huggingface.co/Qwen/Qwen3-30B-A3B-Instruct-2507"
+      },
+      "note": "Mixture of experts. No vendor-stated training cutoff."
+    },
+    "kimi": {
+      "released": "2026-07-16",
+      "training_cutoff": null,
+      "parameters_b": 2800,
+      "active_parameters_b": 104,
+      "sources": {
+        "released": "https://thenextweb.com/news/moonshot-kimi-k3-largest-open-model",
+        "parameters_b": "https://huggingface.co/moonshotai/Kimi-K3"
+      },
+      "note": "Mixture of experts. Release date is from press coverage of the API launch; no Moonshot page prints it. No vendor-stated training cutoff."
+    },
+    "llama": {
+      "released": "2024-07-23",
+      "training_cutoff": "2023-12",
+      "parameters_b": 8,
+      "active_parameters_b": null,
+      "sources": {
+        "released": "https://huggingface.co/meta-llama/Llama-3.1-8B-Instruct",
+        "training_cutoff": "https://huggingface.co/meta-llama/Llama-3.1-8B-Instruct",
+        "parameters_b": "https://huggingface.co/meta-llama/Llama-3.1-8B-Instruct"
+      },
+      "note": "Cutoff is given to the month."
+    }
+  },
+  "privacy": {
+    "enforced": false,
+    "private_corpus": true,
+    "allowed_hosts": [
+      "localhost",
+      "127.0.0.1",
+      "::1",
+      "chat-ai.academiccloud.de"
+    ],
+    "fixture": true,
+    "slots": [
+      {
+        "slot": "qwen",
+        "model_id": null,
+        "kind": "openai_compatible",
+        "host": "chat-ai.academiccloud.de",
+        "allowed": true
+      },
+      {
+        "slot": "kimi",
+        "model_id": null,
+        "kind": "openai_compatible",
+        "host": "api.moonshot.ai",
+        "allowed": true
+      },
+      {
+        "slot": "llama",
+        "model_id": null,
+        "kind": "openai_compatible",
+        "host": "chat-ai.academiccloud.de",
+        "allowed": true
+      }
+    ],
+    "refused": []
+  },
+  "batch_wall_clock_ms": 137743.5042000115
+}

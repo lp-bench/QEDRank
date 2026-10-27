@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom'
 import { useAppState } from '../state/AppState.jsx'
 import ModelPicker from '../components/ModelPicker.jsx'
 import KeyHint from '../components/KeyHint.jsx'
-import { CorpusPanel, RunPanel } from '../qedrank/panels.jsx'
+import { CorpusPanel } from '../qedrank/panels.jsx'
 import { download } from '../qedrank/helpers.js'
 import '../qedrank/qedrank.css'
 import './home.css'
@@ -31,7 +31,6 @@ export default function BenchmarkPage() {
       </section>
 
       <CorpusPanel modelsArg={modelsArg} selectedModels={selected} onLoaded={setLoaded} />
-      <RunPanel onLoaded={setLoaded} />
 
       {(summary || items) && (
         <section className="card">

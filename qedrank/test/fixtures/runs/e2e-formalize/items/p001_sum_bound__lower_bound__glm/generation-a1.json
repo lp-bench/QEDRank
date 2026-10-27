@@ -1,0 +1,43 @@
+{
+  "provider": "glm",
+  "display_name": "fixture · GLM-5.3 Flash",
+  "label": "GLM-5.3 Flash",
+  "vendor": "Z.ai · served by GWDG Chat AI",
+  "model_id": "fixture:glm",
+  "api_host": null,
+  "response_model": null,
+  "mode": "fixture",
+  "text": "=== PART A ===\n```lean\nimport Mathlib.Algebra.BigOperators.Intervals\nimport QEDRank.Papers.p001_sum_bound\n\ntheorem lower_bound (n : ℕ) : n - 1 ≤ sumBelow n\n```\n=== PART B ===\nI cannot complete the proof: the case split on n ≥ 2 with truncated subtraction did not close under the automation I tried, so I return no purported complete proof file.\n=== PART C ===\nStatement matches the paper's Proposition 2 (n − 1 ≤ S(n)); proof gap remains.\n=== PART D ===\nstatement_confidence: 85\nproof_confidence: 5\n",
+  "usage": null,
+  "sampling": null,
+  "reasoning_chars": null,
+  "observed_latency_ms": 304.5609999895096,
+  "working_ms": 304.5609999895096,
+  "http_status": null,
+  "finish_reason": "fixture",
+  "provider_attempts": 1,
+  "retry_wait_ms": null,
+  "error": null,
+  "started_at": "2026-10-27T14:59:44.851Z",
+  "started_mono_ms": 187506403.3395,
+  "ended_at": "2026-10-27T14:59:45.156Z",
+  "ended_mono_ms": 187506707.9005,
+  "fixture_file": "glm\\p001_sum_bound__lower_bound.md",
+  "facts": {
+    "released": "2026-02",
+    "training_cutoff": null,
+    "parameters_b": 320,
+    "active_parameters_b": 18,
+    "sources": {
+      "released": "https://docs.hpc.gwdg.de/services/ai-services/chat-ai/models/index.html",
+      "parameters_b": "https://huggingface.co/zai-org/GLM-5.3-Flash"
+    },
+    "note": "Hybrid-attention mixture of experts; reasoning_effort low | high | max (default max). Release month from the GWDG model table; the model card prints no date. No vendor-stated training cutoff."
+  },
+  "prompt_hash": "40080f1e827aca5aefe0e6fd3631792fe62c5d32e1829821fa0bdf356cda3ce7",
+  "prompt_template_version": "qedrank-prompt-v2",
+  "temperature": 0,
+  "effort": null,
+  "max_tokens": 16384,
+  "timeout_ms": 300000
+}

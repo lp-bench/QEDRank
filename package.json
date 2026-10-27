@@ -9,6 +9,7 @@
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives",
     "preview": "vite preview",
     "test": "node --test \"qedrank/test/**/*.test.js\"",
+    "e2e": "node e2e/run.mjs",
     "qedrank": "node qedrank/cli.js",
     "qedrank:serve": "node qedrank/cli.js serve"
   },
@@ -27,6 +28,7 @@
     "@types/react-dom": "^18.2.15",
     "eslint": "^8.53.0",
     "eslint-plugin-react-hooks": "^4.6.0",
-    "eslint-plugin-react-refresh": "^0.4.4"
+    "eslint-plugin-react-refresh": "^0.4.4",
+    "selenium-webdriver": "^4.51.0"
   }
 }

@@ -5,12 +5,18 @@
 // and a heartbeat cap. The linked corpus' own lakefiles are never executed:
 // reference files are copied into a scratch root and compiled with our
 // project's LEAN_PATH, exactly like model outputs.
+//
+// The toolchain may live in a container instead of on this machine (leanenv.js: docker or
+// apptainer). A LeanRunner bound to such a toolchain maps the host paths of the files it
+// compiles to their paths inside the container and wraps every process in the container
+// command; callers see the same result records.
 
 import { spawn, execFile } from 'node:child_process';
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { promisify } from 'node:util';
 import { nowMono, isoNow, ensureDir, writeText, readJson, exists, sha256 } from './util.js';
+import { containerInvocation, mapHostPath } from './leanenv.js';
 
 const execFileP = promisify(execFile);
 
@@ -42,6 +48,7 @@ export async function detectToolchain(leanDir, { log = () => {} } = {}) {
     audit_built: false,
     lean_options: [],
     detected_at: isoNow(),
+    environment: { kind: 'host' },
   };
   try {
     info.toolchain = (await fs.readFile(path.join(info.lean_dir, 'lean-toolchain'), 'utf8')).trim();
@@ -193,16 +200,34 @@ export class LeanRunner {
    * @param {object} toolchain result of detectToolchain
    * @param {{timeoutMs?:number, memoryMb?:number, maxHeartbeats?:number, log?:Function}} opts
    */
-  constructor(toolchain, { timeoutMs = 600000, memoryMb = 8192, maxHeartbeats = 400000, log = () => {} } = {}) {
+  constructor(toolchain, { timeoutMs = 600000, memoryMb = 8192, maxHeartbeats = 400000, log = () => {}, spawnImpl = spawn, execFileImpl = execFile } = {}) {
     this.tc = toolchain;
     this.timeoutMs = timeoutMs;
     this.memoryMb = memoryMb;
     this.maxHeartbeats = maxHeartbeats;
     this.log = log;
+    this.spawnImpl = spawnImpl;
+    this.execFileImpl = execFileImpl;
+    // A container environment (leanenv.js); null on the host.
+    this.container = toolchain?.environment && toolchain.environment.kind !== 'host' ? toolchain.environment : null;
   }
 
   limits() {
     return { timeout_ms: this.timeoutMs, memory_mb: this.memoryMb, max_heartbeats: this.maxHeartbeats };
+  }
+
+  isContainer() {
+    return this.container !== null;
+  }
+
+  /** A host path as the Lean process sees it: unchanged on the host, mapped inside a container. */
+  mapPath(p) {
+    return this.container ? mapHostPath(this.container.mounts || [], p) : p;
+  }
+
+  /** LEAN_PATH separator where the Lean process runs. */
+  delimiter() {
+    return this.container ? ':' : path.delimiter;
   }
 
   /**
@@ -237,10 +262,20 @@ export class LeanRunner {
       return result;
     }
     const args = ['--json', `-M${this.memoryMb}`, `-DmaxHeartbeats=${this.maxHeartbeats}`, ...extraArgs];
-    if (olean) args.push('-o', olean);
-    if (ilean) args.push('-i', ilean);
-    args.push(file);
-    const { code, stdout, stderr, timedOut, spawnError } = await this.spawnTimed(this.tc.lean_exe, args, { cwd, extraLeanPath });
+    let where;
+    try {
+      where = { cwd: this.mapPath(cwd), extraLeanPath: extraLeanPath.map((d) => this.mapPath(d)) };
+      if (olean) args.push('-o', this.mapPath(olean));
+      if (ilean) args.push('-i', this.mapPath(ilean));
+      args.push(this.mapPath(file));
+    } catch (e) {
+      result.status = 'infrastructure_failure';
+      result.infra_reason = e.message;
+      result.ended_at = isoNow();
+      result.duration_ms = 0;
+      return result;
+    }
+    const { code, stdout, stderr, timedOut, spawnError } = await this.spawnTimed(this.tc.lean_exe, args, where);
 
     result.duration_ms = nowMono() - started.mono;
     result.ended_at = isoNow();
@@ -275,9 +310,14 @@ export class LeanRunner {
     return result;
   }
 
-  /** Environment for a toolchain subprocess: project search path first, no credentials. */
+  /**
+   * Environment for a toolchain subprocess: project search path first, no credentials. Inside a
+   * container only LEAN_PATH and LEAN_SYSROOT are set; nothing of this process's environment
+   * crosses over. `extraLeanPath` entries are already mapped by the caller.
+   */
   childEnv(extraLeanPath = []) {
-    const leanPath = [...extraLeanPath, this.tc.lean_path].filter(Boolean).join(path.delimiter);
+    const leanPath = [...extraLeanPath, this.tc.lean_path].filter(Boolean).join(this.delimiter());
+    if (this.container) return { LEAN_PATH: leanPath, LEAN_SYSROOT: this.tc.sysroot || '' };
     const env = { ...process.env, LEAN_PATH: leanPath, LEAN_SYSROOT: this.tc.sysroot || '' };
     if (this.tc.path_env) env.PATH = this.tc.path_env;
     // Never leak provider credentials into the compiler subprocess.
@@ -285,23 +325,54 @@ export class LeanRunner {
     return env;
   }
 
-  /** Spawn a toolchain executable with the wall-clock limit. Never rejects. */
-  spawnTimed(exe, args, { cwd, extraLeanPath = [], timeoutMs = this.timeoutMs }) {
+  /** This process's environment without credentials, for the docker/apptainer client. */
+  static hostEnv() {
+    const env = { ...process.env };
+    for (const k of Object.keys(env)) if (/_API_KEY$|^GITHUB_TOKEN$/.test(k)) delete env[k];
+    return env;
+  }
+
+  /**
+   * Spawn a toolchain executable with the wall-clock limit. Never rejects. In a container, `exe`,
+   * `args` and `cwd` are container paths; the process becomes one `docker run --rm` (or
+   * `apptainer exec`) with the run directories mounted. On timeout the container is killed too:
+   * killing the docker client alone would leave the container running.
+   */
+  spawnTimed(exe, args, { cwd, extraLeanPath = [], timeoutMs = this.timeoutMs, input = null }) {
     const env = this.childEnv(extraLeanPath);
+    let spawnExe = exe;
+    let spawnArgs = args;
+    let spawnOpts = { cwd, env, windowsHide: true };
+    let killContainer = null;
+    if (this.container) {
+      const name = `qedrank-lean-${process.pid}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
+      const inv = containerInvocation(this.container, { exe, args, cwd, envVars: env, name, stdin: input !== null });
+      spawnExe = inv.exe;
+      spawnArgs = inv.args;
+      spawnOpts = { env: LeanRunner.hostEnv(), windowsHide: true, detached: process.platform !== 'win32' };
+      if (this.container.kind === 'docker') killContainer = () => { try { this.execFileImpl('docker', ['kill', name], { windowsHide: true, timeout: 20000 }, () => {}); } catch { /* ignore */ } };
+    }
     return new Promise((resolve) => {
       let out = '';
       let err = '';
       let done = false;
       let proc;
       try {
-        proc = spawn(exe, args, { cwd, env, windowsHide: true });
+        proc = this.spawnImpl(spawnExe, spawnArgs, spawnOpts);
       } catch (e) {
         resolve({ code: null, stdout: '', stderr: '', timedOut: false, spawnError: e });
         return;
       }
+      // Input (a list of paths) goes through stdin: Windows caps a command line at 32 KB.
+      if (proc.stdin) { proc.stdin.on('error', () => {}); proc.stdin.end(input === null ? undefined : input); }
+      const kill = () => {
+        if (killContainer) killContainer();
+        if (spawnOpts.detached && proc.pid) { try { process.kill(-proc.pid, 'SIGKILL'); } catch { /* ignore */ } }
+        try { proc.kill('SIGKILL'); } catch { /* ignore */ }
+      };
       const timer = setTimeout(() => {
         if (done) return;
-        try { proc.kill('SIGKILL'); } catch { /* ignore */ }
+        kill();
         setTimeout(() => { if (!done) { done = true; resolve({ code: null, stdout: out, stderr: err, timedOut: true, spawnError: null }); } }, 2000);
       }, timeoutMs);
       proc.stdout.on('data', (d) => { out += d.toString(); });
@@ -342,5 +413,45 @@ export class LeanRunner {
     r.qr = r.messages.map((m) => parseQrLine(m.text)).filter(Boolean);
     r.qr_errors = r.messages.filter((m) => m.severity === 'error' && /QR_ERROR/.test(m.text)).map((m) => m.text);
     return r;
+  }
+
+  /**
+   * `lake build <module>` in the project (the formalize task's per-paper prelude, written into
+   * the project tree so its .olean lands on LEAN_PATH). Host only: the project inside an image is
+   * not writable across `docker run --rm` calls, so a container environment reports why instead.
+   * Returns { status, duration_ms, stdout_tail, stderr_tail }; never throws.
+   */
+  async lakeBuild(moduleName, { cwd, timeoutMs = this.timeoutMs } = {}) {
+    const t0 = nowMono();
+    if (this.container) {
+      return { status: 'infrastructure_failure', duration_ms: 0, stdout_tail: '', stderr_tail: '', infra_reason: `lake build ${moduleName}: building modules inside the project is not supported in a ${this.container.kind} environment (formalize-task preludes need a host project; use --backend host)` };
+    }
+    if (!this.tc.available) return { status: 'infrastructure_failure', duration_ms: 0, stdout_tail: '', stderr_tail: '', infra_reason: this.tc.reason || 'toolchain unavailable' };
+    try {
+      const { stdout, stderr } = await promisify(this.execFileImpl)('lake', ['build', moduleName], { cwd, timeout: timeoutMs, windowsHide: true, maxBuffer: 16 * 1024 * 1024, env: LeanRunner.hostEnv() });
+      return { status: 'compiler_success', duration_ms: nowMono() - t0, stdout_tail: String(stdout).slice(-2000), stderr_tail: String(stderr).slice(-2000) };
+    } catch (err) {
+      const text = `${err.stdout || ''}\n${err.stderr || ''}`;
+      return { status: err.killed ? 'timeout' : 'compiler_failure', duration_ms: nowMono() - t0, stdout_tail: text.slice(-4000), stderr_tail: '' };
+    }
+  }
+
+  /**
+   * Which of these paths exist where the Lean process runs. Host paths are checked on the host;
+   * in a container the paths are container paths (LEAN_PATH entries) and one `sh` call checks
+   * them all, reading the list from stdin. Returns the Set of paths that exist.
+   */
+  async existsMany(paths) {
+    const found = new Set();
+    if (!this.container) {
+      for (const p of paths) if (await exists(p)) found.add(p);
+      return found;
+    }
+    if (!paths.length) return found;
+    const script = 'while IFS= read -r p; do [ -e "$p" ] && printf "%s\\n" "$p"; done; true';
+    const { stdout, spawnError } = await this.spawnTimed('sh', ['-c', script], { cwd: '/', extraLeanPath: [], timeoutMs: 120000, input: `${paths.join('\n')}\n` });
+    if (spawnError) throw spawnError;
+    for (const line of stdout.split(/\r?\n/)) if (line.trim()) found.add(line.trim());
+    return found;
   }
 }

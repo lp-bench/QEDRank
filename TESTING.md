@@ -110,6 +110,18 @@ the level stays runnable in minutes.
 Why opt-in: on some Windows machines a Lean invocation takes 30–60 s even without Mathlib, so
 the full set takes up to 40 minutes. In CI on Linux it takes about two.
 
+The same fixtures graded **inside a container** are the end-to-end test of the docker/apptainer
+backends (`qedrank/lib/leanenv.js`; its unit tests in `leanenv.test.js` need no Docker):
+
+```powershell
+node qedrank/cli.js lean-env build --project qedrank/test/fixtures/lean-core --tag qedrank-lean:lean-core   # once; no Mathlib, a few minutes
+$env:QEDRANK_LEAN_TESTS = "1"; $env:QEDRANK_LEAN_BACKEND = "docker"; $env:QEDRANK_LEAN_IMAGE = "qedrank-lean:lean-core"
+node --test qedrank/test/grade.test.js
+```
+
+Every verdict must be the same as on the host. `QEDRANK_LEAN_BACKEND=apptainer` with
+`QEDRANK_LEAN_SIF=<file>` does the same on a cluster.
+
 When it fails: `qedrank/cli.js grade --lean-project qedrank/test/fixtures/lean-core --challenge
 qedrank/test/fixtures/grade/challenge.lean --solution qedrank/test/fixtures/grade/<name>.lean
 --scratch tmp/g` keeps the scratch directory; `tmp/g/scripts/*.lean` are the evaluator scripts
@@ -169,7 +181,8 @@ Canned answers (one solved, one partial, one abstention) go through the whole pr
 with real Lean on the dependency-free project: expect `verified 1/1` for `qwen`, `0/1` with
 `contains_sorry` and completeness 2/3 for `kimi`, and an abstention for `llama` (fixture slot ids;
 `kimi` and `llama` are former roster slots and still resolve). A few minutes.
-Load `prove-fixture` on the Evaluation page afterwards to see a prove run rendered.
+With `npm run qedrank:serve` running, the Evaluation page picks `prove-fixture` up by itself (the
+newest run with statistics) and shows a prove run rendered.
 
 ## 6. Small live run
 
@@ -185,7 +198,7 @@ node qedrank/cli.js stats --run-id smoke-1
 Read `runs/smoke-1/summary.json` before anything larger: `coverage.items_infrastructure_failed`
 should be 0 (otherwise a key, a quota or the toolchain is the problem); `eligible_items` should
 equal the number of items; each model's `compile`, `audit_clean` and `verified_pass1` should
-have the denominators you expect. Load the run on the Evaluation page (`npm run qedrank:serve`)
+have the denominators you expect. Open the Evaluation page (`npm run qedrank:serve` running: the newest run loads by itself)
 and check that every number there matches the JSON. `resume --run-id smoke-1 --retry-failed`
 re-runs infrastructure failures only.
 
@@ -226,6 +239,46 @@ The same attack list as level 3 applies to the agent's output: the grader is the
 - [ ] Nothing in the run directory is committed (`runs/` is ignored); summaries that leave the
       machine go through the Evaluation page's download buttons, which strip nothing but also
       add nothing.
+
+## 9. End-to-end tests of the page (Selenium)
+
+```powershell
+npm run e2e                      # builds dist/, starts the servers, drives headless Chrome, stops everything
+npm run e2e -- --no-build        # reuse dist/
+$env:E2E_BROWSER = "edge"        # Edge instead of Chrome; the driver is fetched by Selenium Manager
+$env:E2E_RUN_IDS = "e2e-prove"   # only these fixture runs on the Evaluation page
+```
+
+`e2e/run.mjs` serves the production build with the API functions in-process (`e2e/server.mjs`:
+`/api/models` and `/api/verify` as deployed, with no keys; `/api/qedrank/discover` answering from
+the fixture corpora under links of the form `https://github.com/e2e/corpus-b`), the run server
+over `qedrank/test/fixtures/runs/`, and a stub of the job endpoint that records what the page
+sends. The tests (`e2e/tests/*.test.mjs`, Node's test runner + `selenium-webdriver`) check:
+
+- every route renders without console errors; navigation; the empty states (`pages`);
+- Convert refuses to call any model when none has a key (`pages`);
+- Benchmark: discovery of `corpus-b` (ProofBench layout, 5 papers) and `corpus-a`, an unknown
+  repository, and the run launcher — the command preview and the recorded request carry the
+  task, the run id, the chosen run configuration (`configs/*.json`, listed by the run server) and
+  **the attempts the user asked for** (the page bug of 2026-10-26), with temperature 1.0 sent when
+  attempts > 1 and nothing else samples (`benchmark`);
+- Evaluation, for every fixture run: the newest run loads by itself from the run server and the
+  "Runs on this machine" row switches to the others; leaderboard, problems × models grid with the
+  planned attempts, pass@k, item table, exports; the loaded run shared with Benchmark; without a
+  run server, one line says what to start and no loader is shown (`evaluation`, `pages`).
+
+The fixture runs are real runs over the fixture corpora with canned answers and real Lean, made
+once and committed (synthetic problems only, nothing private):
+
+```powershell
+node qedrank/cli.js run --path qedrank/test/fixtures/corpus-prove --fixtures qedrank/test/fixtures/corpus-prove/responses --task prove --lean-project qedrank/test/fixtures/lean-core --models qwen,kimi,llama --targets main_theorem --runs-dir qedrank/test/fixtures/runs --run-id e2e-prove
+node qedrank/cli.js run --path qedrank/test/fixtures/corpus-a --fixtures qedrank/test/fixtures/corpus-a/fixture-responses --models qwen,glm,fable,mistral --runs-dir qedrank/test/fixtures/runs --run-id e2e-formalize
+```
+
+Regenerate them when the run format changes (`schema` bumps in `qedrank/lib/schema.js`), and
+delete `qedrank/test/fixtures/runs/.grade-cache` afterwards (compiled objects, not committed).
+`.github/workflows/e2e.yml` runs the unit tests, the build and this suite on every push, one job
+per fixture dataset; the same file works at the root of branch `QEDRank` and of `main`.
 
 ## What the tests do not cover
 

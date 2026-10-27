@@ -6,7 +6,8 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 import axios from 'axios'
 
 const Ctx = createContext(null)
-const KEYS = { selected: 'qedrank.selectedModels', theme: 'qedrank.theme', run: 'qedrank.loadedRun' }
+const KEYS = { selected: 'qedrank.selectedModels', theme: 'qedrank.theme', run: 'qedrank.loadedRun', runServer: 'qedrank.runServer' }
+export const DEFAULT_RUN_SERVER = 'http://127.0.0.1:8787'
 
 function storage(kind) {
   try { return typeof window !== 'undefined' ? window[kind] : null } catch { return null }
@@ -30,6 +31,8 @@ export function AppStateProvider({ children, initialRoster = null, initialRun = 
   const [selected, setSelectedState] = useState(() => read('localStorage', KEYS.selected, null))
   const [theme, setThemeState] = useState(() => read('localStorage', KEYS.theme, 'auto'))
   const [loaded, setLoadedState] = useState(() => initialRun || read('sessionStorage', KEYS.run, EMPTY_RUN))
+  // The local run server (lists runs, starts jobs, serves proof text); one address for every page.
+  const [runServer, setRunServerState] = useState(() => read('localStorage', KEYS.runServer, DEFAULT_RUN_SERVER) || DEFAULT_RUN_SERVER)
 
   useEffect(() => {
     if (initialRoster) return undefined
@@ -67,6 +70,7 @@ export function AppStateProvider({ children, initialRoster = null, initialRun = 
     })
   }, [])
   const clearLoaded = useCallback(() => { setLoadedState(EMPTY_RUN); write('sessionStorage', KEYS.run, EMPTY_RUN) }, [])
+  const setRunServer = useCallback((url) => { const v = String(url || '').trim().replace(/\/+$/, '') || DEFAULT_RUN_SERVER; setRunServerState(v); write('localStorage', KEYS.runServer, v) }, [])
 
   const value = useMemo(() => {
     const sel = selected || []
@@ -77,8 +81,9 @@ export function AppStateProvider({ children, initialRoster = null, initialRun = 
       selected: sel, selectedModels, setSelected,
       theme, setTheme,
       loaded, setLoaded, clearLoaded,
+      runServer, setRunServer,
     }
-  }, [roster, optional, rosterError, rosterLoading, selected, setSelected, theme, setTheme, loaded, setLoaded, clearLoaded])
+  }, [roster, optional, rosterError, rosterLoading, selected, setSelected, theme, setTheme, loaded, setLoaded, clearLoaded, runServer, setRunServer])
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>
 }

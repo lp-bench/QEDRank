@@ -375,7 +375,8 @@ export async function gradeSubmission({ runner, toolchain, challengeSrc, solutio
   if (sol.status !== 'compiler_success') { fail('compile_error'); rec.completeness = { available: false, reason: 'file_does_not_compile', definition: COMPLETENESS_DEFINITION }; return finish(); }
 
   // ---- 3. statement and definitions unchanged (compiled declarations, read as data) ----
-  const diffScript = `import QEDRank.Audit\n#qr_olean_diff "${leanPathString(ref.olean)}" "${leanPathString(sol.olean)}"\n`;
+  // Object-file paths as the Lean process sees them (mapped into the container when one is used).
+  const diffScript = `import QEDRank.Audit\n#qr_olean_diff "${leanPathString(runner.mapPath(ref.olean))}" "${leanPathString(runner.mapPath(sol.olean))}"\n`;
   const diff = await runner.runScript({ src: diffScript, name: 'QRA_diff', scratchDir: path.join(scratchDir, 'scripts'), extraLeanPath: [audit.root] });
   if (!diff.qr.some((r) => r.tag === 'QR_OLEAN_DIFF_DONE')) return graderError('statement_comparison_failed', { status: diff.status, errors: formatCompilerOutput(diff.messages, { maxMessages: 5 }) });
   const statement = classifyStatementDiff(diff.qr, rec.target);
@@ -428,7 +429,7 @@ export async function gradeSubmission({ runner, toolchain, challengeSrc, solutio
 
   // ---- 5. kernel replay: every declaration of the solution goes through the kernel again ----
   if (pol.kernelReplay) {
-    const replayScript = `import QEDRank.Audit\n#qr_replay "${leanPathString(sol.olean)}"\n`;
+    const replayScript = `import QEDRank.Audit\n#qr_replay "${leanPathString(runner.mapPath(sol.olean))}"\n`;
     const r = await runner.runScript({ src: replayScript, name: 'QRA_replay', scratchDir: path.join(scratchDir, 'scripts'), extraLeanPath: [audit.root, ...extraLeanPath] });
     const q = r.qr.find((x) => x.tag === 'QR_REPLAY');
     const detail = r.messages.map((m) => m.text).find((t) => t.startsWith('QR_REPLAY_ERROR')) || null;

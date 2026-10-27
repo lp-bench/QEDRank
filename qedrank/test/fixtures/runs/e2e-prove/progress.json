@@ -1,0 +1,35 @@
+{
+  "discovery": {
+    "papers": 1,
+    "targets": {
+      "main_theorem": 1,
+      "upper_bound": 0,
+      "lower_bound": 0,
+      "disproof": 0
+    },
+    "flagged": 1
+  },
+  "updated_at": "2026-10-27T10:46:32.227Z",
+  "preparation": {
+    "done": 1,
+    "total": 1,
+    "errors": []
+  },
+  "items": {
+    "total": 3,
+    "done": 3,
+    "skipped": 0,
+    "halted": 0,
+    "generated": 3,
+    "gen_failed": 0,
+    "compiled": 2,
+    "verified": 1,
+    "infra": 0,
+    "errors": [],
+    "elapsed_ms": 137727.79170000553
+  },
+  "statistics": {
+    "items": 3,
+    "done": true
+  }
+}
