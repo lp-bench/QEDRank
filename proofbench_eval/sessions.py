@@ -74,9 +74,9 @@ Handoff note from session {prev}:
 
 HANDOFF_REQUEST = """\
 Your session has ended without a complete proof.  Write the handoff note for
-the next session.  It starts from the current files and their Lean output, but
-sees nothing of this conversation.  Use exactly this format and do not call
-tools:
+the next session directly; do not continue working on the proof.  The next
+session starts from the current files and their Lean output, but sees nothing
+of this conversation.  Use exactly this format and do not call tools:
 
 PROVED:
 - lemmas in the files that compile without sorry, by name
