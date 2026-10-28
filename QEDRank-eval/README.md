@@ -24,7 +24,7 @@ default), on a Linux PC or an HPC cluster without root, or with Docker.
    search tool uses the same search engine for every model. SageMath (with GAP
    and nauty), sympy, networkx, python-sat and the SAT solver CaDiCaL are
    installed. A proof may be split over several files.
-3. **Sessions with handoff.** An attempt consists of up to 10 fresh sessions,
+3. **Sessions with handoff.** An attempt consists of up to 4 fresh sessions,
    each with an output-token budget (120,000 by default). At the end of a
    session the agent writes a handoff note in a fixed format (proved lemmas,
    open goals, failed approaches, unsaved drafts) that starts the next one.
@@ -43,6 +43,9 @@ default), on a Linux PC or an HPC cluster without root, or with Docker.
    proof of its negation (the theorem `Pxxx_disprove` in
    `Pxxx_DISPROVE.lean`) counts as well: the agent sees both files, either
    one solves the problem, and each is graded against its own statement.
+   For every other problem, an agent convinced that the statement is false as
+   formalized can submit a text starting with `FALSE:` and an explanation: this
+   ends the attempt, unsolved, and is recorded for review by hand.
 5. **Records.** Each run freezes its configuration in `manifest.json` (harness
    commit, image, Lean and Mathlib versions, problem commit, model, reasoning
    effort, search, budgets), and [`scripts/analyze.py`](scripts/analyze.py)
@@ -51,7 +54,8 @@ default), on a Linux PC or an HPC cluster without root, or with Docker.
    cost at the list prices in [`data/model_prices.yml`](data/model_prices.yml)
    (Anthropic models; the free GWDG models have none), total and working time, tool and model calls, replies cut off at the token
    cap and refused replies, the largest context a single call needed, proof
-   length and axioms.
+   length and axioms, and whether the agent objected to the statement
+   (`FALSE:`), with every submitted text other than "done".
    When a run ends, `run.sh` writes the SHA-256 checksums of these files to
    `SHA256SUMS` in the same folder and archives the run, the zipped folder and
    its checksums, as a new version of the project's Zenodo record
@@ -189,6 +193,7 @@ tests/grader_attacks/        cheating attempts the grader must reject, and run.s
 tests/test_targets.py        proof or disproof: which file is graded and reported (fake sandbox, seconds)
 tests/mock_run.py            a whole two-session run with a scripted mock model, no API (Apptainer, 1 min)
 tests/provider_errors_run.py the same with a rate limit and a used-up daily limit: NOANSWER, not INCORRECT
+tests/objection_run.py       a mock agent submits FALSE: the attempt ends, unsolved, and results.csv records it
 ```
 
 ## Good to know

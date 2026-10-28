@@ -5,7 +5,7 @@ usage: scripts/analyze.py LOG_DIR [more LOG_DIRs]   -> writes LOG_DIR/results.cs
 Columns: run, model, search, problem, epoch, correct, status, polarity, sessions_used,
 provider_failures, session_ends, errors, tokens_in, tokens_cached, tokens_out, tokens_total, cost_usd, total_time_s,
 working_time_s, tool_calls, tool_errors, model_calls, max_tokens_stops, refusals,
-max_context, lines, proof_lines, compile_s, axioms, limit.
+max_context, lines, proof_lines, compile_s, axioms, limit, objection, submitted.
 tokens_in counts every input token, cached or not (Inspect's input_tokens leaves out
 the cache reads and writes that providers such as Anthropic report separately), so it
 means the same for every model; tokens_cached is the part read from the prompt cache.
@@ -25,6 +25,11 @@ max_tokens_stops counts replies cut off by the per-reply cap (MAX_TOKENS in
 run.sh; thinking counts against it), refusals the replies a safety classifier
 declined.  max_context is the largest prompt of a single model call (input
 tokens, cached or not): the context window a model needs for the attempt.
+objection is 1 when the agent submitted a text starting with "FALSE:", the channel
+for reporting a statement it believes false as formalized (problems without a
+negation file; it ends the attempt, unsolved); submitted lists every submitted
+text other than "done", so that informal remarks show up as well.  Review both
+by hand.
 """
 
 import csv
@@ -37,7 +42,8 @@ from inspect_ai.log import list_eval_logs, read_eval_log
 COLS = ["run", "model", "search", "problem", "epoch", "correct", "status", "polarity", "sessions_used", "provider_failures",
         "session_ends", "errors", "tokens_in",
         "tokens_cached", "tokens_out", "tokens_total", "cost_usd", "total_time_s", "working_time_s", "tool_calls", "tool_errors",
-        "model_calls", "max_tokens_stops", "refusals", "max_context", "lines", "proof_lines", "compile_s", "axioms", "limit"]
+        "model_calls", "max_tokens_stops", "refusals", "max_context", "lines", "proof_lines", "compile_s", "axioms", "limit",
+        "objection", "submitted"]
 
 
 def all_input(u) -> int:
@@ -103,6 +109,8 @@ def rows_for(log_dir: Path):
                 "compile_s": md.get("compile_seconds", ""),
                 "axioms": " ".join(md.get("axioms", [])),
                 "limit": s.limit.type if s.limit else "",
+                "objection": int(any(r.get("objection") for r in sessions)),
+                "submitted": " | ".join(t for r in sessions if (t := r.get("submitted")) and t.lower() != "done")[:500],
             }
 
 
@@ -118,7 +126,8 @@ def main() -> None:
     for r in rows:
         print(f"{r['model']:28} {r['problem']:6} ok={r['correct']} {r['polarity']:8} sessions={r['sessions_used']} "
               f"[{r['session_ends']}] tok={r['tokens_total']:>8} out={r['tokens_out']:>7} t={r['total_time_s']:>5}s "
-              f"tools={r['tool_calls']:>3} tool_errors={r['tool_errors']:>2} lines={r['lines']}")
+              f"tools={r['tool_calls']:>3} tool_errors={r['tool_errors']:>2} lines={r['lines']}"
+              + (" OBJECTION (statement false?)" if r["objection"] else ""))
 
 
 if __name__ == "__main__":

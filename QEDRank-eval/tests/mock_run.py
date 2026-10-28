@@ -41,6 +41,7 @@ checks = {
     "run finished": log.status == "success",
     "both files in the sandbox": f"{pid}_DISPROVE.lean" in next(m.text for m in s.messages if m.role == "tool"),
     "prompt shows both files": all(f"Submission/{f}.lean" in prompt1 for f in (pid, f"{pid}_DISPROVE")),
+    "no objection channel (open problem)": '"FALSE:"' not in prompt1,
     "note written after session 1": recs[0].get("note") == "PROVED:\n- nothing (mock note)",
     "note request uses the session's tools": names(calls[2]) == names(calls[1]) and calls[2].tool_choice == calls[1].tool_choice,
     "session 2 starts from the note": "mock note" in prompt2,

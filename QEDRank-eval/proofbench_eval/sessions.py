@@ -12,14 +12,17 @@ ends without a proof, the model writes a handoff note in a fixed format
 under "sessions".  For an open problem each session shows both files, the
 statement and its negation (`Pxxx_DISPROVE.lean`), and the chain ends as soon
 as either passes.  A session that ends in a provider error is started again
-without counting (see `handoff_sessions`).
+without counting (see `handoff_sessions`).  For a problem without a negation
+file, an agent convinced that the statement is false submits a text starting
+with "FALSE:" (an objection): if the file does not pass, this ends the chain,
+and the objection is recorded for review by hand.
 """
 
 import asyncio
 import re
 from typing import Any
 
-from inspect_ai.agent import AgentPrompt, react, run
+from inspect_ai.agent import AgentPrompt, AgentSubmit, react, run
 from inspect_ai.event import ModelEvent
 from inspect_ai.log import transcript
 from inspect_ai.model import (
@@ -55,7 +58,16 @@ final submission must be free of `sorry`.
 
 When {which} compiles with the complete proof, call submit() with the text
 "done".
-{files}"""
+{objection}{files}"""
+
+# Added to SESSION for a problem without a negation file: a channel for
+# reporting a statement that is false as formalized.
+OBJECTION = """
+If you are convinced that the statement as formalized is false, call submit()
+with a text starting with "FALSE:" and a short explanation instead.  This ends
+your work on the problem; it does not count as solved, but every such report
+is reviewed by hand.
+"""
 
 # One per target file (two for an open problem).
 FILE = """
@@ -234,6 +246,7 @@ def handoff_sessions(
                 budget=output_tokens,
                 start="the current files, their Lean output" if both else "the current file, its Lean output",
                 which="either file" if both else "the file",
+                objection="" if both else OBJECTION,
                 files="".join(blocks),
             )
             if note is not None:
@@ -241,15 +254,19 @@ def handoff_sessions(
             out_limit = token_limit(output_tokens, type="output")
             all_limit = token_limit(total_tokens)
             work_limit = working_limit(working_seconds)
-            agent = react(prompt=AgentPrompt(instructions=SYSTEM), tools=tools, attempts=1)
+            # answer_only: the submitted text alone becomes the agent's completion.
+            submit = AgentSubmit(answer_only=True)
+            agent = react(prompt=AgentPrompt(instructions=SYSTEM), tools=tools, attempts=1, submit=submit)
             messages: list[ChatMessage] = []
-            kind = None
+            kind, submitted = None, None
             try:
                 agent_state, exceeded = await run(
                     agent, prompt, limits=[out_limit, all_limit, work_limit], name=f"session {k}"
                 )
                 messages = agent_state.messages
                 ended_by = exceeded.type if exceeded else "submit"
+                if not exceeded:
+                    submitted = agent_state.output.completion.strip()[:2000]
             except Exception as ex:
                 kind = error_kind(ex)
                 ended_by = f"{'error' if kind == 'other' else kind + '_error'}: {type(ex).__name__}: {str(ex)[:200]}"
@@ -287,9 +304,11 @@ def handoff_sessions(
                 "passed": main["ok"],
                 "polarity": main["target"]["polarity"],
                 "errors": main["layer1"].get("errors", [])[:3],
+                "submitted": submitted,
+                "objection": not both and submitted is not None and submitted.upper().startswith("FALSE"),
             }
             transcript += messages
-            if not record["passed"] and k < sessions:
+            if not record["passed"] and not record["objection"] and k < sessions:
                 note = (
                     await _handoff_note(messages, note_tokens)
                     if messages
@@ -298,7 +317,7 @@ def handoff_sessions(
                 record["note"] = note
             records.append(record)
             state.store.set("sessions", records)
-            if record["passed"]:
+            if record["passed"] or record["objection"]:
                 break
             k += 1
         state.messages = transcript
