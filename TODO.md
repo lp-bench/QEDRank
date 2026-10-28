@@ -71,11 +71,12 @@ Additions to `scripts/stats.py` modelled on QEDRank's statistics code (the JavaS
 
 ## Still pending
 
-- **Opus pilot** before the official runs: `IDS="P014 P034 P017 P019"` (two calibration problems with
-  reference solutions, P017 unsolved by GLM, P019 a research problem with a 159-line reference
-  solution), `SEARCH=false`, `ZENODO=off`, new defaults (`EFFORT=xhigh`, 4 sessions, 40k per reply, 120k per
-  session, 4M session total, 90 min working time). Check `max_tokens_stops`, `session_ends` and
-  cost per session in results.csv before the four official runs (4 sessions: about $11.7k worst case).
+- **Opus pilots done** (2026-10-28, $10.50 together, `EFFORT=xhigh`, 4 sessions, 40k per reply,
+  120k per session): P014, P034, P017, P019, P011, P012 solved, each in its first session
+  (max reply 31k, max session output 71k); P115 (open) unsolved after 4 sessions, $3.29. Its
+  session 2 ended on the 4M session total at 34k output, so `SESSION_TOKENS` is now 20M. Before
+  the official runs: one more check that a session ends on its 120k output budget, and the
+  objection channel (`FALSE:`) with a real model.
   Open models: pass `EFFORT=` (empty), since they may not accept `xhigh`.
 - **GLM rerun** of P036, P022 and P099 (or P014 instead of P099) with the new limits, run from
   `QEDRank-eval/` (ready: `.env` and the image are in place).

@@ -205,7 +205,7 @@ def handoff_sessions(
     tools: list[Tool | ToolSource],
     sessions: int = 10,
     output_tokens: int = 120_000,
-    total_tokens: int | None = 4_000_000,
+    total_tokens: int | None = 20_000_000,
     working_seconds: float | None = 5400,
     note_tokens: int = 32_000,
     provider_retries: int = 2,
