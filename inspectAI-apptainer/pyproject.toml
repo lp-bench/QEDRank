@@ -17,7 +17,7 @@ classifiers = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/proof-bench/inspect-apptainer"
+Homepage = "https://github.com/proof-bench/QEDRank/tree/main/inspectAI-apptainer"
 
 [project.optional-dependencies]
 test = ["pytest>=8", "pytest-asyncio>=0.24"]

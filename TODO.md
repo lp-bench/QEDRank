@@ -24,6 +24,10 @@ Harness work in this repository, as of 2026-10-28.
 - The sandbox image lives in `QEDRank-eval/proofbench-sandbox.sif` (statements c2a314b, id
   005029c58d207730).
 - `QEDRank-ProofBencheval/` removed: everything it had is in `QEDRank-eval/` or left out by decision.
+- `QEDRank-eval/` is self-contained for runs: `.env` (API keys, Zenodo token) moved here from the old
+  harness folder (now `the_workspace/OLD_CODE/eval/`, with the older images); the old GitHub repos
+  proofbench-eval-apptainer and inspect-apptainer were no longer reachable on 2026-10-28, but every
+  commit that run records cite is in this repository's history, and the links point here now.
 
 ## Before any further run
 
@@ -62,11 +66,6 @@ Additions to `scripts/stats.py` modelled on QEDRank's statistics code (the JavaS
 
 ## Housekeeping
 
-9. **Move `.env` (API keys, Zenodo token) into `QEDRank-eval/`** from the old harness folder, now
-   `the_workspace/OLD_CODE/eval/`; the current image is already built there, the older images can
-   stay in `OLD_CODE`. The old `eval` and `inspect-apptainer` folders are
-   in `the_workspace/OLD_CODE/`; archive their GitHub repos read-only rather than deleting them
-   (old run records cite their commits).
 10. **Move inspectAI-apptainer's GitHub tests** into this repository's top-level
     `.github/workflows/`; workflows in a subfolder do not run.
 11. **Before publishing:** check for private material, write a visitor README that credits
@@ -75,5 +74,5 @@ Additions to `scripts/stats.py` modelled on QEDRank's statistics code (the JavaS
 ## Still pending
 
 - **GLM rerun** of P036, P022 and P099 (or P014 instead of P099) with the new limits, run from
-  `QEDRank-eval/` once 9 is done.
+  `QEDRank-eval/` (ready: `.env` and the image are in place).
 - **Paper:** `main.tex` still gives the handoff note 8,000 tokens; the harness now uses 32,000.

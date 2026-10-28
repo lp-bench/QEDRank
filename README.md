@@ -8,10 +8,10 @@ model, and Lean-checked grading. Everything lives in this one repository, branch
 
 ```
 QEDRank/
-  QEDRank-eval/              the ProofBench agent harness (Inspect AI), a git subtree of
-                             proof-bench/proofbench-eval-apptainer
-  inspectAI-apptainer/       the Apptainer sandbox for Inspect that the harness uses on HPC, a git
-                             subtree of proof-bench/inspect-apptainer
+  QEDRank-eval/              the ProofBench agent harness (Inspect AI), with the full history of
+                             its former repository proofbench-eval-apptainer
+  inspectAI-apptainer/       the Apptainer sandbox for Inspect that the harness uses on HPC, with
+                             the full history of its former repository inspect-apptainer
   QEDRank-java/              a page that redirects to the web interface, published with GitHub
                              Pages at https://proof-bench.github.io/QEDRank/
 ```
