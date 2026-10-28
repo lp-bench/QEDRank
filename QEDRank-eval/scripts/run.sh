@@ -16,11 +16,11 @@ COMPARATOR=${COMPARATOR:-on}       # on | off: Comparator as the second grading 
 EPOCHS=1  # one attempt per model and problem: a problem is never restarted from scratch
 # Sessions with handoff: the output-token budget ends a session; the others are safety caps.
 SESSIONS=${SESSIONS:-10}
-SESSION_OUTPUT_TOKENS=${SESSION_OUTPUT_TOKENS:-40000}
-SESSION_TOKENS=${SESSION_TOKENS:-1000000}
+SESSION_OUTPUT_TOKENS=${SESSION_OUTPUT_TOKENS:-120000}
+SESSION_TOKENS=${SESSION_TOKENS:-4000000}
 SESSION_WORKING_TIME=${SESSION_WORKING_TIME:-1800}
 NOTE_TOKENS=${NOTE_TOKENS:-32000}
-MAX_TOKENS=${MAX_TOKENS:-32000}           # cap per model reply
+MAX_TOKENS=${MAX_TOKENS:-40000}           # cap per model reply; keep SESSION_OUTPUT_TOKENS about 3x larger
 REQUEST_TIMEOUT=${REQUEST_TIMEOUT:-1800}  # no retry of a model request starts after this many seconds
 ATTEMPT_TIMEOUT=${ATTEMPT_TIMEOUT:-600}   # seconds per single attempt of a request
 MAX_RETRIES=${MAX_RETRIES:-8}             # retries of a failing request (waits from 3 s, doubling: 8 = about 13 min)

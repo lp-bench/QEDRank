@@ -25,7 +25,7 @@ default), on a Linux PC or an HPC cluster without root, or with Docker.
    and nauty), sympy, networkx, python-sat and the SAT solver CaDiCaL are
    installed. A proof may be split over several files.
 3. **Sessions with handoff.** An attempt consists of up to 10 fresh sessions,
-   each with an output-token budget (40,000 by default). At the end of a
+   each with an output-token budget (120,000 by default). At the end of a
    session the agent writes a handoff note in a fixed format (proved lemmas,
    open goals, failed approaches, unsaved drafts) that starts the next one.
    Fresh sessions keep models with short and long context windows comparable.
@@ -155,8 +155,8 @@ scripts/setup.sh python && . .venv/Scripts/activate   # Windows keeps the enviro
 | `SANDBOX`               | `apptainer`   | `apptainer` or `docker`                         |
 | `COMPARATOR`            | `on`          | second grading layer                            |
 | `SESSIONS`              | `10`          | sessions per problem                            |
-| `SESSION_OUTPUT_TOKENS` | `40000`       | output-token budget per session                 |
-| `MAX_TOKENS`            | `32000`       | output-token cap per model reply                |
+| `SESSION_OUTPUT_TOKENS` | `120000`      | output-token budget per session                 |
+| `MAX_TOKENS`            | `40000`       | output-token cap per model reply                |
 | `MAX_RETRIES`           | `8`           | retries of a failing request (about 13 min)     |
 | `PROVIDER_RETRIES`      | `2`           | uncounted restarts of a session ended by a provider error |
 | `PROVIDER_BACKOFF`      | `30`          | seconds before such a restart, times its number |

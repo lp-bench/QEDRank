@@ -192,8 +192,8 @@ def error_kind(ex: BaseException) -> str:
 def handoff_sessions(
     tools: list[Tool | ToolSource],
     sessions: int = 10,
-    output_tokens: int = 40_000,
-    total_tokens: int | None = 1_000_000,
+    output_tokens: int = 120_000,
+    total_tokens: int | None = 4_000_000,
     working_seconds: float | None = 1800,
     note_tokens: int = 32_000,
     provider_retries: int = 2,

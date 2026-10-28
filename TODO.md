@@ -71,6 +71,11 @@ Additions to `scripts/stats.py` modelled on QEDRank's statistics code (the JavaS
 
 ## Still pending
 
+- **Opus pilot** before the official runs: `IDS="P014 P034 P017 P019"` (two calibration problems with
+  reference solutions, P017 unsolved by GLM, P019 a research problem with a 159-line reference
+  solution), `EFFORT=xhigh`, `SEARCH=false`, new defaults (40k per reply, 120k per session, 4M session
+  total). Check `max_tokens_stops`, `session_ends` and cost per session in results.csv, then fix
+  `SESSIONS` for all four official runs (3 fits the $15k grant with a reserve; the default 10 does not).
 - **GLM rerun** of P036, P022 and P099 (or P014 instead of P099) with the new limits, run from
   `QEDRank-eval/` (ready: `.env` and the image are in place).
 - **Paper:** `main.tex` still gives the handoff note 8,000 tokens; the harness now uses 32,000.

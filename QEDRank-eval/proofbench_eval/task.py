@@ -22,8 +22,8 @@ Task parameters (pass with `-T name=value`):
   project_dir Lean project root inside the sandbox (default /opt/proofbench)
   tool_timeout seconds per bash/python call (default 600)
   sessions    fresh sessions per problem, chained by handoff notes (default 10)
-  session_output_tokens  output tokens per session, reasoning included (default 40000)
-  session_tokens         safety cap: total tokens per session (default 1000000)
+  session_output_tokens  output tokens per session, reasoning included (default 120000)
+  session_tokens         safety cap: total tokens per session (default 4000000)
   session_working_time   safety cap: working seconds per session (default 1800)
   note_tokens  output tokens for writing a handoff note (default 32000)
   comparator  run Comparator as the second grading layer (default True)
@@ -225,8 +225,8 @@ def proofbench(
     project_dir: str = "/opt/proofbench",
     tool_timeout: int = 600,
     sessions: int = 10,
-    session_output_tokens: int = 40_000,
-    session_tokens: int = 1_000_000,
+    session_output_tokens: int = 120_000,
+    session_tokens: int = 4_000_000,
     session_working_time: int = 1800,
     note_tokens: int = 32_000,
     comparator: bool = True,
