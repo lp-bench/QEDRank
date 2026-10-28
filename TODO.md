@@ -23,6 +23,7 @@ Harness work in this repository, as of 2026-10-28.
   fork's `MESSAGE_LIMIT` (no cap on the agent's tool calls) and its personal helper scripts.
 - The sandbox image lives in `QEDRank-eval/proofbench-sandbox.sif` (statements c2a314b, id
   005029c58d207730).
+- `QEDRank-ProofBencheval/` removed: everything it had is in `QEDRank-eval/` or left out by decision.
 
 ## Before any further run
 
@@ -35,17 +36,32 @@ Harness work in this repository, as of 2026-10-28.
    with both layers in the sandbox and writes `results.csv`. It generalises
    `scripts/verify_comparator.sh`; later the website could call it.
 
-## Usability and the paper
+## The paper's results section
 
 5. **Paper tables generated from `results.csv`:** the per-problem and summary tables as LaTeX,
    instead of copying numbers by hand.
+
+Additions to `scripts/stats.py` modelled on QEDRank's statistics code (the JavaScript in
+`QEDRank_java/qedrank/lib/` up to commit 0b097f7, and in github.com/vaibhav-baj/QEDRank):
+
+5a. **Solved within k sessions** per model (k = 1, 2, 4, ..., the session limit) and the median
+    number of sessions to a solve: how much the extra sessions help.
+5b. **Hand-audit records:** a file of audit verdicts that `stats.py` reads, so a solve rejected in
+    the hand audit no longer counts anywhere.
+5c. **Effort by difficulty:** median tokens, time and sessions per category (calibration, research,
+    open) and model; the paper's planned analysis (ii).
+5d. **Failure classes:** why unsolved attempts failed (does not compile, `sorry` left, statement
+    altered, budget used up, provider), from the logs.
+5e. **Cochran's Q:** one test of whether the models differ at all, before the pairwise McNemar
+    tests.
+
+## Usability
+
 6. **Automatic flags for search runs:** with web search on, mark P001, P004, P008, P027, P054,
    P084 and P092, whose complete Lean proofs are public.
 
 ## Housekeeping
 
-8. **Delete `QEDRank-ProofBencheval/`**: everything it had is now in `QEDRank-eval/` or left out by
-   decision (see Done); waiting for the go-ahead.
 9. **Move `.env` (API keys, Zenodo token) into `QEDRank-eval/`** from the old harness folder, now
    `the_workspace/OLD_CODE/eval/`; the current image is already built there, the older images can
    stay in `OLD_CODE`. The old `eval` and `inspect-apptainer` folders are

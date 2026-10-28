@@ -12,8 +12,6 @@ QEDRank/
                              proof-bench/proofbench-eval-apptainer
   inspectAI-apptainer/       the Apptainer sandbox for Inspect that the harness uses on HPC, a git
                              subtree of proof-bench/inspect-apptainer
-  QEDRank-ProofBencheval/    an earlier copy of the harness with the QEDRank fork's fixes; removed
-                             once the fixes are ported to QEDRank-eval/
   QEDRank-java/              a page that redirects to the web interface, published with GitHub
                              Pages at https://proof-bench.github.io/QEDRank/
 ```
