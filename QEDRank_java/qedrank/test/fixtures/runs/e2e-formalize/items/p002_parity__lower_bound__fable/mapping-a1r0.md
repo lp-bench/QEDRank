@@ -1,1 +1,0 @@
-Ambiguity: the excerpt does not fix the quantifier structure.

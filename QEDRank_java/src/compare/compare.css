@@ -1,8 +1,0 @@
-/* Benchmark comparison page. Layout and chart chrome come from evaluation.css; colours from the
-   global tokens in index.css. */
-
-.compare .cmp-facts td { min-width: 110px; font-size: 0.82rem; }
-.compare .cmp-facts td:first-child { min-width: 150px; }
-.compare .cmp-facts tr.cmp-self td { background: color-mix(in oklab, var(--s2) 9%, transparent); }
-.compare .cmp-facts tr.cmp-self td:first-child { border-left: 3px solid var(--s2); }
-.compare .ev-kpis { margin-top: 1.25rem; }

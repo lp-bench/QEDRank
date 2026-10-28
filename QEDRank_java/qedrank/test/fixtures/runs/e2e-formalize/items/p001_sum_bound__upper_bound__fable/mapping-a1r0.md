@@ -1,1 +1,0 @@
-I state the bound with a +1 slack because I was unsure whether the paper's inequality is strict; this may be weaker than the paper's claim.

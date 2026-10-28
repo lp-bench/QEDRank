@@ -1,1 +1,0 @@
-The paper's S(n) is the prelude's `sumBelow n`; the closed form 2 S(n) = n(n-1) is stated verbatim over ℕ with truncated subtraction, which agrees with the paper for n ≥ 1 and trivially for n = 0.

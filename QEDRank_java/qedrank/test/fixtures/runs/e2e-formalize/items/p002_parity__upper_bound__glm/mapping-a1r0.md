@@ -1,1 +1,0 @@
-Upper bound as stated.

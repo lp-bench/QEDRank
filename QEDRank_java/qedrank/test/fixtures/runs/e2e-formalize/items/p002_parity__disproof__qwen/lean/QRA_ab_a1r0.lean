@@ -1,4 +1,0 @@
-import QRM_p002_parity_disproof_qwen_a1r0
-import QRSM_p002_parity_disproof_qwen_a1r0
-import QEDRank.Audit
-#qr_compare QRModel.not_all_odd not_all_odd

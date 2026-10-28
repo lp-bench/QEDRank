@@ -1,4 +1,0 @@
-[page 1]
-Parity of Doubled Naturals
-Abstract. We prove the main theorem that 2n is even for every natural n.
-Theorem 1. For all n, Even (2 * n).

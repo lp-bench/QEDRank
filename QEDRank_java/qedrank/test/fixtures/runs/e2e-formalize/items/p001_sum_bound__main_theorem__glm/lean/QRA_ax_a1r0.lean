@@ -1,3 +1,0 @@
-import QRM_p001_sum_bound_main_theorem_glm_a1r0
-import QEDRank.Audit
-#qr_axioms main_theorem

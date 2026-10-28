@@ -1,1 +1,0 @@
-Each summand is below n, so the sum of n of them is at most n·n = n².

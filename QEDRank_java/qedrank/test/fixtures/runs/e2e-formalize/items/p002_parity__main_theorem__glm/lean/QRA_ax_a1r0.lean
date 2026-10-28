@@ -1,3 +1,0 @@
-import QRM_p002_parity_main_theorem_glm_a1r0
-import QEDRank.Audit
-#qr_axioms two_mul_even

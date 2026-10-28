@@ -1,9 +1,0 @@
-{
-  "papers": {
-    "p001_sum_bound": { "subject_tags": ["05A", "11B"], "difficulty": "easy", "requires_figures": false },
-    "p002_parity": { "subject_tags": ["11A"], "difficulty": "easy", "requires_figures": false,
-      "targets": { "main_theorem": { "mathematical_status": "established" }, "upper_bound": { "mathematical_status": "established" }, "lower_bound": { "mathematical_status": "established" } } },
-    "p003_open": { "subject_tags": ["11B"], "difficulty": "hard", "requires_figures": "unknown",
-      "targets": { "main_theorem": { "mathematical_status": "open" } } }
-  }
-}

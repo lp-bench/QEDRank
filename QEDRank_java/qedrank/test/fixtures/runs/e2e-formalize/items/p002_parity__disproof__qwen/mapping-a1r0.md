@@ -1,1 +1,0 @@
-Witness n = 0.

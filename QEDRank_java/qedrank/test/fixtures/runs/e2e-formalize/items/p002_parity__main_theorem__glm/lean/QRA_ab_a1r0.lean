@@ -1,4 +1,0 @@
-import QRM_p002_parity_main_theorem_glm_a1r0
-import QRSM_p002_parity_main_theorem_glm_a1r0
-import QEDRank.Audit
-#qr_compare QRModel.two_mul_even two_mul_even
