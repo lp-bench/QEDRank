@@ -5,8 +5,9 @@ usage: scripts/extract_proofs.py LOG_DIR [more LOG_DIRs]
        -> LOG_DIR/proofs/<problem>[_epoch<n>]/Submission/...   (main file and helper files)
 The grader keeps the final files in the score metadata (submission_text, submission_files),
 whether or not they pass; the log viewer shows the main file but not the helper files.
-A file VERDICT.txt next to them gives the verdict, polarity and errors.  proofs/ is not
-listed in SHA256SUMS: it is derived from the .eval log, which is.
+A file VERDICT.txt next to them gives the verdict, polarity and errors.  run.sh calls this
+at the end of every run.  proofs/ is neither listed in SHA256SUMS nor in the Zenodo zip:
+it is derived from the .eval log, which is both.
 """
 
 import sys

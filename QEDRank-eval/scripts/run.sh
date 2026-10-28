@@ -110,3 +110,6 @@ inspect eval proofbench_eval/task.py@proofbench \
   --log-dir "$LOG_DIR" --tags "$TAGS" --metadata run_id="$RUN_ID"
 
 python3 scripts/analyze.py "$LOG_DIR"
+# The final submissions as Lean files in $LOG_DIR/proofs/ (derived from the .eval log: not
+# checksummed, not archived); a failure here does not mark the run incomplete.
+python3 scripts/extract_proofs.py "$LOG_DIR" || echo "== proof extraction failed; rerun scripts/extract_proofs.py $LOG_DIR"
