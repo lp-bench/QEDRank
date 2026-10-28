@@ -10,14 +10,14 @@
 # usage: tests/grader_attacks/run.sh [CASE ...]          (default: every case)
 #   SIF=proofbench-sandbox.sif   Apptainer image (default when that file exists);
 #                                otherwise Docker image proofbench-sandbox:latest
-#   PB=../proofbench-hidden      development repository with the reference solutions
+#   PB=../../proofbench-hidden   development repository with the reference solutions
 #   JOBS=4                       cases graded in parallel
 # Writes results.jsonl next to this script; exits 1 if any verdict is unexpected.
 set -euo pipefail
 HERE=$(cd "$(dirname "$0")" && pwd)
 ROOT=$(cd "$HERE/../.." && pwd)
 SIF=${SIF:-$([ -f "$ROOT/proofbench-sandbox.sif" ] && echo "$ROOT/proofbench-sandbox.sif" || true)}
-PB=${PB:-$ROOT/../proofbench-hidden}
+PB=${PB:-$ROOT/../../proofbench-hidden}
 JOBS=${JOBS:-4}
 IN=$(mktemp -d); trap 'rm -rf "$IN"' EXIT
 mkdir "$IN/cases"

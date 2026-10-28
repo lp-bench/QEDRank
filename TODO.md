@@ -13,12 +13,15 @@ Harness work in this repository, as of 2026-10-28.
   limit, a quota, the credit) stops the problem at once; an unsolved problem stopped this way is
   scored NOANSWER (status `N`), not INCORRECT. Inspect retries a failing request at most 8 times
   (`MAX_RETRIES`, about 13 min) instead of up to an hour. Test: `tests/provider_errors_run.py`.
+- Statement check (ported from the QEDRank fork): layer 1 compares the main theorem's statement
+  up to the first `:=` outside brackets, so a named argument such as P102's former `(F := F)` no
+  longer hides the rest of the statement. No image rebuild needed: `check_proof.py` is sent to the
+  sandbox from this repository at grading time.
 
 ## Before any further run
 
 2. **No Zenodo upload of broken runs.** Archive only runs that ended normally without
    infrastructure errors; `ZENODO=force` for exceptions.
-3. **Port the P102 statement-check fix.** Needs an image rebuild of about 15 minutes.
 
 ## So anyone can test their own agent
 
@@ -39,7 +42,7 @@ Harness work in this repository, as of 2026-10-28.
 
 ## Housekeeping
 
-8. **Delete `QEDRank-ProofBencheval/`** once 3 and 7 are ported; those are its remaining fixes.
+8. **Delete `QEDRank-ProofBencheval/`** once 7 is ported; that is its last remaining advantage.
 9. **Move the sandbox images (`*.sif`) and `.env` into `QEDRank-eval/`** from the old harness
    folder, now `the_workspace/OLD_CODE/eval/`. The old `eval` and `inspect-apptainer` folders are
    in `the_workspace/OLD_CODE/`; archive their GitHub repos read-only rather than deleting them
