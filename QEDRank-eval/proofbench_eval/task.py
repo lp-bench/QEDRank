@@ -104,16 +104,23 @@ def strip_comments(text: str) -> str:
 
 
 def qualified_theorem(text: str, pid: str) -> str:
-    """`pid` prefixed by the namespaces open at its declaration."""
-    stack: list[str] = []
-    for line in text.splitlines():
-        m = re.match(r"^namespace\s+(\S+)", line)
+    """`pid` prefixed by the namespaces open at its declaration.
+
+    Namespaces, sections and `mutual` blocks share one stack, as in Lean: `end`
+    (named or bare) closes the innermost of them, so a section that ends before
+    the theorem does not close its enclosing namespace (P039, P105, P106 and
+    P108 open a section inside their namespace).  Comments are ignored.
+    Ported from the QEDRank fork (Vaibhav Bajpai).
+    """
+    stack: list[tuple[str, str]] = []  # (kind, name)
+    for line in strip_comments(text).splitlines():
+        m = re.match(r"^\s*(?:noncomputable\s+)?(namespace|section|mutual)\b\s*(\S*)", line)
         if m:
-            stack.append(m.group(1))
-        elif re.match(r"^end\s+\S+", line) and stack:
+            stack.append((m.group(1), m.group(2)))
+        elif re.match(r"^\s*end\b", line) and stack:
             stack.pop()
         elif re.match(rf"^\s*theorem\s+{pid}\b", line):
-            return ".".join(stack + [pid])
+            return ".".join([name for kind, name in stack if kind == "namespace"] + [pid])
     raise ValueError(f"{pid}: no `theorem {pid}` found")
 
 
