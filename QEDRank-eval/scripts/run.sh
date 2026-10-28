@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# One evaluation run. SANDBOX=docker (default) needs Docker; SANDBOX=apptainer needs
-# Apptainer, the inspect-apptainer package and the .sif from scripts/build_image.sh --sif.
+# One evaluation run. SANDBOX=apptainer (default) needs Apptainer, the inspect-apptainer package
+# (scripts/setup.sh) and the .sif from scripts/build_image.sh --apptainer or --sif;
+# SANDBOX=docker needs Docker and the image from scripts/build_image.sh.
 # usage: IDS="P083 P088 P090" MODEL=anthropic/claude-opus-5 EFFORT=high SEARCH=false scripts/run.sh
 set -euo pipefail
 cd "$(dirname "$0")/.."
@@ -9,7 +10,7 @@ EFFORT=${EFFORT:-}                 # low|medium|high|xhigh|max (model-specific; 
 SEARCH=${SEARCH:-false}            # true -> web_search tool via SEARCH_PROVIDER
 SEARCH_PROVIDER=${SEARCH_PROVIDER:-tavily}
 NETWORK=${NETWORK:-$SEARCH}        # sandbox internet; default: only when search is on
-SANDBOX=${SANDBOX:-docker}         # docker | apptainer
+SANDBOX=${SANDBOX:-apptainer}      # apptainer | docker
 SIF=${SIF:-proofbench-sandbox.sif} # image for the apptainer sandbox
 COMPARATOR=${COMPARATOR:-on}       # on | off: Comparator as the second grading layer
 EPOCHS=1  # one attempt per model and problem: a problem is never restarted from scratch

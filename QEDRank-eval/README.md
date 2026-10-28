@@ -10,8 +10,8 @@ a benchmark of 116 research-level problems stated in Lean 4, and grades their
 proofs with Lean alone. Every model gets the same agent loop, the same tools,
 the same budget and the same sandbox, so differences in the results come from
 the models and not from their tooling. It is built on
-[Inspect AI](https://inspect.aisi.org.uk/) and runs on a PC with Docker or on an
-HPC cluster with Apptainer, without root.
+[Inspect AI](https://inspect.aisi.org.uk/) and runs its sandbox with Apptainer (the
+default), on a Linux PC or an HPC cluster without root, or with Docker.
 
 ## How an evaluation works
 
@@ -79,7 +79,7 @@ HPC cluster with Apptainer, without root.
    the earliest and the smallest model that solved it. Problem dates and model
    facts are in [`data/`](data/).
 
-## Quick start on a PC with Docker
+## Quick start
 
 ```bash
 git clone https://github.com/proof-bench/QEDRank
@@ -88,7 +88,7 @@ git clone https://github.com/proof-bench/proofbench              # the problems
 scripts/setup.sh && . .venv/bin/activate     # Python environment with the harness
 
 export IDS="P088 P089 P090"            # problems of this run (three calibration problems)
-scripts/build_image.sh                 # sandbox image; 30-60 min the first time
+scripts/build_image.sh --apptainer    # sandbox image proofbench-sandbox.sif, about 40 min (--sif: via Docker)
 echo "ANTHROPIC_API_KEY=..." >> .env   # keys stay on the host; the agents never see them
 MODEL=anthropic/claude-opus-5-5 scripts/run.sh
 inspect view --log-dir logs            # browse the transcripts
@@ -122,6 +122,7 @@ before the quick start's commands:
 ```bash
 export PYTHONUTF8=1        # Python reads and writes UTF-8 (the Lean files are full of Unicode)
 export MSYS_NO_PATHCONV=1  # Git Bash leaves Linux paths such as /opt/proofbench alone
+export SANDBOX=docker      # Windows has no Apptainer: build the image with scripts/build_image.sh
 scripts/setup.sh python && . .venv/Scripts/activate   # Windows keeps the environment in .venv/Scripts
 ```
 
@@ -147,7 +148,7 @@ scripts/setup.sh python && . .venv/Scripts/activate   # Windows keeps the enviro
 | `EFFORT`                | model default | reasoning effort (`low` ... `max`)              |
 | `SEARCH`                | `false`       | web search tool (Tavily; `SEARCH_PROVIDER=exa`) |
 | `NETWORK`               | = `SEARCH`    | internet access in the sandbox                  |
-| `SANDBOX`               | `docker`      | `docker` or `apptainer`                         |
+| `SANDBOX`               | `apptainer`   | `apptainer` or `docker`                         |
 | `COMPARATOR`            | `on`          | second grading layer                            |
 | `SESSIONS`              | `10`          | sessions per problem                            |
 | `SESSION_OUTPUT_TOKENS` | `40000`       | output-token budget per session                 |

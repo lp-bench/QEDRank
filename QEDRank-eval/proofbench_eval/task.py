@@ -12,7 +12,7 @@ optionally web search.  Grading is a fresh Lean check performed by the scorer
 Task parameters (pass with `-T name=value`):
   ids         problems to run, e.g. P083,P088,P090 (required)
   statements  path to the clone of the proofbench repo (default proofbench)
-  sandbox     "docker" (default) or "apptainer" (HPC: the inspect-apptainer package, installed by scripts/setup.sh)
+  sandbox     "apptainer" (default; the inspect-apptainer package, installed by scripts/setup.sh) or "docker"
   sif         the .sif image for the apptainer sandbox (default proofbench-sandbox.sif)
   network     whether the docker sandbox has internet (default True)
   search      give the agent a web_search tool (default False)
@@ -216,7 +216,7 @@ def load_samples(
 def proofbench(
     ids: str = "",
     statements: str = "proofbench",
-    sandbox: str = "docker",
+    sandbox: str = "apptainer",
     sif: str = "proofbench-sandbox.sif",
     network: bool = True,
     search: bool = False,
