@@ -17,6 +17,12 @@ Harness work in this repository, as of 2026-10-28.
   up to the first `:=` outside brackets, so a named argument such as P102's former `(F := F)` no
   longer hides the rest of the statement. No image rebuild needed: `check_proof.py` is sent to the
   sandbox from this repository at grading time.
+- Windows: `build_image.sh` writes its staged files as UTF-8 with LF line ends (ported from the
+  QEDRank fork; the Linux output is byte-identical), `setup.sh` finds `.venv/Scripts`, and the
+  README has a section for Windows (Git Bash with Docker Desktop). Not ported, by decision: the
+  fork's `MESSAGE_LIMIT` (no cap on the agent's tool calls) and its personal helper scripts.
+- The sandbox image lives in `QEDRank-eval/proofbench-sandbox.sif` (statements c2a314b, id
+  005029c58d207730).
 
 ## Before any further run
 
@@ -35,16 +41,14 @@ Harness work in this repository, as of 2026-10-28.
    instead of copying numbers by hand.
 6. **Automatic flags for search runs:** with web search on, mark P001, P004, P008, P027, P054,
    P084 and P092, whose complete Lean proofs are public.
-7. **Port the fork's conveniences:** the message-limit setting (`MESSAGE_LIMIT`), the image build
-   working on Windows (UTF-8 and LF line ends), and the Git-Bash helpers for a Windows PC with
-   Docker Desktop (`start_run.sh`, `start_run_selfhosted.sh`, `verify_one.sh`, with their
-   `.gitignore` entries).
 
 ## Housekeeping
 
-8. **Delete `QEDRank-ProofBencheval/`** once 7 is ported; that is its last remaining advantage.
-9. **Move the sandbox images (`*.sif`) and `.env` into `QEDRank-eval/`** from the old harness
-   folder, now `the_workspace/OLD_CODE/eval/`. The old `eval` and `inspect-apptainer` folders are
+8. **Delete `QEDRank-ProofBencheval/`**: everything it had is now in `QEDRank-eval/` or left out by
+   decision (see Done); waiting for the go-ahead.
+9. **Move `.env` (API keys, Zenodo token) into `QEDRank-eval/`** from the old harness folder, now
+   `the_workspace/OLD_CODE/eval/`; the current image is already built there, the older images can
+   stay in `OLD_CODE`. The old `eval` and `inspect-apptainer` folders are
    in `the_workspace/OLD_CODE/`; archive their GitHub repos read-only rather than deleting them
    (old run records cite their commits).
 10. **Move inspectAI-apptainer's GitHub tests** into this repository's top-level

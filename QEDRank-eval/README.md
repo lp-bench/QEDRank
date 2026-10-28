@@ -112,6 +112,19 @@ Where Docker is available, `scripts/build_image.sh --sif` builds the Docker
 image and converts it. `scripts/hpc_preflight.sh` prints PASS, WARN or FAIL for
 everything the harness needs from the cluster; run it once on a compute node.
 
+## On Windows
+
+Linux is the reference platform, but the harness also runs on Windows with the
+Docker sandbox (Apptainer is Linux-only): start Docker Desktop and use Git Bash,
+which comes with Git for Windows. Set two variables in every Git Bash window
+before the quick start's commands:
+
+```bash
+export PYTHONUTF8=1        # Python reads and writes UTF-8 (the Lean files are full of Unicode)
+export MSYS_NO_PATHCONV=1  # Git Bash leaves Linux paths such as /opt/proofbench alone
+scripts/setup.sh python && . .venv/Scripts/activate   # Windows keeps the environment in .venv/Scripts
+```
+
 ## Models
 
 - Commercial models through Inspect's providers: `anthropic/...`, `openai/...`,

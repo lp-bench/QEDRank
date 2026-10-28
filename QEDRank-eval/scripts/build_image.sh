@@ -33,9 +33,11 @@ cp "$PB/lean-toolchain" "$PB/lakefile.toml" "$PB/lake-manifest.json" "$CTX/"
 printf '\n[[lean_lib]]\nname = "Submission"\n' >> "$CTX/lakefile.toml"
 # Statement files carry no module docstring, by design.  Mathlib's header linter
 # (in the project's mathlibStandardSet) would flag each of them, and the agent's
-# files, in every `lake build` and in the language server.
-sed -i 's/^\[leanOptions\]$/[leanOptions]\nweak.linter.style.header = false/' "$CTX/lakefile.toml"
-grep -q '^weak.linter.style.header = false$' "$CTX/lakefile.toml" || { echo "no [leanOptions] in lakefile.toml" >&2; exit 1; }
+# files, in every `lake build` and in the language server.  The statements' lakefile
+# switches it off itself since 2026-10-28; an older one gets the line here.
+grep -q '^weak.linter.style.header = false' "$CTX/lakefile.toml" ||
+  sed -i 's/^\[leanOptions\]$/[leanOptions]\nweak.linter.style.header = false/' "$CTX/lakefile.toml"
+grep -q '^weak.linter.style.header = false' "$CTX/lakefile.toml" || { echo "no [leanOptions] in lakefile.toml" >&2; exit 1; }
 : > "$CTX/ProofBench.lean"
 python3 - "$PB" "$CTX" $IDS <<'PY'
 import json, re, shutil, sys
@@ -70,15 +72,17 @@ while todo:
 # separate targets, not through one aggregator module: statement libraries may
 # clash with each other in a single environment (ProofBench's `Hypergraph`
 # against Mathlib's) while each problem file is fine on its own.
-(ctx / "modules.txt").write_text("".join(f"{m}\n" for m in sorted(staged)))
+# UTF-8 and "\n" explicitly: on Windows, Python's defaults (cp1252, "\r\n") would corrupt the
+# manifest's «…» name and give lake build targets ending in "\r" (from the QEDRank fork).
+(ctx / "modules.txt").write_text("".join(f"{m}\n" for m in sorted(staged)), encoding="utf-8", newline="\n")
 print(f"staged {len(staged)} statement modules for {len(ids)} problems")
 # Drop the Matroid dependency when nothing imports it (saves a long source build).
 if not any(m.split(".")[0] == "Matroid" for m in seen):
     lf = ctx / "lakefile.toml"
-    lf.write_text(re.sub(r'\[\[require\]\]\nname = "Matroid"\n(?:.*\n)*?(?=\[\[require\]\]|\[\[lean_lib\]\])', "", lf.read_text()))
+    lf.write_text(re.sub(r'\[\[require\]\]\nname = "Matroid"\n(?:.*\n)*?(?=\[\[require\]\]|\[\[lean_lib\]\])', "", lf.read_text(encoding="utf-8")), encoding="utf-8", newline="\n")
     mf = ctx / "lake-manifest.json"
-    m = json.loads(mf.read_text()); m["packages"] = [p for p in m["packages"] if p["name"] != "Matroid"]
-    mf.write_text(json.dumps(m, indent=1) + "\n")
+    m = json.loads(mf.read_text(encoding="utf-8")); m["packages"] = [p for p in m["packages"] if p["name"] != "Matroid"]
+    mf.write_text(json.dumps(m, indent=1) + "\n", encoding="utf-8", newline="\n")
     print("Matroid dependency dropped (no staged module imports it)")
 PY
 if [ "$MODE" = docker ] || [ "$MODE" = sif ]; then
