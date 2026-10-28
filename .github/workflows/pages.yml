@@ -1,12 +1,14 @@
 # Publishes QEDRank_java/ (a redirect to the QEDRank web interface, https://qedrank.vercel.app)
 # with GitHub Pages at https://proof-bench.github.io/QEDRank/.
 # One-time setup on GitHub: Settings -> Pages -> Source: GitHub Actions.
+# Skipped while the repository is private; runs when it is made public.
 name: pages
 
 on:
   push:
     branches: [main]
     paths: [QEDRank_java/**, .github/workflows/pages.yml]
+  public:
   workflow_dispatch:
 
 permissions:
@@ -20,6 +22,7 @@ concurrency:
 
 jobs:
   deploy:
+    if: ${{ !github.event.repository.private }}
     runs-on: ubuntu-latest
     environment:
       name: github-pages
