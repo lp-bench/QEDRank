@@ -3,7 +3,7 @@
 [Website](https://proof-bench.github.io) ·
 [Problems](https://github.com/proof-bench/proofbench) ·
 **Evaluation harness** (this repository) ·
-[Apptainer sandbox](../inspect-apptainer)
+[Apptainer sandbox](../inspectAI-apptainer)
 
 This harness runs AI agents on [ProofBench](https://github.com/proof-bench/proofbench),
 a benchmark of 116 research-level problems stated in Lean 4, and grades their
@@ -97,7 +97,7 @@ inspect view --log-dir logs            # browse the transcripts
 ## On an HPC cluster with Apptainer
 
 Clusters rarely offer Docker. The same image runs under Apptainer through
-[inspect-apptainer](../inspect-apptainer), which is part of this repository and
+[inspect-apptainer](../inspectAI-apptainer), which is part of this repository and
 installed by `scripts/setup.sh`, and it can be built there without root:
 
 ```bash
@@ -153,7 +153,7 @@ image/check_proof.py         layer 1: statement unchanged, imports, forbidden co
 image/Dockerfile             sandbox image: Lean, Mathlib, statement library, lean-lsp-mcp,
                              Comparator, Python tools, SageMath, CaDiCaL
 image/proofbench.def         the same image as an Apptainer recipe
-scripts/setup.sh             one-time setup: .venv with the harness and ../inspect-apptainer
+scripts/setup.sh             one-time setup: .venv with the harness and ../inspectAI-apptainer
 scripts/build_image.sh       stage the statements the selected problems import; build the image
 scripts/run.sh               one run: manifest, evaluation, results.csv
 scripts/slurm_eval.sbatch    one run as a Slurm job with the Apptainer sandbox
