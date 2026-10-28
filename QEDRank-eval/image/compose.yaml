@@ -1,0 +1,19 @@
+# Two containers per sample from the same image: the agent works in `default`;
+# the scorer grades in `verifier`, which never ran anything of the agent's and
+# receives only the submission's source text.
+services:
+  default:
+    image: proofbench-sandbox:latest
+    init: true
+    command: tail -f /dev/null
+    working_dir: /opt/proofbench
+    cpus: 2.0
+    mem_limit: 8gb
+  verifier:
+    image: proofbench-sandbox:latest
+    init: true
+    command: tail -f /dev/null
+    working_dir: /opt/proofbench
+    network_mode: none
+    cpus: 2.0
+    mem_limit: 8gb

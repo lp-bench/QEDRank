@@ -1,0 +1,18 @@
+.venv/
+__pycache__/
+*.pyc
+*.egg-info/
+# clone of the proofbench repo (the problem statements): never committed
+proofbench/
+# Inspect .eval logs: keep on project storage
+logs/
+# staged copy of the ProofBench statement layer
+image/context/
+*.sif
+.env
+# paper draft: kept next to the harness, never committed
+journal-submission/
+# scratch for apptainer build
+.apptainer-tmp/
+# output of tests/grader_attacks/run.sh
+tests/grader_attacks/results.jsonl
