@@ -29,6 +29,9 @@ default), on a Linux PC or an HPC cluster without root, or with Docker.
    session the agent writes a handoff note in a fixed format (proved lemmas,
    open goals, failed approaches, unsaved drafts) that starts the next one.
    Fresh sessions keep models with short and long context windows comparable.
+   An agent that is stuck may end a session early by submitting a short
+   status; after a reply without a tool call it is told how much of the
+   session's output budget is left.
 4. **Grading.** After every session, the source text of the submission is
    checked in a fresh container that the agent never touched, in two layers:
    - [`image/check_proof.py`](image/check_proof.py): the statement and its
@@ -194,7 +197,7 @@ tests/grader_attacks/        cheating attempts the grader must reject, and run.s
 tests/test_targets.py        proof or disproof: which file is graded and reported (fake sandbox, seconds)
 tests/mock_run.py            a whole two-session run with a scripted mock model, no API (Apptainer, 1 min)
 tests/provider_errors_run.py the same with a rate limit and a used-up daily limit: NOANSWER, not INCORRECT
-tests/objection_run.py       a mock agent submits FALSE: the attempt ends, unsolved, and results.csv records it
+tests/objection_run.py       a mock agent replies without a tool call (budget nudge), then submits FALSE:
 ```
 
 ## Good to know

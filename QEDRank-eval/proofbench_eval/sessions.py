@@ -22,7 +22,7 @@ import asyncio
 import re
 from typing import Any
 
-from inspect_ai.agent import AgentPrompt, AgentSubmit, react, run
+from inspect_ai.agent import AgentPrompt, AgentState, AgentSubmit, react, run
 from inspect_ai.event import ModelEvent
 from inspect_ai.log import transcript
 from inspect_ai.model import (
@@ -57,8 +57,19 @@ with a few `sorry`s are progress the next session can build on; only the
 final submission must be free of `sorry`.
 
 When {which} compiles with the complete proof, call submit() with the text
-"done".
+"done".  If you are sure you cannot make further progress in this session,
+call submit() with a short status instead; {after}.
 {objection}{files}"""
+
+# Sent instead of Inspect's generic "Please proceed to the next step" when a
+# reply has no tool call.  The remaining budget keeps the agent working; the
+# way out keeps a stuck agent from repeating that it will not submit until the
+# budget is gone (the open problem P115 in the Opus pilot, 109 such replies).
+CONTINUE = (
+    "You have about {left:,} output tokens left in this session.  Keep working "
+    "with the tools.  If you are sure you cannot make further progress, call "
+    "submit() with a short status; {after}."
+)
 
 # Added to SESSION for a problem without a negation file: a channel for
 # reporting a statement that is false as formalized.
@@ -240,12 +251,18 @@ def handoff_sessions(
                     others=others,
                     lean=await _lean_output(t, files),
                 ))
+            after = (
+                "the next session starts from your files and a handoff note"
+                if k < sessions
+                else "this is the last session, so this ends your attempt"
+            )
             prompt = state.input_text + SESSION.format(
                 k=k,
                 n=sessions,
                 budget=output_tokens,
                 start="the current files, their Lean output" if both else "the current file, its Lean output",
                 which="either file" if both else "the file",
+                after=after,
                 objection="" if both else OBJECTION,
                 files="".join(blocks),
             )
@@ -254,9 +271,18 @@ def handoff_sessions(
             out_limit = token_limit(output_tokens, type="output")
             all_limit = token_limit(total_tokens)
             work_limit = working_limit(working_seconds)
+
+            async def nudge(agent_state: AgentState, out_limit=out_limit, after=after) -> bool | str:
+                if agent_state.output.message.tool_calls:
+                    return True  # Inspect adds no message after tool calls
+                left = max(0, output_tokens - int(out_limit.usage))
+                return CONTINUE.format(left=round(left, -3), after=after)
+
             # answer_only: the submitted text alone becomes the agent's completion.
             submit = AgentSubmit(answer_only=True)
-            agent = react(prompt=AgentPrompt(instructions=SYSTEM), tools=tools, attempts=1, submit=submit)
+            agent = react(
+                prompt=AgentPrompt(instructions=SYSTEM), tools=tools, attempts=1, submit=submit, on_continue=nudge
+            )
             messages: list[ChatMessage] = []
             kind, submitted = None, None
             try:
