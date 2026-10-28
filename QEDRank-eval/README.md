@@ -149,12 +149,12 @@ scripts/setup.sh python && . .venv/Scripts/activate   # Windows keeps the enviro
 |-------------------------|---------------|-------------------------------------------------|
 | `IDS`                   | required      | problems to run, e.g. `"P088 P089 P090"`        |
 | `MODEL`                 | required      | model, as above                                 |
-| `EFFORT`                | model default | reasoning effort (`low` ... `max`)              |
+| `EFFORT`                | `xhigh`       | reasoning effort (`low` ... `max`); empty = none |
 | `SEARCH`                | `false`       | web search tool (Tavily; `SEARCH_PROVIDER=exa`) |
 | `NETWORK`               | = `SEARCH`    | internet access in the sandbox                  |
 | `SANDBOX`               | `apptainer`   | `apptainer` or `docker`                         |
 | `COMPARATOR`            | `on`          | second grading layer                            |
-| `SESSIONS`              | `10`          | sessions per problem                            |
+| `SESSIONS`              | `4`           | sessions per problem                            |
 | `SESSION_OUTPUT_TOKENS` | `120000`      | output-token budget per session                 |
 | `MAX_TOKENS`            | `40000`       | output-token cap per model reply                |
 | `MAX_RETRIES`           | `8`           | retries of a failing request (about 13 min)     |

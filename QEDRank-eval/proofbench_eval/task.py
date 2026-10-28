@@ -21,10 +21,10 @@ Task parameters (pass with `-T name=value`):
               search tools are removed when network is False
   project_dir Lean project root inside the sandbox (default /opt/proofbench)
   tool_timeout seconds per bash/python call (default 600)
-  sessions    fresh sessions per problem, chained by handoff notes (default 10)
+  sessions    fresh sessions per problem, chained by handoff notes (default 4)
   session_output_tokens  output tokens per session, reasoning included (default 120000)
   session_tokens         safety cap: total tokens per session (default 4000000)
-  session_working_time   safety cap: working seconds per session (default 1800)
+  session_working_time   safety cap: working seconds per session (default 5400)
   note_tokens  output tokens for writing a handoff note (default 32000)
   comparator  run Comparator as the second grading layer (default True)
   provider_retries  how often a session that ended in a provider error (rate limit, 5xx,
@@ -224,10 +224,10 @@ def proofbench(
     lean_mcp: bool = True,
     project_dir: str = "/opt/proofbench",
     tool_timeout: int = 600,
-    sessions: int = 10,
+    sessions: int = 4,
     session_output_tokens: int = 120_000,
     session_tokens: int = 4_000_000,
-    session_working_time: int = 1800,
+    session_working_time: int = 5400,
     note_tokens: int = 32_000,
     comparator: bool = True,
     provider_retries: int = 2,

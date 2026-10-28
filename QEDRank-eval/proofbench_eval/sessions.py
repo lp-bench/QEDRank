@@ -194,7 +194,7 @@ def handoff_sessions(
     sessions: int = 10,
     output_tokens: int = 120_000,
     total_tokens: int | None = 4_000_000,
-    working_seconds: float | None = 1800,
+    working_seconds: float | None = 5400,
     note_tokens: int = 32_000,
     provider_retries: int = 2,
     provider_backoff: float = 30.0,

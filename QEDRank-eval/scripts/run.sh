@@ -6,7 +6,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 MODEL=${MODEL:?e.g. anthropic/claude-opus-5, openai/gpt-5.6, google/gemini-3.1-pro}
-EFFORT=${EFFORT:-}                 # low|medium|high|xhigh|max (model-specific; recorded in manifest)
+EFFORT=${EFFORT-xhigh}             # low|medium|high|xhigh|max, recorded in manifest; EFFORT= (empty) sends none, e.g. for open models
 SEARCH=${SEARCH:-false}            # true -> web_search tool via SEARCH_PROVIDER
 SEARCH_PROVIDER=${SEARCH_PROVIDER:-tavily}
 NETWORK=${NETWORK:-$SEARCH}        # sandbox internet; default: only when search is on
@@ -15,14 +15,14 @@ SIF=${SIF:-proofbench-sandbox.sif} # image for the apptainer sandbox
 COMPARATOR=${COMPARATOR:-on}       # on | off: Comparator as the second grading layer
 EPOCHS=1  # one attempt per model and problem: a problem is never restarted from scratch
 # Sessions with handoff: the output-token budget ends a session; the others are safety caps.
-SESSIONS=${SESSIONS:-10}
+SESSIONS=${SESSIONS:-4}
 SESSION_OUTPUT_TOKENS=${SESSION_OUTPUT_TOKENS:-120000}
 SESSION_TOKENS=${SESSION_TOKENS:-4000000}
-SESSION_WORKING_TIME=${SESSION_WORKING_TIME:-1800}
+SESSION_WORKING_TIME=${SESSION_WORKING_TIME:-5400}
 NOTE_TOKENS=${NOTE_TOKENS:-32000}
 MAX_TOKENS=${MAX_TOKENS:-40000}           # cap per model reply; keep SESSION_OUTPUT_TOKENS about 3x larger
-REQUEST_TIMEOUT=${REQUEST_TIMEOUT:-1800}  # no retry of a model request starts after this many seconds
-ATTEMPT_TIMEOUT=${ATTEMPT_TIMEOUT:-600}   # seconds per single attempt of a request
+REQUEST_TIMEOUT=${REQUEST_TIMEOUT:-3600}  # no retry of a model request starts after this many seconds
+ATTEMPT_TIMEOUT=${ATTEMPT_TIMEOUT:-1200}  # seconds per single attempt of a request (a 40k reply can take over 10 min)
 MAX_RETRIES=${MAX_RETRIES:-8}             # retries of a failing request (waits from 3 s, doubling: 8 = about 13 min)
 PROVIDER_RETRIES=${PROVIDER_RETRIES:-2}   # a session ended by a provider error is started again this often, uncounted
 PROVIDER_BACKOFF=${PROVIDER_BACKOFF:-30}  # seconds before such a retry, times the retry count
