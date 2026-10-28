@@ -74,7 +74,7 @@ Additions to `scripts/stats.py` modelled on QEDRank's statistics code (the JavaS
 - **Opus pilots done** (2026-10-28, $10.50 together, `EFFORT=xhigh`, 4 sessions, 40k per reply,
   120k per session): P014, P034, P017, P019, P011, P012 solved, each in its first session
   (max reply 31k, max session output 71k); P115 (open) unsolved after 4 sessions, $3.29. Its
-  session 2 ended on the 4M session total at 34k output, so `SESSION_TOKENS` is now 20M. Before
+  session 2 ended on the 4M session total at 34k output, so `SESSION_TOKENS` is now 40M (a step-heavy session reaching 120k output needs about 30M). Before
   the official runs: one more check that a session ends on its 120k output budget, and the
   objection channel (`FALSE:`) with a real model.
   Open models: pass `EFFORT=` (empty), since they may not accept `xhigh`.

@@ -17,7 +17,7 @@ EPOCHS=1  # one attempt per model and problem: a problem is never restarted from
 # Sessions with handoff: the output-token budget ends a session; the others are safety caps.
 SESSIONS=${SESSIONS:-4}
 SESSION_OUTPUT_TOKENS=${SESSION_OUTPUT_TOKENS:-120000}
-SESSION_TOKENS=${SESSION_TOKENS:-20000000}     # safety cap on all tokens of a session: every step resends the context (mostly cache reads), so 4M ended a session at 34k output
+SESSION_TOKENS=${SESSION_TOKENS:-40000000}     # safety cap on all tokens of a session: every step resends the context (mostly cache reads); 4M ended a session at 34k output, a step-heavy session reaching 120k output needs about 30M
 SESSION_WORKING_TIME=${SESSION_WORKING_TIME:-5400}
 NOTE_TOKENS=${NOTE_TOKENS:-32000}
 MAX_TOKENS=${MAX_TOKENS:-40000}           # cap per model reply; keep SESSION_OUTPUT_TOKENS about 3x larger
