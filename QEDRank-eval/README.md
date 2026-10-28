@@ -184,6 +184,7 @@ scripts/run.sh               one run: manifest, evaluation, results.csv
 scripts/slurm_eval.sbatch    one run as a Slurm job with the Apptainer sandbox
 scripts/hpc_preflight.sh     day-one checks on a cluster
 scripts/analyze.py           logs -> results.csv
+scripts/extract_proofs.py    logs -> proofs/<problem>/Submission/... (final files, helpers included)
 scripts/stats.py             runs -> intervals, model comparisons, contamination split, difficulty
 scripts/prefill_problem_dates.py  draft of data/problem_dates.csv from the development repository
 data/problem_dates.csv       when each problem's proof became public (year; status checked/unchecked/open)
