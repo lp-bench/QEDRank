@@ -57,8 +57,12 @@ default), on a Linux PC or an HPC cluster without root, or with Docker.
    its checksums, as a new version of the project's Zenodo record
    ([`scripts/zenodo_publish.py`](scripts/zenodo_publish.py)); the receipt
    goes to `ZENODO.json`. The record's files stay restricted until
-   publication. If the upload fails, the run is unaffected and the message
-   says how to retry.
+   publication. Only a complete run is archived: one that got to the end with
+   a verdict (C or I) for every problem. A run that stopped early or has a
+   problem without a verdict (a provider failure, status `N`, or a sample
+   error) is skipped with the reason; `ZENODO=force` archives it anyway, and
+   the message gives the command to archive it later. If the upload fails,
+   the run is unaffected and the message says how to retry.
 
    One-time setup: a published Zenodo record with restricted files (any
    file, for example a short README, is needed to publish it), and a

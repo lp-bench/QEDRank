@@ -28,7 +28,7 @@ PROVIDER_RETRIES=${PROVIDER_RETRIES:-2}   # a session ended by a provider error 
 PROVIDER_BACKOFF=${PROVIDER_BACKOFF:-30}  # seconds before such a retry, times the retry count
 MAX_SAMPLES=${MAX_SAMPLES:-4}             # problems in parallel
 TAGS=${TAGS:-proofbench}                  # Inspect log tags, e.g. TAGS=proofbench,pilot
-ZENODO=${ZENODO:-on}                      # on | off: archive the run on Zenodo when it ends
+ZENODO=${ZENODO:-on}                      # on | off | force: archive the run on Zenodo when it ends (on: only if complete)
 # INSPECT_DISPLAY=conversation makes Inspect run one sample at a time; use `inspect view` to follow runs.
 export INSPECT_DISPLAY=${INSPECT_DISPLAY:-plain}
 [ "$INSPECT_DISPLAY" = conversation ] && echo "note: conversation display runs one sample at a time" >&2
@@ -39,6 +39,22 @@ RUN_ID=${RUN_ID:-$(date -u +%Y%m%dT%H%M%SZ)_$(echo "$MODEL" | tr '/:' '__')_sear
 LOG_DIR=logs/$RUN_ID
 # One folder per run.
 if [ -e "$LOG_DIR" ]; then echo "error: $LOG_DIR already exists; choose another RUN_ID" >&2; exit 1; fi
+
+# Succeeds when the run is complete: run.sh got to the end and every problem has a verdict
+# (C or I in results.csv); otherwise prints why not and fails.
+complete_run() {
+  [ "$1" = 0 ] || { echo "the run stopped with exit status $1"; return 1; }
+  python3 - "$LOG_DIR/results.csv" ${IDS//,/ } <<'PY'
+import csv, sys
+from pathlib import Path
+path, ids = Path(sys.argv[1]), set(sys.argv[2:])
+if not path.exists():
+    sys.exit(print("no results.csv") or 1)
+done = {r["problem"] for r in csv.DictReader(path.open()) if r.get("status") in ("C", "I")}
+if ids - done:
+    sys.exit(print("no verdict for " + " ".join(sorted(ids - done))) or 1)
+PY
+}
 
 # At exit: checksums of the run's files, then the Zenodo archive (README, "Records").
 checksums() {
@@ -54,10 +70,17 @@ checksums() {
         cat SHA256SUMS
       fi
     )
-    # Archive the run on Zenodo (skipped without a token, or with ZENODO=off).
+    # Archive the run on Zenodo (skipped without a token, or with ZENODO=off). An incomplete run
+    # (stopped early, or a problem without a verdict: provider failure N, sample error) is
+    # archived only with ZENODO=force; it can still be archived later by hand.
     if [ "$ZENODO" = off ]; then
       echo "== Zenodo: skipped (ZENODO=off)"
-    elif [ -e "$LOG_DIR/SHA256SUMS" ]; then
+    elif [ ! -e "$LOG_DIR/SHA256SUMS" ]; then
+      :
+    elif [ "$ZENODO" != force ] && ! why=$(complete_run "$status"); then
+      echo "== Zenodo: skipped, the run is incomplete: $why"
+      echo "   to archive it anyway: python3 scripts/zenodo_publish.py $LOG_DIR $RUN_ID"
+    else
       python3 scripts/zenodo_publish.py "$LOG_DIR" "$RUN_ID" || true
     fi
   fi

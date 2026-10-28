@@ -21,6 +21,9 @@ Harness work in this repository, as of 2026-10-28.
   QEDRank fork; the Linux output is byte-identical), `setup.sh` finds `.venv/Scripts`, and the
   README has a section for Windows (Git Bash with Docker Desktop). Not ported, by decision: the
   fork's `MESSAGE_LIMIT` (no cap on the agent's tool calls) and its personal helper scripts.
+- No Zenodo upload of incomplete runs: `run.sh` archives a run only when it got to the end with a
+  verdict (C or I) for every problem; otherwise it says why and skips, and `ZENODO=force` archives
+  anyway. Apptainer is the default sandbox (`SANDBOX=docker` for Docker).
 - The sandbox image lives in `QEDRank-eval/proofbench-sandbox.sif` (statements c2a314b, id
   005029c58d207730).
 - `QEDRank-ProofBencheval/` removed: everything it had is in `QEDRank-eval/` or left out by decision.
@@ -28,11 +31,6 @@ Harness work in this repository, as of 2026-10-28.
   harness folder (now `the_workspace/OLD_CODE/eval/`, with the older images); the old GitHub repos
   proofbench-eval-apptainer and inspect-apptainer were no longer reachable on 2026-10-28, but every
   commit that run records cite is in this repository's history, and the links point here now.
-
-## Before any further run
-
-2. **No Zenodo upload of broken runs.** Archive only runs that ended normally without
-   infrastructure errors; `ZENODO=force` for exceptions.
 
 ## So anyone can test their own agent
 
