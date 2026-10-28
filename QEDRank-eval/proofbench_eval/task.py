@@ -27,6 +27,11 @@ Task parameters (pass with `-T name=value`):
   session_working_time   safety cap: working seconds per session (default 1800)
   note_tokens  output tokens for writing a handoff note (default 32000)
   comparator  run Comparator as the second grading layer (default True)
+  provider_retries  how often a session that ended in a provider error (rate limit, 5xx,
+              connection) is started again without consuming a session (default 2); when
+              they are used up, or the account's budget is used up, an unsolved problem is
+              scored NOANSWER (infrastructure), not INCORRECT
+  provider_backoff  seconds to wait before such a retry, times the retry count (default 30)
 """
 
 import json
@@ -225,6 +230,8 @@ def proofbench(
     session_working_time: int = 1800,
     note_tokens: int = 32_000,
     comparator: bool = True,
+    provider_retries: int = 2,
+    provider_backoff: float = 30.0,
 ) -> Task:
     tools = [bash(timeout=tool_timeout), python(timeout=tool_timeout), text_editor(timeout=tool_timeout)]
     if lean_mcp:
@@ -276,6 +283,8 @@ def proofbench(
         total_tokens=session_tokens,
         working_seconds=session_working_time,
         note_tokens=note_tokens,
+        provider_retries=provider_retries,
+        provider_backoff=provider_backoff,
     )
 
     return Task(
@@ -296,5 +305,7 @@ def proofbench(
             "session_working_time": session_working_time,
             "note_tokens": note_tokens,
             "comparator": comparator,
+            "provider_retries": provider_retries,
+            "provider_backoff": provider_backoff,
         },
     )

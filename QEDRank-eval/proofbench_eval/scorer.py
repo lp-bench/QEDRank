@@ -34,7 +34,7 @@ import re
 from pathlib import Path
 from typing import Any
 
-from inspect_ai.scorer import CORRECT, INCORRECT, Score, Target, accuracy, scorer, stderr
+from inspect_ai.scorer import CORRECT, INCORRECT, NOANSWER, Score, Target, accuracy, scorer, stderr
 from inspect_ai.solver import TaskState
 from inspect_ai.util import SandboxEnvironment, SandboxUserUnsupportedError, sandbox
 
@@ -225,12 +225,17 @@ def lean_check():
             explanation = " | ".join(f"{g['target']['polarity']}: {g['explanation']}" for g in graded)
         else:
             explanation = main["explanation"]
+        sessions = state.store.get("sessions", [])
+        abort = state.store.get("provider_abort")  # "provider" or "quota" when the chain was stopped
         metadata: dict[str, Any] = {
             **main["layer1"],
             "polarity": main["target"]["polarity"],
             "comparator": main["comparator"] if use_comparator else "off",
             "graded_in": "verifier" if verifier else "agent sandbox",
-            "sessions_used": len(state.store.get("sessions", [])),
+            "sessions_used": sum(1 for r in sessions if r.get("counted", True)),
+            "provider_failures": sum(1 for r in sessions if not r.get("counted", True)),
+            "provider_abort": abort,
+            "infrastructure_error": bool(abort and not main["ok"]),
         }
         if md.get("disprove"):
             other = next((g for g in graded if g is not main), None)
@@ -239,8 +244,13 @@ def lean_check():
                 "polarity": other["target"]["polarity"],
                 "comparator": other["comparator"] if use_comparator else "off",
             }
+        if metadata["infrastructure_error"]:
+            # The provider, not the model, ended an unsolved chain: no verdict on the model
+            # (NOANSWER; results.csv status N, left out of the rates; rerun the problem).
+            reason = "the account's budget was used up" if abort == "quota" else "the provider kept failing"
+            explanation = f"infrastructure: {reason} after {metadata['sessions_used']} session(s) | {explanation}"
         return Score(
-            value=CORRECT if main["ok"] else INCORRECT,
+            value=CORRECT if main["ok"] else NOANSWER if metadata["infrastructure_error"] else INCORRECT,
             answer=state.output.completion if state.output else None,
             explanation=explanation,
             metadata=metadata,

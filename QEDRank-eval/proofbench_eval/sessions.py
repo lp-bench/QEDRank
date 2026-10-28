@@ -11,9 +11,12 @@ ends without a proof, the model writes a handoff note in a fixed format
 (proved, open, failed, unsaved draft), outside the session's budget.  Per-session records go to the sample store
 under "sessions".  For an open problem each session shows both files, the
 statement and its negation (`Pxxx_DISPROVE.lean`), and the chain ends as soon
-as either passes.
+as either passes.  A session that ends in a provider error is started again
+without counting (see `handoff_sessions`).
 """
 
+import asyncio
+import re
 from typing import Any
 
 from inspect_ai.agent import AgentPrompt, react, run
@@ -143,6 +146,48 @@ async def _handoff_note(messages: list[ChatMessage], max_tokens: int) -> str:
         return f"(no note: {type(ex).__name__}: {str(ex)[:200]})"
 
 
+# Exceptions (by class name) and messages that mean the model provider, not the model, failed.
+PROVIDER_ERRORS = (
+    "RateLimit", "APIStatus", "APIConnection", "APITimeout", "Timeout", "InternalServer", "ServiceUnavailable",
+    "Overloaded", "BadGateway", "GatewayTimeout", "ConnectError", "ReadTimeout", "RemoteProtocol",
+    "InsufficientQuota", "PermissionDenied", "AuthenticationError",
+)
+PROVIDER_MESSAGE = re.compile(
+    r"\b(401|402|403|429|500|502|503|504|529)\b|rate.?limit|overloaded|insufficient.?(balance|quota)"
+    r"|connection (refused|reset|error)|temporarily unavailable", re.I
+)
+# The account's budget is used up (a daily or monthly request limit, a quota, the credit):
+# retrying cannot help before it resets.
+QUOTA_MESSAGE = re.compile(
+    r"(daily|monthly) (request )?(rate )?(limit|quota)|limit exhausted|insufficient.?quota"
+    r"|exceeded your current quota|credit balance is too low|no credits remaining", re.I
+)
+
+
+def _exceptions(ex: BaseException):
+    """The exception, the members of exception groups and the chain of causes."""
+    seen: set[int] = set()
+    todo: list[BaseException | None] = [ex]
+    while todo:
+        e = todo.pop()
+        if e is None or id(e) in seen:
+            continue
+        seen.add(id(e))
+        yield e
+        todo += [*getattr(e, "exceptions", ()), e.__cause__, e.__context__]
+
+
+def error_kind(ex: BaseException) -> str:
+    """'quota' when the account's budget is used up, 'provider' for rate limits, server
+    and connection failures, 'other' for everything else."""
+    provider = False
+    for e in _exceptions(ex):
+        if QUOTA_MESSAGE.search(f"{type(e).__name__}: {e}"):
+            return "quota"
+        provider |= any(n in type(e).__name__ for n in PROVIDER_ERRORS) or bool(PROVIDER_MESSAGE.search(str(e)))
+    return "provider" if provider else "other"
+
+
 @solver
 def handoff_sessions(
     tools: list[Tool | ToolSource],
@@ -151,6 +196,8 @@ def handoff_sessions(
     total_tokens: int | None = 1_000_000,
     working_seconds: float | None = 1800,
     note_tokens: int = 32_000,
+    provider_retries: int = 2,
+    provider_backoff: float = 30.0,
 ) -> Solver:
     async def solve(state: TaskState, generate: Generate) -> TaskState:
         md = state.metadata
@@ -159,7 +206,13 @@ def handoff_sessions(
         transcript: list[ChatMessage] = []
         rel = lambda p: p[len(md["project_dir"]) + 1 :]
         both = len(targets(md)) > 1
-        for k in range(1, sessions + 1):
+        # A session that ends in a provider error (rate limit, server or connection failure) is
+        # not the model's work: it is started again after a pause, without counting against
+        # `sessions`, at most `provider_retries` times per problem.  A used-up budget (daily
+        # limit, quota, credit) stops the chain at once.  Either way an unsolved, aborted chain
+        # is scored NOANSWER (infrastructure), not INCORRECT.  Ported from the QEDRank fork.
+        k, failures = 1, 0
+        while k <= sessions:
             blocks = []
             for t in targets(md):
                 files = await collect_submission(sandbox(), t)
@@ -190,6 +243,7 @@ def handoff_sessions(
             work_limit = working_limit(working_seconds)
             agent = react(prompt=AgentPrompt(instructions=SYSTEM), tools=tools, attempts=1)
             messages: list[ChatMessage] = []
+            kind = None
             try:
                 agent_state, exceeded = await run(
                     agent, prompt, limits=[out_limit, all_limit, work_limit], name=f"session {k}"
@@ -197,7 +251,21 @@ def handoff_sessions(
                 messages = agent_state.messages
                 ended_by = exceeded.type if exceeded else "submit"
             except Exception as ex:
-                ended_by = f"error: {type(ex).__name__}: {str(ex)[:200]}"
+                kind = error_kind(ex)
+                ended_by = f"{'error' if kind == 'other' else kind + '_error'}: {type(ex).__name__}: {str(ex)[:200]}"
+            if kind in ("provider", "quota"):
+                failures += 1
+                records.append({
+                    "session": k, "ended_by": ended_by, "error_kind": kind, "counted": False, "retry": failures,
+                    "output_tokens": int(out_limit.usage), "total_tokens": int(all_limit.usage),
+                    "working_seconds": round(work_limit.usage), "passed": False, "errors": [],
+                })
+                state.store.set("sessions", records)
+                if kind == "provider" and failures <= provider_retries:
+                    await asyncio.sleep(provider_backoff * failures)
+                    continue  # the same session again: a provider failure consumes no session
+                state.store.set("provider_abort", kind)
+                break
             graded = []  # layer 1 only, to decide whether to stop
             for t in targets(md):
                 try:
@@ -211,6 +279,8 @@ def handoff_sessions(
             record = {
                 "session": k,
                 "ended_by": ended_by,
+                "error_kind": kind,
+                "counted": True,
                 "output_tokens": int(out_limit.usage),
                 "total_tokens": int(all_limit.usage),
                 "working_seconds": round(work_limit.usage),
@@ -230,6 +300,7 @@ def handoff_sessions(
             state.store.set("sessions", records)
             if record["passed"]:
                 break
+            k += 1
         state.messages = transcript
         return state
 

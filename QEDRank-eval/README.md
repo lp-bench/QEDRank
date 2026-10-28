@@ -139,6 +139,9 @@ everything the harness needs from the cluster; run it once on a compute node.
 | `SESSIONS`              | `10`          | sessions per problem                            |
 | `SESSION_OUTPUT_TOKENS` | `40000`       | output-token budget per session                 |
 | `MAX_TOKENS`            | `32000`       | output-token cap per model reply                |
+| `MAX_RETRIES`           | `8`           | retries of a failing request (about 13 min)     |
+| `PROVIDER_RETRIES`      | `2`           | uncounted restarts of a session ended by a provider error |
+| `PROVIDER_BACKOFF`      | `30`          | seconds before such a restart, times its number |
 | `MAX_SAMPLES`           | `4`           | problems in parallel                            |
 
 Changing any setting that `manifest.json` records makes a new run.
@@ -167,6 +170,7 @@ data/model_prices.yml        list prices per million tokens, for Inspect's cost 
 tests/grader_attacks/        cheating attempts the grader must reject, and run.sh to check both layers
 tests/test_targets.py        proof or disproof: which file is graded and reported (fake sandbox, seconds)
 tests/mock_run.py            a whole two-session run with a scripted mock model, no API (Apptainer, 1 min)
+tests/provider_errors_run.py the same with a rate limit and a used-up daily limit: NOANSWER, not INCORRECT
 ```
 
 ## Good to know
@@ -181,6 +185,11 @@ tests/mock_run.py            a whole two-session run with a scripted mock model,
   checks that it actually engages.
 - Claimed solutions of open problems are checked by hand before any claim is
   made.
+- Provider failures are not the model's: a session ended by a rate limit or a
+  server or connection error is started again without counting, and a used-up
+  account budget (daily limit, quota, credit) stops the problem at once. An
+  unsolved problem stopped this way is scored NOANSWER (status `N` in
+  `results.csv`, left out of the rates); run it again.
 - Reasoning-effort settings differ between vendors, and some models always
   think; record the effort per model and report it.
 - `scripts/check_statements.sh`, `scripts/verify_comparator.sh` and

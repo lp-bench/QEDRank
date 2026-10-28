@@ -20,8 +20,11 @@ SESSION_TOKENS=${SESSION_TOKENS:-1000000}
 SESSION_WORKING_TIME=${SESSION_WORKING_TIME:-1800}
 NOTE_TOKENS=${NOTE_TOKENS:-32000}
 MAX_TOKENS=${MAX_TOKENS:-32000}           # cap per model reply
-REQUEST_TIMEOUT=${REQUEST_TIMEOUT:-1800}  # total seconds per model request, retries included
+REQUEST_TIMEOUT=${REQUEST_TIMEOUT:-1800}  # no retry of a model request starts after this many seconds
 ATTEMPT_TIMEOUT=${ATTEMPT_TIMEOUT:-600}   # seconds per single attempt of a request
+MAX_RETRIES=${MAX_RETRIES:-8}             # retries of a failing request (waits from 3 s, doubling: 8 = about 13 min)
+PROVIDER_RETRIES=${PROVIDER_RETRIES:-2}   # a session ended by a provider error is started again this often, uncounted
+PROVIDER_BACKOFF=${PROVIDER_BACKOFF:-30}  # seconds before such a retry, times the retry count
 MAX_SAMPLES=${MAX_SAMPLES:-4}             # problems in parallel
 TAGS=${TAGS:-proofbench}                  # Inspect log tags, e.g. TAGS=proofbench,pilot
 ZENODO=${ZENODO:-on}                      # on | off: archive the run on Zenodo when it ends
@@ -65,7 +68,8 @@ python3 scripts/manifest.py "$LOG_DIR" model="$MODEL" effort="$EFFORT" search="$
   search_provider="$SEARCH_PROVIDER" network="$NETWORK" epochs="$EPOCHS" sessions="$SESSIONS" \
   session_output_tokens="$SESSION_OUTPUT_TOKENS" session_tokens="$SESSION_TOKENS" \
   session_working_time="$SESSION_WORKING_TIME" note_tokens="$NOTE_TOKENS" max_tokens="$MAX_TOKENS" \
-  request_timeout="$REQUEST_TIMEOUT" attempt_timeout="$ATTEMPT_TIMEOUT" max_samples="$MAX_SAMPLES" time_limit="$TIME_LIMIT" ids="$IDS" sandbox="$SANDBOX" comparator="$COMPARATOR" ${IMAGE:+image="$IMAGE"}
+  request_timeout="$REQUEST_TIMEOUT" attempt_timeout="$ATTEMPT_TIMEOUT" max_samples="$MAX_SAMPLES" time_limit="$TIME_LIMIT" ids="$IDS" sandbox="$SANDBOX" comparator="$COMPARATOR" \
+  max_retries="$MAX_RETRIES" provider_retries="$PROVIDER_RETRIES" provider_backoff="$PROVIDER_BACKOFF" ${IMAGE:+image="$IMAGE"}
 
 inspect eval proofbench_eval/task.py@proofbench \
   --model "$MODEL" ${EFFORT:+--reasoning-effort "$EFFORT"} \
@@ -74,7 +78,9 @@ inspect eval proofbench_eval/task.py@proofbench \
   -T sessions="$SESSIONS" -T session_output_tokens="$SESSION_OUTPUT_TOKENS" \
   -T session_tokens="$SESSION_TOKENS" -T session_working_time="$SESSION_WORKING_TIME" \
   -T note_tokens="$NOTE_TOKENS" -T comparator=$([ "$COMPARATOR" = on ] && echo true || echo false) \
+  -T provider_retries="$PROVIDER_RETRIES" -T provider_backoff="$PROVIDER_BACKOFF" \
   --epochs "$EPOCHS" --max-tokens "$MAX_TOKENS" --timeout "$REQUEST_TIMEOUT" --attempt-timeout "$ATTEMPT_TIMEOUT" --time-limit "$TIME_LIMIT" \
+  --max-retries "$MAX_RETRIES" \
   --max-samples "$MAX_SAMPLES" --max-connections 4 --max-sandboxes 4 \
   --model-cost-config data/model_prices.yml \
   --log-dir "$LOG_DIR" --tags "$TAGS" --metadata run_id="$RUN_ID"

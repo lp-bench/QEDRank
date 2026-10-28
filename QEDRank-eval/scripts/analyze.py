@@ -2,8 +2,8 @@
 """Summarise Inspect logs as a CSV: one row per sample attempt.
 
 usage: scripts/analyze.py LOG_DIR [more LOG_DIRs]   -> writes LOG_DIR/results.csv and prints it
-Columns: run, model, search, problem, epoch, correct, polarity, sessions_used, session_ends,
-errors, tokens_in, tokens_cached, tokens_out, tokens_total, cost_usd, total_time_s,
+Columns: run, model, search, problem, epoch, correct, status, polarity, sessions_used,
+provider_failures, session_ends, errors, tokens_in, tokens_cached, tokens_out, tokens_total, cost_usd, total_time_s,
 working_time_s, tool_calls, tool_errors, model_calls, max_tokens_stops, refusals,
 max_context, lines, proof_lines, compile_s, axioms, limit.
 tokens_in counts every input token, cached or not (Inspect's input_tokens leaves out
@@ -12,9 +12,15 @@ means the same for every model; tokens_cached is the part read from the prompt c
 cost_usd is the cost Inspect computed per call at the list prices of
 data/model_prices.yml (run.sh passes the file); empty when a model has no price
 there (e.g. the free GWDG models) and for logs from before 2026-10-26.
+status is C (correct), I (incorrect) or N (no answer: the provider ended an unsolved
+attempt, see provider_retries in task.py); correct is 1 or 0, and empty for N, so the
+rates of stats.py leave such attempts out (rerun those problems).
 polarity is `prove`, or `disprove` when the grade is for the negation of an open
 problem (Pxxx_DISPROVE.lean): the one that passed, else the one the agent edited.
-session_ends lists how each session ended (submit, token, working, error).
+sessions_used counts the sessions the model worked in; provider_failures the sessions
+that ended in a provider error and were started again without counting.
+session_ends lists how each session ended (submit, token, working, error,
+provider_error, quota_error).
 max_tokens_stops counts replies cut off by the per-reply cap (MAX_TOKENS in
 run.sh; thinking counts against it), refusals the replies a safety classifier
 declined.  max_context is the largest prompt of a single model call (input
@@ -28,7 +34,8 @@ from pathlib import Path
 from inspect_ai.event import ModelEvent, ToolEvent
 from inspect_ai.log import list_eval_logs, read_eval_log
 
-COLS = ["run", "model", "search", "problem", "epoch", "correct", "polarity", "sessions_used", "session_ends", "errors", "tokens_in",
+COLS = ["run", "model", "search", "problem", "epoch", "correct", "status", "polarity", "sessions_used", "provider_failures",
+        "session_ends", "errors", "tokens_in",
         "tokens_cached", "tokens_out", "tokens_total", "cost_usd", "total_time_s", "working_time_s", "tool_calls", "tool_errors",
         "model_calls", "max_tokens_stops", "refusals", "max_context", "lines", "proof_lines", "compile_s", "axioms", "limit"]
 
@@ -71,9 +78,11 @@ def rows_for(log_dir: Path):
                 "search": str(bool((log.eval.task_args or {}).get("search", False))).lower(),
                 "problem": s.id,
                 "epoch": s.epoch,
-                "correct": int(sc.value == "C") if sc else "",
+                "correct": int(sc.value == "C") if sc and sc.value != "N" else "",
+                "status": sc.value if sc else "",
                 "polarity": md.get("polarity", "prove" if md else ""),  # logs before disprove grading: prove
-                "sessions_used": len(sessions),
+                "sessions_used": sum(1 for r in sessions if r.get("counted", True)),
+                "provider_failures": sum(1 for r in sessions if not r.get("counted", True)),
                 "session_ends": " ".join(str(r.get("ended_by", "")).split(":")[0] for r in sessions),
                 "errors": " | ".join(md.get("errors", []))[:200] if md else (sc.explanation if sc else ""),
                 "tokens_in": sum(all_input(u) for u in usage.values()),
