@@ -3,7 +3,7 @@
 [Website](https://proof-bench.github.io) ·
 [Problems](https://github.com/proof-bench/proofbench) ·
 **Evaluation harness** (this repository) ·
-[Apptainer sandbox](https://github.com/proof-bench/inspect-apptainer)
+[Apptainer sandbox](../inspect-apptainer)
 
 This harness runs AI agents on [ProofBench](https://github.com/proof-bench/proofbench),
 a benchmark of 116 research-level problems stated in Lean 4, and grades their
@@ -82,10 +82,10 @@ HPC cluster with Apptainer, without root.
 ## Quick start on a PC with Docker
 
 ```bash
-git clone https://github.com/proof-bench/proofbench-eval-apptainer
-cd proofbench-eval-apptainer
+git clone https://github.com/proof-bench/QEDRank
+cd QEDRank/QEDRank-eval
 git clone https://github.com/proof-bench/proofbench              # the problems
-python3 -m venv .venv && . .venv/bin/activate && pip install -e .
+scripts/setup.sh && . .venv/bin/activate     # Python environment with the harness
 
 export IDS="P088 P089 P090"            # problems of this run (three calibration problems)
 scripts/build_image.sh                 # sandbox image; 30-60 min the first time
@@ -97,11 +97,11 @@ inspect view --log-dir logs            # browse the transcripts
 ## On an HPC cluster with Apptainer
 
 Clusters rarely offer Docker. The same image runs under Apptainer through
-[inspect-apptainer](https://github.com/proof-bench/inspect-apptainer), and it
-can be built there without root:
+[inspect-apptainer](../inspect-apptainer), which is part of this repository and
+installed by `scripts/setup.sh`, and it can be built there without root:
 
 ```bash
-pip install -e . && pip install git+https://github.com/proof-bench/inspect-apptainer
+scripts/setup.sh && . .venv/bin/activate
 IDS="..." scripts/build_image.sh --apptainer          # from image/proofbench.def, about 40 min
 IDS="..." scripts/build_image.sh --update old.sif     # after problems change: rebuild on top of an image
 scripts/hpc_preflight.sh proofbench-sandbox.sif       # network namespace, binds, Landlock, tmpfs
@@ -153,6 +153,7 @@ image/check_proof.py         layer 1: statement unchanged, imports, forbidden co
 image/Dockerfile             sandbox image: Lean, Mathlib, statement library, lean-lsp-mcp,
                              Comparator, Python tools, SageMath, CaDiCaL
 image/proofbench.def         the same image as an Apptainer recipe
+scripts/setup.sh             one-time setup: .venv with the harness and ../inspect-apptainer
 scripts/build_image.sh       stage the statements the selected problems import; build the image
 scripts/run.sh               one run: manifest, evaluation, results.csv
 scripts/slurm_eval.sbatch    one run as a Slurm job with the Apptainer sandbox

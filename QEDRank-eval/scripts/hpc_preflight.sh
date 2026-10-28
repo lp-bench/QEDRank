@@ -16,7 +16,7 @@ have python3 && pass "python3 $(python3 --version | awk '{print $2}')" || fail "
 if python3 -c "import inspect_ai, inspect_apptainer" 2>/dev/null; then
   pass "inspect_ai $(python3 -c 'import inspect_ai; print(inspect_ai.__version__)') + inspect_apptainer importable"
 else
-  warn "inspect_ai/inspect_apptainer not importable from this python (activate the venv: pip install inspect-ai -e ../inspect-apptainer)"
+  warn "inspect_ai/inspect_apptainer not importable from this python (run scripts/setup.sh, then . .venv/bin/activate)"
 fi
 have sbatch && pass "slurm: $(sinfo -h -o '%P %D %c %m' 2>/dev/null | head -n 3 | tr '\n' ';')" || warn "no slurm (fine on a workstation)"
 have nvidia-smi && pass "GPU: $(nvidia-smi --query-gpu=name,memory.total --format=csv,noheader 2>/dev/null | head -n 2 | tr '\n' ';')" || warn "no nvidia-smi on this node (model serving needs a GPU node)"

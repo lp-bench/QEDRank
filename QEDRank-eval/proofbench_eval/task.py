@@ -12,7 +12,7 @@ optionally web search.  Grading is a fresh Lean check performed by the scorer
 Task parameters (pass with `-T name=value`):
   ids         problems to run, e.g. P083,P088,P090 (required)
   statements  path to the clone of the proofbench repo (default proofbench)
-  sandbox     "docker" (default) or "apptainer" (HPC: needs the inspect-apptainer package)
+  sandbox     "docker" (default) or "apptainer" (HPC: the inspect-apptainer package, installed by scripts/setup.sh)
   sif         the .sif image for the apptainer sandbox (default proofbench-sandbox.sif)
   network     whether the docker sandbox has internet (default True)
   search      give the agent a web_search tool (default False)
