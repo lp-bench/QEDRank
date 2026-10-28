@@ -68,8 +68,8 @@ Additions to `scripts/stats.py` modelled on QEDRank's statistics code (the JavaS
 
 10. **Move inspectAI-apptainer's GitHub tests** into this repository's top-level
     `.github/workflows/`; workflows in a subfolder do not run.
-11. **Before publishing:** check for private material, write a visitor README that credits
-    QEDRank, and make inspect-apptainer public together with this repository.
+11. **Before publishing:** check for private material, and write a visitor README that credits
+    QEDRank (the Apptainer sandbox becomes public with this repository, as it lives in it).
 
 ## Still pending
 
