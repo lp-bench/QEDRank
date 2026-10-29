@@ -1,6 +1,7 @@
 """Independent check of a submitted Lean proof.  Runs inside the sandbox.
 
-usage: python3 check_proof.py PROJECT_DIR SUBMISSION REFERENCE THEOREM
+usage: python3 check_proof.py PROJECT_DIR SUBMISSION REFERENCE THEOREM [AXIOMS]
+(AXIOMS: the permitted axioms, comma-separated; default propext, Classical.choice, Quot.sound)
 The submission may import further files under Submission/ (module
 Submission.X.Y is Submission/X/Y.lean); they are checked and built too.
 Prints one JSON line: {ok, errors, files, lines, nonblank_lines, proof_lines,
@@ -109,6 +110,8 @@ def closure(project: Path, main: Path) -> tuple[dict[Path, str], list[str]]:
 
 def main() -> None:
     project, submission, reference, theorem = sys.argv[1:5]
+    # The problem's permitted axioms (comma-separated); the standard three by default.
+    allowed = set(sys.argv[5].split(",")) if len(sys.argv) > 5 and sys.argv[5] else ALLOWED_AXIOMS
     project_p, main_p = Path(project), Path(submission)
     short = theorem.split(".")[-1]
     errors: list[str] = []
@@ -219,9 +222,10 @@ def main() -> None:
                 axioms = [a.strip() for a in found[-1].split(",") if a.strip()]
             elif r is not None and f"'{theorem}' does not depend on any axioms" not in out and not errors:
                 errors.append("could not read axioms")
-            bad = sorted(set(axioms) - ALLOWED_AXIOMS)
+            bad = sorted(set(axioms) - allowed)
             if bad:
-                errors.append("non-standard axioms: " + ", ".join(bad))
+                errors.append(("non-standard axioms: " if allowed == ALLOWED_AXIOMS
+                               else "axioms not permitted for this problem: ") + ", ".join(bad))
         compile_seconds = round(time.time() - t0, 1)
         # Build products made here (as root under Docker) must stay usable by the
         # unprivileged verifier user that runs Comparator next.

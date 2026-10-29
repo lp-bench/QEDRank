@@ -47,10 +47,16 @@ default), on a Linux PC or an HPC cluster without root, or with Docker.
    - [`image/check_proof.py`](image/check_proof.py): the statement and its
      definitions are unchanged, imports are allowed, there is no `sorry`, new
      axiom, `native_decide` or meta-level trick, the files compile, and the
-     theorem uses only Lean's standard axioms;
+     theorem uses only the permitted axioms;
    - [Comparator](https://github.com/leanprover/comparator), the Lean FRO's
      adversarial proof checker, which rebuilds statement and proof in a
-     Landlock sandbox and replays the proof through the Lean kernel.
+     Landlock sandbox and replays the proof through the Lean kernel, also
+     against the permitted axioms.
+
+   The permitted axioms are Lean's standard three (`propext`,
+   `Classical.choice`, `Quot.sound`), unless a problem's database entry
+   restricts them (`permitted_axioms`): a constructive problem omits
+   `Classical.choice`, and the prompt then says so.
 
    The first session that passes ends the attempt. For an open problem, a
    proof of its negation (the theorem `Pxxx_disprove` in
@@ -208,6 +214,7 @@ tests/test_targets.py        proof or disproof: which file is graded and reporte
 tests/mock_run.py            a whole two-session run with a scripted mock model, no API: notes, snapshot (Apptainer, 1 min)
 tests/provider_errors_run.py the same with a rate limit and a used-up daily limit: NOANSWER, not INCORRECT
 tests/objection_run.py       a mock agent replies without a tool call (budget nudge), then submits FALSE:
+tests/constructive_run.py    a proof using Classical.choice, submitted to a problem declared constructive, is rejected
 ```
 
 ## Good to know

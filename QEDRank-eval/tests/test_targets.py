@@ -1,6 +1,7 @@
 """Fake-sandbox test of the prove/disprove target logic in scorer.py and sessions.py: which
-file is graded, which polarity is reported, when the session chain stops.  No container, no
-model; layer 1 passes a file containing PROOF_OK, Comparator fails one containing CMP_FAIL.
+file is graded, which polarity is reported, when the session chain stops, and that both layers
+get the problem's permitted axioms.  No container, no model; layer 1 passes a file containing
+PROOF_OK, Comparator fails one containing CMP_FAIL.
 usage: .venv/bin/python tests/test_targets.py"""
 import asyncio, json, sys
 from types import SimpleNamespace
@@ -13,7 +14,7 @@ class Result(SimpleNamespace):
     pass
 
 class FakeSandbox:
-    def __init__(self, files): self.files = dict(files); self.calls = []
+    def __init__(self, files): self.files = dict(files); self.calls = []; self.axioms = {}
     async def read_file(self, path):
         if path not in self.files: raise FileNotFoundError(path)
         return self.files[path]
@@ -21,11 +22,13 @@ class FakeSandbox:
     async def exec(self, cmd, input=None, timeout=None, user=None):
         if cmd[:2] == ["python3", "-"]:
             sub = cmd[3]; self.calls.append(("layer1", sub.split("/")[-1]))
+            self.axioms["layer1"] = cmd[6] if len(cmd) > 6 else None
             ok = "PROOF_OK" in self.files.get(sub, "")
             rep = {"ok": ok, "errors": [] if ok else ["contains sorry"], "files": [], "lines": 1,
                    "nonblank_lines": 1, "proof_lines": 1, "axioms": [], "compile_seconds": 0.1}
             return Result(stdout=json.dumps(rep) + "\n", stderr="", returncode=0, success=True)
         cfg = json.loads(self.files[cmd[-1]])
+        self.axioms["comparator"] = cfg["permitted_axioms"]
         stem = cfg["solution_module"].split(".")[-1]
         self.calls.append(("comparator", stem, cfg["challenge_module"], cfg["theorem_names"][0]))
         bad = "CMP_FAIL" in self.files.get(f"{P}/Submission/{stem}.lean", "")
@@ -110,6 +113,15 @@ async def main():
     await sessions.handoff_sessions([], sessions=2)(state, None)
     recs = state.store.get("sessions")
     check("sessions, prove-only: one file, old wording, two failed sessions", len(prompts) == 2 and D not in prompts[0] and "When the file compiles" in prompts[0] and len(recs) == 2 and not recs[-1]["passed"])
+
+    # permitted axioms: the standard three by default, the problem's own list when it restricts them
+    s, sb = await grade(md(False), {S: "PROOF_OK"})
+    check("axioms: both layers get the standard three by default",
+          sb.axioms == {"layer1": "propext,Classical.choice,Quot.sound",
+                        "comparator": ["propext", "Classical.choice", "Quot.sound"]})
+    s, sb = await grade({**md(False), "permitted_axioms": ["propext", "Quot.sound"]}, {S: "PROOF_OK"})
+    check("axioms: both layers get a constructive problem's list",
+          sb.axioms == {"layer1": "propext,Quot.sound", "comparator": ["propext", "Quot.sound"]})
 
 asyncio.run(main())
 print(f"{failures} failures")

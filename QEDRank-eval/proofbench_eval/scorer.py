@@ -123,7 +123,8 @@ async def check_submission(
         return {"ok": False, "errors": ["cannot read submission"], **extra}
     try:  # a timeout or oversized output is a failed verdict, not an infrastructure error
         result = await sb.exec(
-            ["python3", "-", md["project_dir"], md["submission"], ref_path, md["theorem"]],
+            ["python3", "-", md["project_dir"], md["submission"], ref_path, md["theorem"],
+             ",".join(md.get("permitted_axioms") or PERMITTED_AXIOMS)],
             input=CHECK_SCRIPT,
             timeout=1200,
         )
@@ -150,7 +151,7 @@ async def run_comparator(sb: SandboxEnvironment, md: dict[str, Any], sample_id: 
         "challenge_module": f"ProofBench.PROBLEMS.{pid}.{stem}",
         "solution_module": f"Submission.{stem}",
         "theorem_names": [md["theorem"]],
-        "permitted_axioms": PERMITTED_AXIOMS,
+        "permitted_axioms": md.get("permitted_axioms") or PERMITTED_AXIOMS,
     }
     config_path = f"{md['project_dir']}/Submission/_comparator_{stem}.json"
     await sb.write_file(config_path, json.dumps(config))

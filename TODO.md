@@ -89,6 +89,13 @@ Additions to `scripts/stats.py` modelled on QEDRank's statistics code (the JavaS
   AI answer), so that Claude, GLM and Kimi are comparable. The Fable pilot of 2026-10-29 used
   Claude's built-in search instead: before the official runs, a short check of Claude with
   Tavily (one or two problems), and a Tavily plan sized from the number of searches per problem.
+- **Tool time limit:** each bash/python call is limited to 10 minutes (`tool_timeout`), and the
+  prompt does not say so (Fable planned a 50-minute search). The user finds 10 minutes too
+  small: reconsider the limit, and whether the prompt states it, before the official runs.
+- **Constructive track (P117):** the harness reads `permitted_axioms` from the statements
+  database (both grading layers and the prompt). Still to do: export P117 to the statements
+  repo (needs `permitted_axioms` in its database, and a decision whether the benchmark has 117
+  problems), then drop "The grader does not enforce this yet" from P117's docstring.
 - **Before the Fable pilot:** discuss harder research problems (Opus solved all four research
   problems of the pilot in one session), e.g. recent results from JCT.
 - **GLM rerun** of P036, P022 and P099 (or P014 instead of P099) with the new limits, run from

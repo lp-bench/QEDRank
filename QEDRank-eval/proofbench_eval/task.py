@@ -58,7 +58,7 @@ LEAN_MCP_OFFLINE_TOOLS = [
 IMAGE_PATH = "/opt/elan/bin:/opt/venv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"  # as in image/Dockerfile
 if str(ROOT) not in sys.path:  # Inspect loads this file by path, not as a package
     sys.path.insert(0, str(ROOT))
-from proofbench_eval.scorer import lean_check  # noqa: E402
+from proofbench_eval.scorer import PERMITTED_AXIOMS, lean_check  # noqa: E402
 from proofbench_eval.search import basic_anthropic_search, web_search  # noqa: E402
 from proofbench_eval.sessions import handoff_sessions  # noqa: E402
 
@@ -75,7 +75,7 @@ Rules, checked automatically after you submit:
    `ProofBench.Mathlib_Problems.*`, `Matroid.*`, `Archive.Sensitivity`, the
    imports the file already has, and your own files under `Submission/`.
 2. No `sorry`, no `axiom`, no `native_decide`.  The proof must depend only on
-   the axioms `propext`, `Classical.choice` and `Quot.sound`.  Do not try Lean
+   the axioms {axioms}.{constructive}  Do not try Lean
    loopholes (meta code, `initialize`, `#` commands, new notation or macros,
    options that skip kernel checks): the verifier replays the proof through
    the kernel and rejects them.
@@ -92,6 +92,18 @@ Rules, checked automatically after you submit:
    The Lean language-server tools (goal state, diagnostics, search) are
    available when present; the file path for them is `{submission_rel}`.
 """
+
+# Added to rule 2 of INSTRUCTIONS for a problem whose database entry permits fewer
+# axioms than the standard three: without `Classical.choice` (the constructive track).
+CONSTRUCTIVE = """  This problem is constructive:
+   `Classical.choice` is not permitted, so excluded middle holds only for
+   decidable propositions (check with `#print axioms`)."""
+
+
+def axiom_list(axioms: list[str]) -> str:
+    names = [f"`{a}`" for a in axioms]
+    return names[0] if len(names) == 1 else ", ".join(names[:-1]) + " and " + names[-1]
+
 
 # Added to INSTRUCTIONS for an open problem, which has a Pxxx_DISPROVE.lean.
 OPEN_PROBLEM = """
@@ -156,6 +168,10 @@ def load_samples(
             raise ValueError(f"{pid}: the statement file has no sorry to replace")
         theorem = qualified_theorem(reference, pid)
         entry = db.get(pid[1:], {})
+        # A problem may restrict the axioms (the constructive track), never extend them.
+        axioms = entry.get("permitted_axioms") or PERMITTED_AXIOMS
+        if not set(axioms) <= set(PERMITTED_AXIOMS):
+            raise ValueError(f"{pid}: permitted_axioms {axioms} go beyond {PERMITTED_AXIOMS}")
         submission_rel = f"Submission/{pid}.lean"
         submission = f"{project_dir}/{submission_rel}"
         files = {submission: str(src)}
@@ -194,6 +210,8 @@ def load_samples(
                     theorem=theorem,
                     project_dir=project_dir,
                     open_problem=open_problem,
+                    axioms=axiom_list(axioms),
+                    constructive="" if "Classical.choice" in axioms else CONSTRUCTIVE,
                 ),
                 target=theorem,
                 files=files,
@@ -209,6 +227,7 @@ def load_samples(
                     "statements_commit": commit,
                     "proofbench_commit": pb_commit,
                     "comparator": comparator,
+                    "permitted_axioms": axioms,
                 },
             )
         )
