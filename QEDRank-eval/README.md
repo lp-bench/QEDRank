@@ -21,7 +21,12 @@ default), on a Linux PC or an HPC cluster without root, or with Docker.
 2. **Agent.** A ReAct agent (a loop of reasoning steps and tool calls) works on
    the problem with a shell, Python, a file editor and the Lean language server
    (lean-lsp-mcp: goal states, diagnostics, Mathlib search). An optional web
-   search tool uses the same search engine for every model. SageMath (with GAP
+   search tool is, for Claude models, Anthropic's built-in search in its
+   basic version (as in IMProofBench; without the server-side code of the
+   newer version, so that all computation stays in the sandbox). Models
+   without built-in search get plain Tavily results (title, URL, extract of
+   the page), not an answer written by the search engine's own language
+   model, which is all that Inspect's Tavily provider would pass on. SageMath (with GAP
    and nauty), sympy, networkx, python-sat and the SAT solver CaDiCaL are
    installed. A proof may be split over several files.
 3. **Sessions with handoff.** An attempt consists of up to 4 fresh sessions,
@@ -162,7 +167,7 @@ scripts/setup.sh python && . .venv/Scripts/activate   # Windows keeps the enviro
 | `IDS`                   | required      | problems to run, e.g. `"P088 P089 P090"`        |
 | `MODEL`                 | required      | model, as above                                 |
 | `EFFORT`                | `xhigh`       | reasoning effort (`low` ... `max`); empty = none |
-| `SEARCH`                | `false`       | web search tool (Tavily; `SEARCH_PROVIDER=exa`) |
+| `SEARCH`                | `false`       | web search (Claude: built-in; others: Tavily)   |
 | `NETWORK`               | = `SEARCH`    | internet access in the sandbox                  |
 | `SANDBOX`               | `apptainer`   | `apptainer` or `docker`                         |
 | `COMPARATOR`            | `on`          | second grading layer                            |

@@ -16,7 +16,8 @@ Task parameters (pass with `-T name=value`):
   sif         the .sif image for the apptainer sandbox (default proofbench-sandbox.sif)
   network     whether the docker sandbox has internet (default True)
   search      give the agent a web_search tool (default False)
-  search_provider  "tavily" or "exa" (one external provider for all models)
+  search_provider  "anthropic": Claude's built-in search, basic version (search.py), or
+              "tavily": plain results, no AI-written answer, for models without one
   lean_mcp    give the agent the lean-lsp-mcp tools (default True); the web-backed
               search tools are removed when network is False
   project_dir Lean project root inside the sandbox (default /opt/proofbench)
@@ -42,7 +43,8 @@ from pathlib import Path
 
 from inspect_ai import Task, task
 from inspect_ai.dataset import Sample
-from inspect_ai.tool import bash, mcp_server_sandbox, mcp_tools, python, text_editor, web_search
+from inspect_ai.tool import bash, mcp_server_sandbox, mcp_tools, python, text_editor
+from inspect_ai.tool import web_search as builtin_web_search
 
 ROOT = Path(__file__).resolve().parent.parent
 
@@ -57,6 +59,7 @@ IMAGE_PATH = "/opt/elan/bin:/opt/venv/bin:/usr/local/sbin:/usr/local/bin:/usr/sb
 if str(ROOT) not in sys.path:  # Inspect loads this file by path, not as a package
     sys.path.insert(0, str(ROOT))
 from proofbench_eval.scorer import lean_check  # noqa: E402
+from proofbench_eval.search import basic_anthropic_search, web_search  # noqa: E402
 from proofbench_eval.sessions import handoff_sessions  # noqa: E402
 
 INSTRUCTIONS = """\
@@ -251,7 +254,13 @@ def proofbench(
         else:
             tools.append(mcp_tools(server, tools=LEAN_MCP_OFFLINE_TOOLS))
     if search:
-        tools.append(web_search(search_provider))
+        if search_provider == "anthropic":
+            basic_anthropic_search()
+            tools.append(builtin_web_search(["anthropic"]))
+        elif search_provider == "tavily":
+            tools.append(web_search())
+        else:
+            raise ValueError(f"unknown search provider {search_provider!r}; anthropic or tavily (see search.py)")
 
     if sandbox == "docker":
         compose = ROOT / "image" / ("compose.yaml" if network else "compose-offline.yaml")
