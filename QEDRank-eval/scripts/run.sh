@@ -3,6 +3,9 @@
 # (scripts/setup.sh) and the .sif from scripts/build_image.sh --apptainer or --sif;
 # SANDBOX=docker needs Docker and the image from scripts/build_image.sh.
 # usage: IDS="P083 P088 P090" MODEL=anthropic/claude-opus-5 EFFORT=high SEARCH=false scripts/run.sh
+# The whole script is one block, read before it runs: editing run.sh during a run (bash
+# otherwise reads on from a byte offset) cannot break that run.
+{
 set -euo pipefail
 cd "$(dirname "$0")/.."
 MODEL=${MODEL:?e.g. anthropic/claude-opus-5, openai/gpt-5.6, google/gemini-3.1-pro}
@@ -114,3 +117,5 @@ python3 scripts/analyze.py "$LOG_DIR"
 # The final submissions as Lean files in $LOG_DIR/proofs/ (derived from the .eval log: not
 # checksummed, not archived); a failure here does not mark the run incomplete.
 python3 scripts/extract_proofs.py "$LOG_DIR" || echo "== proof extraction failed; rerun scripts/extract_proofs.py $LOG_DIR"
+exit
+}
