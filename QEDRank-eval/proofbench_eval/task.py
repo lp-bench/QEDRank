@@ -16,8 +16,8 @@ Task parameters (pass with `-T name=value`):
   sif         the .sif image for the apptainer sandbox (default proofbench-sandbox.sif)
   network     whether the docker sandbox has internet (default True)
   search      give the agent a web_search tool (default False)
-  search_provider  "anthropic": Claude's built-in search, basic version (search.py), or
-              "tavily": plain results, no AI-written answer, for models without one
+  search_provider  "tavily" (default): plain results, no AI-written answer, the same for
+              every model (search.py), or "anthropic": Claude's built-in search, basic version
   lean_mcp    give the agent the lean-lsp-mcp tools (default True); the web-backed
               search tools are removed when network is False
   project_dir Lean project root inside the sandbox (default /opt/proofbench)

@@ -85,6 +85,10 @@ Additions to `scripts/stats.py` modelled on QEDRank's statistics code (the JavaS
   such a continuation: a `continue from LOG_DIR` option (restore the snapshot and the last
   note, number the sessions on) and merging both stages in results.csv. Per reply 64k, request
   attempts 40 min.
+- **Search (2026-10-29):** every model gets the plain Tavily tool (proofbench_eval/search.py, no
+  AI answer), so that Claude, GLM and Kimi are comparable. The Fable pilot of 2026-10-29 used
+  Claude's built-in search instead: before the official runs, a short check of Claude with
+  Tavily (one or two problems), and a Tavily plan sized from the number of searches per problem.
 - **Before the Fable pilot:** discuss harder research problems (Opus solved all four research
   problems of the pilot in one session), e.g. recent results from JCT.
 - **GLM rerun** of P036, P022 and P099 (or P014 instead of P099) with the new limits, run from

@@ -1,15 +1,16 @@
 """Web search for the agent.
 
-Claude models use Anthropic's built-in search (Inspect's web_search with the
-"anthropic" provider), as in IMProofBench, in its basic version: see
-`basic_anthropic_search`.  Models without built-in search use `web_search` below:
-plain results from Tavily, without an AI-written answer.  Inspect's own Tavily (and
-Exa) provider asks for a generated answer and passes only that answer to Claude: the
-sources come as citations, which Anthropic does not accept in tool results, so Inspect
-strips them, and the agent would read another model's summary, sometimes wrong,
-instead of search results.  This tool returns the results themselves (title, URL,
-Tavily's extract of the page).  Either way the agent reads a page in full with curl in
-the sandbox, which has internet access whenever search is on.
+Every model gets the same search by default: `web_search` below, plain results from
+Tavily (title, URL, Tavily's extract of the page) without an AI-written answer, so that
+models of different providers search the same engine and the log holds exactly what
+the agent saw.  Inspect's own Tavily (and Exa) provider asks for a generated answer and
+passes only that answer to Claude: the sources come as citations, which Anthropic does
+not accept in tool results, so Inspect strips them, and the agent would read another
+model's summary, sometimes wrong, instead of search results.  The agent reads a page in
+full with curl in the sandbox, which has internet access whenever search is on.
+
+Alternative for Claude models (SEARCH_PROVIDER=anthropic): Anthropic's built-in
+search, as in IMProofBench, in its basic version (see `basic_anthropic_search`).
 """
 
 import asyncio

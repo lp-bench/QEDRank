@@ -8,8 +8,8 @@ cd "$(dirname "$0")/.."
 MODEL=${MODEL:?e.g. anthropic/claude-opus-5, openai/gpt-5.6, google/gemini-3.1-pro}
 EFFORT=${EFFORT-xhigh}             # low|medium|high|xhigh|max, recorded in manifest; EFFORT= (empty) sends none, e.g. for open models
 SEARCH=${SEARCH:-false}            # true -> web search (proofbench_eval/search.py)
-# anthropic: Claude's built-in search (basic version); tavily: plain results, for models without one
-SEARCH_PROVIDER=${SEARCH_PROVIDER:-$([[ $MODEL == anthropic/* ]] && echo anthropic || echo tavily)}
+# tavily (every model): plain results, no AI-written answer; anthropic: Claude's built-in search (basic version)
+SEARCH_PROVIDER=${SEARCH_PROVIDER:-tavily}
 NETWORK=${NETWORK:-$SEARCH}        # sandbox internet; default: only when search is on
 SANDBOX=${SANDBOX:-apptainer}      # apptainer | docker
 SIF=${SIF:-proofbench-sandbox.sif} # image for the apptainer sandbox
