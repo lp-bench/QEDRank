@@ -31,7 +31,12 @@ default), on a Linux PC or an HPC cluster without root, or with Docker.
    Fresh sessions keep models with short and long context windows comparable.
    An agent that is stuck may end a session early by submitting a short
    status; after a reply without a tool call it is told how much of the
-   session's output budget is left.
+   session's output budget is left. The prompts never say how many sessions
+   there are, and the last session writes a note too: an unsolved attempt
+   can thus be continued by a later run with more sessions, from the same
+   state. For this, an attempt that ends unsolved keeps a snapshot of every
+   file the agent created or changed in its sandbox (Lean build outputs and
+   caches left out, at most 10 MB) in the log.
 4. **Grading.** After every session, the source text of the submission is
    checked in a fresh container that the agent never touched, in two layers:
    - [`image/check_proof.py`](image/check_proof.py): the statement and its
@@ -163,7 +168,7 @@ scripts/setup.sh python && . .venv/Scripts/activate   # Windows keeps the enviro
 | `COMPARATOR`            | `on`          | second grading layer                            |
 | `SESSIONS`              | `4`           | sessions per problem                            |
 | `SESSION_OUTPUT_TOKENS` | `120000`      | output-token budget per session                 |
-| `MAX_TOKENS`            | `40000`       | output-token cap per model reply                |
+| `MAX_TOKENS`            | `64000`       | output-token cap per model reply                |
 | `MAX_RETRIES`           | `8`           | retries of a failing request (about 13 min)     |
 | `PROVIDER_RETRIES`      | `2`           | uncounted restarts of a session ended by a provider error |
 | `PROVIDER_BACKOFF`      | `30`          | seconds before such a restart, times its number |
@@ -195,7 +200,7 @@ data/model_facts.csv         release date, training cutoff and size of each mode
 data/model_prices.yml        list prices per million tokens, for Inspect's cost tracking
 tests/grader_attacks/        cheating attempts the grader must reject, and run.sh to check both layers
 tests/test_targets.py        proof or disproof: which file is graded and reported (fake sandbox, seconds)
-tests/mock_run.py            a whole two-session run with a scripted mock model, no API (Apptainer, 1 min)
+tests/mock_run.py            a whole two-session run with a scripted mock model, no API: notes, snapshot (Apptainer, 1 min)
 tests/provider_errors_run.py the same with a rate limit and a used-up daily limit: NOANSWER, not INCORRECT
 tests/objection_run.py       a mock agent replies without a tool call (budget nudge), then submits FALSE:
 ```

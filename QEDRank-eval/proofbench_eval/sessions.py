@@ -9,7 +9,11 @@ and working time as safety caps.  After every session the Lean check of
 scorer.py runs; the first session that passes ends the chain.  When a session
 ends without a proof, the model writes a handoff note in a fixed format
 (proved, open, failed, unsaved draft), outside the session's budget.  Per-session records go to the sample store
-under "sessions".  For an open problem each session shows both files, the
+under "sessions".  The prompts never say how many sessions there are, and the
+last session writes a note as well, so that a later run can continue an
+unsolved attempt with more sessions: for that, an attempt that ends unsolved
+leaves a snapshot of every file the agent created or changed in the store
+(under "snapshot", see `_snapshot`).  For an open problem each session shows both files, the
 statement and its negation (`Pxxx_DISPROVE.lean`), and the chain ends as soon
 as either passes.  A session that ends in a provider error is started again
 without counting (see `handoff_sessions`).  For a problem without a negation
@@ -19,6 +23,7 @@ and the objection is recorded for review by hand.
 """
 
 import asyncio
+import base64
 import re
 from typing import Any
 
@@ -44,21 +49,23 @@ SYSTEM = (
     "diagnostics after every edit, and compile before submitting."
 )
 
+# The number of sessions is not announced, so that the first sessions read the
+# same however many follow (a run can be continued later with more).
 SESSION = """
-This is session {k} of at most {n}.  A session ends when you call submit(),
-or after {budget:,} output tokens from you (reasoning included).  If it ends
-without a complete proof, you will be asked for a short handoff note, and the
-next session starts fresh from {start} and that note.
+This is session {k}.  A session ends when you call submit(), or after
+{budget:,} output tokens from you (reasoning included).  If it ends without a
+complete proof, you will be asked for a short handoff note; a later session,
+if there is one, starts fresh from {start} and that note.
 
 Work incrementally and keep the files compiling: state helper lemmas with
 `sorry` first, check that the main theorem compiles from them, then replace
 the `sorry`s one at a time, compiling after each change.  Files that compile
-with a few `sorry`s are progress the next session can build on; only the
+with a few `sorry`s are progress a later session can build on; only the
 final submission must be free of `sorry`.
 
 When {which} compiles with the complete proof, call submit() with the text
 "done".  If you are sure you cannot make further progress in this session,
-call submit() with a short status instead; {after}.
+call submit() with a short status instead.
 {objection}{files}"""
 
 # Sent instead of Inspect's generic "Please proceed to the next step" when a
@@ -68,7 +75,7 @@ call submit() with a short status instead; {after}.
 CONTINUE = (
     "You have about {left:,} output tokens left in this session.  Keep working "
     "with the tools.  If you are sure you cannot make further progress, call "
-    "submit() with a short status; {after}."
+    "submit() with a short status."
 )
 
 # Added to SESSION for a problem without a negation file: a channel for
@@ -100,7 +107,7 @@ Handoff note from session {prev}:
 
 HANDOFF_REQUEST = """\
 Your session has ended without a complete proof.  Write the handoff note for
-the next session directly; do not continue working on the proof.  The next
+a later session directly; do not continue working on the proof.  A later
 session starts from the current files and their Lean output, but sees nothing
 of this conversation.  Use exactly this format and do not call tools:
 
@@ -169,6 +176,69 @@ async def _handoff_note(messages: list[ChatMessage], max_tokens: int) -> str:
         return f"(no note: {type(ex).__name__}: {str(ex)[:200]})"
 
 
+# Snapshot of an unsolved attempt: every file the agent created or changed in the sandbox,
+# except the image's software (where the agent cannot write anyway), Lean build outputs,
+# caches, the checker's own files and Inspect's tool server (hidden folders in /var/tmp).  Searched from these directories, each on its own
+# file system (find -xdev; /tmp, /var/tmp, Submission/ and HOME are separate mounts in the
+# Apptainer sandbox).
+SNAPSHOT_ROOTS = ["/", "/tmp", "/var/tmp", "{project_dir}/Submission", "$HOME"]
+SNAPSHOT_PRUNE_PATHS = ["/proc", "/sys", "/dev", "/run", "/usr", "/opt/sage", "/opt/venv", "/opt/elan",
+                        "/opt/micromamba", "/opt/verifier", "/var/tmp/.*"]
+SNAPSHOT_PRUNE_NAMES = [".lake", ".cache", "__pycache__", ".sage", ".local", "_reference_*", "_check_*"]
+SNAPSHOT_BYTES = 10_000_000  # files beyond this total (smallest first, Submission/ first) are listed, not kept
+SNAPSHOT_TAR = "/tmp/.proofbench_snapshot.tar.gz"
+
+
+async def _sandbox_time() -> str | None:
+    """The sandbox clock (seconds since the epoch), the reference for the snapshot."""
+    try:
+        r = await sandbox().exec(["date", "+%s.%N"])
+        return r.stdout.strip() if r.success else None
+    except Exception:
+        return None
+
+
+async def _snapshot(since: str | None, project_dir: str) -> dict[str, Any]:
+    """The files changed in the sandbox since `since`, as a gzipped tar (paths relative
+    to /) in base64, with the lists of kept and skipped files (path, bytes)."""
+    if since is None:
+        return {"error": "no start time"}
+    prune = [f"-path '{p}'" for p in SNAPSHOT_PRUNE_PATHS] + [f"-name '{n}'" for n in SNAPSHOT_PRUNE_NAMES]
+    roots = " ".join(f'"{r}"' for r in SNAPSHOT_ROOTS).replace("{project_dir}", project_dir)
+    find = (f"find {roots} -xdev \\( {' -o '.join(prune)} \\) -prune "
+            f"-o -type f -newermt @{since} -printf '%s\\t%p\\0' 2>/dev/null; true")
+    try:
+        r = await sandbox().exec(["bash", "-c", find], timeout=300)
+        found: dict[str, int] = {}
+        for entry in r.stdout.split("\0"):
+            size, _, path = entry.partition("\t")
+            if path and path != SNAPSHOT_TAR:
+                found[path] = int(size)
+        order = sorted(found.items(), key=lambda f: (not f[0].startswith(f"{project_dir}/Submission/"), f[1], f[0]))
+        kept, skipped, total = [], [], 0
+        for path, size in order:
+            if total + size <= SNAPSHOT_BYTES:
+                kept.append([path, size])
+                total += size
+            else:
+                skipped.append([path, size])
+        snap: dict[str, Any] = {"since": since, "bytes": total, "files": kept, "skipped": skipped}
+        if kept:
+            listing = "".join(p + "\0" for p, _ in kept)
+            t = await sandbox().exec(
+                ["bash", "-c", f"tar --null -T - -czf {SNAPSHOT_TAR} 2>/dev/null; test -s {SNAPSHOT_TAR}"],
+                input=listing, timeout=300,
+            )
+            if not t.success:
+                return {**snap, "error": "tar failed"}
+            data = await sandbox().read_file(SNAPSHOT_TAR, text=False)
+            await sandbox().exec(["rm", "-f", SNAPSHOT_TAR])
+            snap["tar_gz_base64"] = base64.b64encode(data).decode("ascii")
+        return snap
+    except Exception as ex:
+        return {"since": since, "error": f"{type(ex).__name__}: {str(ex)[:200]}"}
+
+
 # Exceptions (by class name) and messages that mean the model provider, not the model, failed.
 PROVIDER_ERRORS = (
     "RateLimit", "APIStatus", "APIConnection", "APITimeout", "Timeout", "InternalServer", "ServiceUnavailable",
@@ -214,7 +284,7 @@ def error_kind(ex: BaseException) -> str:
 @solver
 def handoff_sessions(
     tools: list[Tool | ToolSource],
-    sessions: int = 10,
+    sessions: int = 4,
     output_tokens: int = 120_000,
     total_tokens: int | None = 40_000_000,
     working_seconds: float | None = 5400,
@@ -235,6 +305,7 @@ def handoff_sessions(
         # limit, quota, credit) stops the chain at once.  Either way an unsolved, aborted chain
         # is scored NOANSWER (infrastructure), not INCORRECT.  Ported from the QEDRank fork.
         k, failures = 1, 0
+        since = await _sandbox_time()
         while k <= sessions:
             blocks = []
             for t in targets(md):
@@ -251,18 +322,11 @@ def handoff_sessions(
                     others=others,
                     lean=await _lean_output(t, files),
                 ))
-            after = (
-                "the next session starts from your files and a handoff note"
-                if k < sessions
-                else "this is the last session, so this ends your attempt"
-            )
             prompt = state.input_text + SESSION.format(
                 k=k,
-                n=sessions,
                 budget=output_tokens,
                 start="the current files, their Lean output" if both else "the current file, its Lean output",
                 which="either file" if both else "the file",
-                after=after,
                 objection="" if both else OBJECTION,
                 files="".join(blocks),
             )
@@ -272,11 +336,11 @@ def handoff_sessions(
             all_limit = token_limit(total_tokens)
             work_limit = working_limit(working_seconds)
 
-            async def nudge(agent_state: AgentState, out_limit=out_limit, after=after) -> bool | str:
+            async def nudge(agent_state: AgentState, out_limit=out_limit) -> bool | str:
                 if agent_state.output.message.tool_calls:
                     return True  # Inspect adds no message after tool calls
                 left = max(0, output_tokens - int(out_limit.usage))
-                return CONTINUE.format(left=round(left, -3), after=after)
+                return CONTINUE.format(left=round(left, -3))
 
             # answer_only: the submitted text alone becomes the agent's completion.
             submit = AgentSubmit(answer_only=True)
@@ -334,7 +398,7 @@ def handoff_sessions(
                 "objection": not both and submitted is not None and submitted.upper().startswith("FALSE"),
             }
             transcript += messages
-            if not record["passed"] and not record["objection"] and k < sessions:
+            if not record["passed"] and not record["objection"]:
                 note = (
                     await _handoff_note(messages, note_tokens)
                     if messages
@@ -346,6 +410,8 @@ def handoff_sessions(
             if record["passed"] or record["objection"]:
                 break
             k += 1
+        if not any(r.get("passed") for r in records):
+            state.store.set("snapshot", await _snapshot(since, md["project_dir"]))
         state.messages = transcript
         return state
 

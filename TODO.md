@@ -78,6 +78,15 @@ Additions to `scripts/stats.py` modelled on QEDRank's statistics code (the JavaS
   the official runs: one more check that a session ends on its 120k output budget, and the
   objection channel (`FALSE:`) with a real model.
   Open models: pass `EFFORT=` (empty), since they may not accept `xhigh`.
+- **Harness for the official runs (2026-10-29):** the prompts no longer say how many sessions
+  there are, the last session writes a handoff note too, and an unsolved attempt keeps a
+  snapshot of the files the agent changed. Plan: run all problems with 4 sessions first; if the
+  budget allows, continue unsolved problems later with more sessions. Still to build before
+  such a continuation: a `continue from LOG_DIR` option (restore the snapshot and the last
+  note, number the sessions on) and merging both stages in results.csv. Per reply 64k, request
+  attempts 40 min.
+- **Before the Fable pilot:** discuss harder research problems (Opus solved all four research
+  problems of the pilot in one session), e.g. recent results from JCT.
 - **GLM rerun** of P036, P022 and P099 (or P014 instead of P099) with the new limits, run from
   `QEDRank-eval/` (ready: `.env` and the image are in place).
 - **Paper:** `main.tex` still gives the handoff note 8,000 tokens; the harness now uses 32,000.

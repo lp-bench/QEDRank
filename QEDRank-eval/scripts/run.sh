@@ -20,9 +20,9 @@ SESSION_OUTPUT_TOKENS=${SESSION_OUTPUT_TOKENS:-120000}
 SESSION_TOKENS=${SESSION_TOKENS:-40000000}     # safety cap on all tokens of a session: every step resends the context (mostly cache reads); 4M ended a session at 34k output, a step-heavy session reaching 120k output needs about 30M
 SESSION_WORKING_TIME=${SESSION_WORKING_TIME:-5400}
 NOTE_TOKENS=${NOTE_TOKENS:-32000}
-MAX_TOKENS=${MAX_TOKENS:-40000}           # cap per model reply; keep SESSION_OUTPUT_TOKENS about 3x larger
+MAX_TOKENS=${MAX_TOKENS:-64000}           # cap per model reply, a safety cap (Opus pilot: at most 31k); about half of SESSION_OUTPUT_TOKENS
 REQUEST_TIMEOUT=${REQUEST_TIMEOUT:-3600}  # no retry of a model request starts after this many seconds
-ATTEMPT_TIMEOUT=${ATTEMPT_TIMEOUT:-1200}  # seconds per single attempt of a request (a 40k reply can take over 10 min)
+ATTEMPT_TIMEOUT=${ATTEMPT_TIMEOUT:-2400}  # seconds per single attempt of a request (a 64k reply can take over 20 min)
 MAX_RETRIES=${MAX_RETRIES:-8}             # retries of a failing request (waits from 3 s, doubling: 8 = about 13 min)
 PROVIDER_RETRIES=${PROVIDER_RETRIES:-2}   # a session ended by a provider error is started again this often, uncounted
 PROVIDER_BACKOFF=${PROVIDER_BACKOFF:-30}  # seconds before such a retry, times the retry count

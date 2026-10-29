@@ -41,8 +41,9 @@ nudge = [m.text for m in calls[1].input if m.role == "user"][-1]
 checks = {
     "run finished": log.status == "success",
     "prompt offers the channel": 'starting with "FALSE:"' in prompt1,
-    "prompt offers an early end": "call submit() with a short status instead; the next session starts" in prompt1,
-    "nudge gives the budget left": nudge.startswith("You have about 120,000 output tokens left") and "the next session starts" in nudge,
+    "prompt offers an early end": "call submit() with a short status instead." in prompt1,
+    "prompt does not say how many sessions": "This is session 1." in prompt1 and "at most" not in prompt1,
+    "nudge gives the budget left": nudge.startswith("You have about 120,000 output tokens left"),
     "objection recorded": recs[0].get("objection") is True and recs[0].get("submitted") == objection,
     "chain ends, no note": len(recs) == 1 and "note" not in recs[0] and len(calls) == 2,
     "scored incorrect": s.scores["lean_check"].value == "I",
