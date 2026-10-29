@@ -14,6 +14,10 @@ at ``/.inspect-apptainer``) and deletes it afterwards.
 Commands run as the invoking user: Apptainer has no user switching, so
 ``exec(user=...)`` is refused for any other user and Inspect installs its
 sandbox tools in rootless mode.
+
+A command with a timeout runs under ``EXEC_WRAPPER``, which ends every process
+the command started, both when the limit fires and when the command returns,
+and such a command is never retried (see ``exec``).
 """
 
 from __future__ import annotations
@@ -94,6 +98,48 @@ def apptainer_binary(cfg: ApptainerSandboxConfig) -> str:
         "or set `apptainer` in the sandbox config"
     )
 
+
+# Bounds a command to T seconds (``/bin/sh -c EXEC_WRAPPER inspect-apptainer T ID CMD...``)
+# and ends every process it started, also those in a new process group or session
+# (``timeout``, ``setsid``, ``nohup``, background jobs), which an in-container ``timeout``
+# misses: they all inherit INSPECT_APPTAINER_EXEC=ID in their environment and are killed
+# when the limit fires (SIGTERM, SIGKILL two seconds later) and when the command returns.
+# Otherwise such a process keeps running and keeps the command's output open, so the
+# exec does not return until it exits.  The watchdog's own processes are marked
+# INSPECT_APPTAINER_WATCHDOG=ID.  Exit status 124 means the limit fired; it is measured
+# with /proc/uptime (10 ms), so a command that ends just before the limit is not a
+# timeout.  Needs only sh, sleep, tr, grep, kill and /proc (GNU and BusyBox both work).
+EXEC_WRAPPER = r"""
+t=$1; id=$2; shift 2
+cs() { read -r u _ < /proc/uptime; echo "${u%.*}${u#*.}"; }
+start=$(cs)
+kill_marked() {
+  for d in /proc/[0-9]*; do
+    if tr '\0' '\n' < "$d/environ" 2>/dev/null | grep -qx "$1=$id"; then
+      kill "-$2" "${d#/proc/}" 2>/dev/null
+    fi
+  done
+}
+exec 3<&0
+INSPECT_APPTAINER_EXEC=$id "$@" <&3 3<&- &
+cmd=$!
+exec 3<&-
+(
+  export INSPECT_APPTAINER_WATCHDOG="$id"
+  sleep "$t"
+  kill_marked INSPECT_APPTAINER_EXEC TERM
+  sleep 2
+  kill_marked INSPECT_APPTAINER_EXEC KILL
+) </dev/null >/dev/null 2>&1 &
+watchdog=$!
+wait "$cmd"; rc=$?
+kill -STOP "$watchdog" 2>/dev/null
+kill_marked INSPECT_APPTAINER_WATCHDOG KILL
+kill -KILL "$watchdog" 2>/dev/null
+kill_marked INSPECT_APPTAINER_EXEC KILL
+[ $(( $(cs) - start )) -ge $(( t * 100 )) ] && exit 124
+exit $rc
+"""
 
 @sandboxenv(name="apptainer")
 class ApptainerSandboxEnvironment(SandboxEnvironment):
@@ -294,12 +340,15 @@ class ApptainerSandboxEnvironment(SandboxEnvironment):
             )
         if not cmd:
             raise ValueError("cmd must not be empty")
-        # The in-container `timeout` kills the process tree when the limit fires;
-        # the host-side timeout is only a backstop for a hung Apptainer call.
+        # EXEC_WRAPPER bounds the command and ends everything it started; the
+        # host-side timeout is only a backstop for a hung Apptainer call.  A timed-out
+        # command is never retried (`timeout_retry` is ignored): running it again
+        # would repeat its side effects, and an agent's command may append to files.
         in_cmd = cmd
         if timeout is not None:
-            in_cmd = [self._cfg.timeout_command, "-k", "5s", f"{timeout}s", *cmd]
-        host_timeout = timeout + 10 if timeout is not None else None
+            in_cmd = ["/bin/sh", "-c", EXEC_WRAPPER, "inspect-apptainer", str(timeout),
+                      uuid.uuid4().hex, *cmd]
+        host_timeout = timeout + 15 if timeout is not None else None
         args, script = self._prepare(in_cmd, cwd, env)
         start = time.monotonic()
         try:
@@ -307,7 +356,7 @@ class ApptainerSandboxEnvironment(SandboxEnvironment):
                 args,
                 input,
                 host_timeout,
-                timeout_retry,
+                False,
                 concurrency,
                 SandboxEnvironmentLimits.MAX_EXEC_OUTPUT_SIZE,
             )
@@ -316,9 +365,10 @@ class ApptainerSandboxEnvironment(SandboxEnvironment):
         elapsed = time.monotonic() - start
         result = _normalize_signal_exit(result)
         if timeout is not None and result.returncode in (124, 137, 143):
-            # 124: GNU/BusyBox timeout fired; 137/143: killed by SIGKILL/SIGTERM,
-            # which is a timeout only if the command ran that long.
-            if result.returncode == 124 or elapsed >= timeout:
+            # 124: the wrapper's limit fired (or the command's own `timeout`, which
+            # ends sooner); 137/143: killed by SIGKILL/SIGTERM.  A timeout only if
+            # the command ran that long.
+            if elapsed >= timeout:
                 error = TimeoutError(f"Command timed out after {timeout} seconds")
                 partial = (result.stdout or "") + (result.stderr or "")
                 if partial:

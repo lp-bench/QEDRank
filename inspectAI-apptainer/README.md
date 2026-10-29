@@ -79,8 +79,13 @@ One Apptainer instance per sample:
   read-only at `/.inspect-apptainer`), not as arguments: Apptainer caps the
   argument list and `--env` values at 1 MiB. The script exports the requested
   environment and `exec`s the command, so the process the agent sees is the
-  command itself. Timeouts use the in-container `timeout` binary, so the whole
-  process group is killed when the limit fires.
+  command itself. A command with a timeout runs under a small shell watchdog:
+  every process it starts inherits a marker in its environment, and all of them
+  are killed when the limit fires and when the command returns, also those that
+  left the process group or session (`timeout`, `setsid`, `nohup`, background
+  jobs). An in-container `timeout` misses those, and as they keep the command's
+  output open, the exec would not return until they exit. A timed-out command
+  is never retried, since running it again would repeat its side effects.
 - `write_file` and `read_file` go through `exec` (stdin and stdout); host-issued
   commands launch `/bin/sh` by absolute path with a pinned `PATH`.
 - `sample_cleanup` stops the instance and deletes the scratch directories.
@@ -95,9 +100,8 @@ One Apptainer instance per sample:
 - Apptainer (or Singularity) with user bind mounts enabled (`user bind control
   = yes`, the default) and network namespaces allowed for users (if a site
   disables them, set `network: host`).
-- An image with `/bin/sh`, `tar`, `base64` and a `timeout` binary
-  (`timeout_command`, default `/usr/bin/timeout`; GNU coreutils and BusyBox both
-  work).
+- An image with `/bin/sh`, `tar`, `base64`, `sleep`, `tr`, `grep` and `kill`
+  (GNU coreutils and BusyBox both work).
 - Writable paths the agent needs must be listed in `writable` (or fit in the
   tmpfs overlay): the image is read-only and the agent is not root.
 
@@ -110,8 +114,9 @@ pytest
 ```
 
 The suite is Inspect's portable `self_check` plus Apptainer-specific checks
-(no host environment, no network, PID namespace, background processes survive,
-fresh scratch per sample). Set `INSPECT_APPTAINER_TEST_IMAGE` to test another
+(no host environment, no network, PID namespace, background processes of a
+command without timeout survive, a command with a timeout ends every process it
+started and is not retried, fresh scratch per sample). Set `INSPECT_APPTAINER_TEST_IMAGE` to test another
 image.
 
 ## Prior art

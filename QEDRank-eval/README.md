@@ -215,6 +215,7 @@ tests/mock_run.py            a whole two-session run with a scripted mock model,
 tests/provider_errors_run.py the same with a rate limit and a used-up daily limit: NOANSWER, not INCORRECT
 tests/objection_run.py       a mock agent replies without a tool call (budget nudge), then submits FALSE:
 tests/constructive_run.py    a proof using Classical.choice, submitted to a problem declared constructive, is rejected
+tests/timeout_run.py         a tool call over its limit ends at once, runs once, and leaves no process behind
 ```
 
 ## Good to know

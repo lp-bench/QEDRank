@@ -42,8 +42,9 @@ class ApptainerSandboxConfig(BaseModel, frozen=True):
     """Working directory for commands and for relative file paths."""
 
     timeout_command: str = "/usr/bin/timeout"
-    """In-container ``timeout`` binary that bounds each command (GNU coreutils
-    kills the whole process group; BusyBox only the direct child)."""
+    """Not used any more: a command with a timeout runs under a shell watchdog
+    (``EXEC_WRAPPER`` in ``_sandbox.py``) that ends every process it started; an
+    in-container ``timeout`` missed processes in a new process group."""
 
     fakeroot: bool = False
     """Start the instance with ``--fakeroot`` (appear as root inside)."""
