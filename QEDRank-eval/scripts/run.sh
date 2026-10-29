@@ -23,6 +23,7 @@ SESSIONS=${SESSIONS:-4}
 SESSION_OUTPUT_TOKENS=${SESSION_OUTPUT_TOKENS:-120000}
 SESSION_TOKENS=${SESSION_TOKENS:-40000000}     # safety cap on all tokens of a session: every step resends the context (mostly cache reads); 4M ended a session at 34k output, a step-heavy session reaching 120k output needs about 30M
 SESSION_WORKING_TIME=${SESSION_WORKING_TIME:-5400}
+TOOL_TIMEOUT=${TOOL_TIMEOUT:-1800}       # seconds per bash/python call, stated in the prompt; the call ends with everything it started
 NOTE_TOKENS=${NOTE_TOKENS:-32000}
 MAX_TOKENS=${MAX_TOKENS:-64000}           # cap per model reply, a safety cap (Opus pilot: at most 31k); about half of SESSION_OUTPUT_TOKENS
 REQUEST_TIMEOUT=${REQUEST_TIMEOUT:-3600}  # no retry of a model request starts after this many seconds
@@ -95,7 +96,7 @@ trap checksums EXIT
 python3 scripts/manifest.py "$LOG_DIR" model="$MODEL" effort="$EFFORT" search="$SEARCH" \
   search_provider="$SEARCH_PROVIDER" network="$NETWORK" epochs="$EPOCHS" sessions="$SESSIONS" \
   session_output_tokens="$SESSION_OUTPUT_TOKENS" session_tokens="$SESSION_TOKENS" \
-  session_working_time="$SESSION_WORKING_TIME" note_tokens="$NOTE_TOKENS" max_tokens="$MAX_TOKENS" \
+  session_working_time="$SESSION_WORKING_TIME" tool_timeout="$TOOL_TIMEOUT" note_tokens="$NOTE_TOKENS" max_tokens="$MAX_TOKENS" \
   request_timeout="$REQUEST_TIMEOUT" attempt_timeout="$ATTEMPT_TIMEOUT" max_samples="$MAX_SAMPLES" time_limit="$TIME_LIMIT" ids="$IDS" sandbox="$SANDBOX" comparator="$COMPARATOR" \
   max_retries="$MAX_RETRIES" provider_retries="$PROVIDER_RETRIES" provider_backoff="$PROVIDER_BACKOFF" ${IMAGE:+image="$IMAGE"}
 
@@ -104,7 +105,7 @@ inspect eval proofbench_eval/task.py@proofbench \
   -T ids="$IDS" -T sandbox="$SANDBOX" -T sif="$SIF" -T network="$NETWORK" \
   -T search="$SEARCH" -T search_provider="$SEARCH_PROVIDER" \
   -T sessions="$SESSIONS" -T session_output_tokens="$SESSION_OUTPUT_TOKENS" \
-  -T session_tokens="$SESSION_TOKENS" -T session_working_time="$SESSION_WORKING_TIME" \
+  -T session_tokens="$SESSION_TOKENS" -T session_working_time="$SESSION_WORKING_TIME" -T tool_timeout="$TOOL_TIMEOUT" \
   -T note_tokens="$NOTE_TOKENS" -T comparator=$([ "$COMPARATOR" = on ] && echo true || echo false) \
   -T provider_retries="$PROVIDER_RETRIES" -T provider_backoff="$PROVIDER_BACKOFF" \
   --epochs "$EPOCHS" --max-tokens "$MAX_TOKENS" --timeout "$REQUEST_TIMEOUT" --attempt-timeout "$ATTEMPT_TIMEOUT" --time-limit "$TIME_LIMIT" \

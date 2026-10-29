@@ -21,7 +21,7 @@ Task parameters (pass with `-T name=value`):
   lean_mcp    give the agent the lean-lsp-mcp tools (default True); the web-backed
               search tools are removed when network is False
   project_dir Lean project root inside the sandbox (default /opt/proofbench)
-  tool_timeout seconds per bash/python call (default 600)
+  tool_timeout seconds per bash/python call, stated in the prompt (default 1800)
   sessions    fresh sessions per problem, chained by handoff notes (default 4)
   session_output_tokens  output tokens per session, reasoning included (default 120000)
   session_tokens         safety cap: total tokens per session (default 40000000)
@@ -89,6 +89,8 @@ Rules, checked automatically after you submit:
    (a file without helper files also compiles with `lake env lean {submission}`).
    For experiments you also have Python (sympy, networkx, python-sat),
    SageMath with GAP and nauty (`sage`, `gap`), and the SAT solver `cadical`.
+   Each shell or Python call is stopped after {tool_limit}, together with
+   everything it started; split longer computations into several calls.
    The Lean language-server tools (goal state, diagnostics, search) are
    available when present; the file path for them is `{submission_rel}`.
 """
@@ -98,6 +100,13 @@ Rules, checked automatically after you submit:
 CONSTRUCTIVE = """  This problem is constructive:
    `Classical.choice` is not permitted, so excluded middle holds only for
    decidable propositions (check with `#print axioms`)."""
+
+
+def duration(seconds: int) -> str:
+    if seconds % 60 == 0:
+        m = seconds // 60
+        return f"{m} minute" if m == 1 else f"{m} minutes"
+    return f"{seconds} seconds"
 
 
 def axiom_list(axioms: list[str]) -> str:
@@ -145,7 +154,8 @@ def qualified_theorem(text: str, pid: str) -> str:
 
 
 def load_samples(
-    statements: str, ids: str | list[str], project_dir: str, comparator: bool = True
+    statements: str, ids: str | list[str], project_dir: str, comparator: bool = True,
+    tool_timeout: int = 1800,
 ) -> list[Sample]:
     root = Path(statements)
     if not root.is_absolute():  # Inspect runs tasks from the task file's directory
@@ -211,6 +221,7 @@ def load_samples(
                     project_dir=project_dir,
                     open_problem=open_problem,
                     axioms=axiom_list(axioms),
+                    tool_limit=duration(tool_timeout),
                     constructive="" if "Classical.choice" in axioms else CONSTRUCTIVE,
                 ),
                 target=theorem,
@@ -245,7 +256,7 @@ def proofbench(
     search_provider: str = "tavily",
     lean_mcp: bool = True,
     project_dir: str = "/opt/proofbench",
-    tool_timeout: int = 600,
+    tool_timeout: int = 1800,
     sessions: int = 4,
     session_output_tokens: int = 120_000,
     session_tokens: int = 40_000_000,
@@ -316,7 +327,7 @@ def proofbench(
     )
 
     return Task(
-        dataset=load_samples(statements, ids, project_dir, comparator),
+        dataset=load_samples(statements, ids, project_dir, comparator, tool_timeout),
         solver=solver,
         scorer=lean_check(),
         sandbox=sandbox_spec,

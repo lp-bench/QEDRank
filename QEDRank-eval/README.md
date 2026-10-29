@@ -180,6 +180,7 @@ scripts/setup.sh python && . .venv/Scripts/activate   # Windows keeps the enviro
 | `SESSIONS`              | `4`           | sessions per problem                            |
 | `SESSION_OUTPUT_TOKENS` | `120000`      | output-token budget per session                 |
 | `MAX_TOKENS`            | `64000`       | output-token cap per model reply                |
+| `TOOL_TIMEOUT`          | `1800`        | seconds per bash/python call (stated in the prompt) |
 | `MAX_RETRIES`           | `8`           | retries of a failing request (about 13 min)     |
 | `PROVIDER_RETRIES`      | `2`           | uncounted restarts of a session ended by a provider error |
 | `PROVIDER_BACKOFF`      | `30`          | seconds before such a restart, times its number |

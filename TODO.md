@@ -89,9 +89,8 @@ Additions to `scripts/stats.py` modelled on QEDRank's statistics code (the JavaS
   AI answer), so that Claude, GLM and Kimi are comparable. The Fable pilot of 2026-10-29 used
   Claude's built-in search instead: before the official runs, a short check of Claude with
   Tavily (one or two problems), and a Tavily plan sized from the number of searches per problem.
-- **Tool time limit:** each bash/python call is limited to 10 minutes (`tool_timeout`), and the
-  prompt does not say so (Fable planned a 50-minute search). The user finds 10 minutes too
-  small: reconsider the limit, and whether the prompt states it, before the official runs.
+- **Tool time limit (done 2026-10-29):** 30 minutes per bash/python call (`TOOL_TIMEOUT`, was
+  10), stated in the prompt; the call ends with everything it started (sandbox watchdog).
 - **Constructive track (P117):** the harness reads `permitted_axioms` from the statements
   database (both grading layers and the prompt). Still to do: export P117 to the statements
   repo (needs `permitted_axioms` in its database, and a decision whether the benchmark has 117
