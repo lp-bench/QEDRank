@@ -104,8 +104,12 @@ Additions to `scripts/stats.py` modelled on QEDRank's statistics code (the JavaS
 - **Before the Fable pilot:** discuss harder research problems (Opus solved all four research
   problems of the pilot in one session), e.g. recent results from JCT.
 - **GLM rerun** of P036, P022 and P099 (or P014 instead of P099) with the new limits, run from
-  `QEDRank-eval/` (ready: `.env` and the image are in place). Started 2026-10-31 with P101
-  (`logs/pilot_20261031T101148Z_glm-5.3-flash_search-true`, Tavily search on): in the first GLM
-  pilot every cut-off reply was 32k tokens of thinking with no text or tool call, 13 times each on
-  P017 and P101; the question is whether 64k per reply and 120k per session change that.
+  `QEDRank-eval/` (ready: `.env` and the image are in place). Done for P101 on 2026-10-31
+  (`logs/pilot_20261031T101148Z_glm-5.3-flash_search-true`, Tavily search on, not archived):
+  solved in 2 sessions, 30 min, 165k output tokens, 41 model calls; in the first pilot P101 failed
+  after 8 sessions, 3.5 h and 707k output tokens, every one of its 13 cut-off replies being 32k
+  tokens of thinking with no text or tool call. Now one cut-off (the opening think, 64k tokens,
+  10 min), then normal work; session 1 ended on the 120k budget with a `DecidableEq` error, the
+  handoff note let session 2 finish in 400 s. GLM never used the search tool. Still open: P036,
+  P022, P099 or P017 (the other cut-off case) if a second data point is wanted.
 - **Paper:** `main.tex` still gives the handoff note 8,000 tokens; the harness now uses 32,000.
