@@ -87,10 +87,10 @@ Additions to `scripts/stats.py` modelled on QEDRank's statistics code (the JavaS
   attempts 40 min.
 - **Search (2026-10-29):** every model gets the plain Tavily tool (proofbench_eval/search.py, no
   AI answer), so that Claude, GLM and Kimi are comparable. The Fable pilot of 2026-10-29 used
-  Claude's built-in search instead: before the official runs, a short check of Claude with
-  Tavily (one or two problems), and a Tavily plan sized from the number of searches per problem
-  (the Fable pilot made 5 searches on 4 problems; the account's free plan has 1,000 a month:
-  turn on pay-as-you-go with a cap). Done 2026-10-31: used-up search credits or a rejected key
+  Claude's built-in search instead. Check done 2026-10-31 on the HPC (P072, Fable with Tavily: solved in
+  one session, one search with plain results, a page fetched with curl from the sandbox). Tavily plan:
+  the Fable pilot made 5 searches on 4 problems; the free plan has 1,000 a month, pay-as-you-go with a
+  cap covers the rest. Done 2026-10-31: used-up search credits or a rejected key
   (Tavily HTTP 432/433/401) end the session and score the problem NOANSWER, like a used-up
   model budget, instead of the agent working on without search (`SearchUnavailable` in
   search.py; tests `tests/search_guard.py`, `tests/search_quota_run.py`). `MAX_SAMPLES` now also
