@@ -31,7 +31,7 @@ ATTEMPT_TIMEOUT=${ATTEMPT_TIMEOUT:-2400}  # seconds per single attempt of a requ
 MAX_RETRIES=${MAX_RETRIES:-8}             # retries of a failing request (waits from 3 s, doubling: 8 = about 13 min)
 PROVIDER_RETRIES=${PROVIDER_RETRIES:-2}   # a session ended by a provider error is started again this often, uncounted
 PROVIDER_BACKOFF=${PROVIDER_BACKOFF:-30}  # seconds before such a retry, times the retry count
-MAX_SAMPLES=${MAX_SAMPLES:-4}             # problems in parallel
+MAX_SAMPLES=${MAX_SAMPLES:-4}             # problems in parallel (one model connection and one sandbox each)
 TAGS=${TAGS:-proofbench}                  # Inspect log tags, e.g. TAGS=proofbench,pilot
 ZENODO=${ZENODO:-on}                      # on | off | force: archive the run on Zenodo when it ends (on: only if complete)
 # INSPECT_DISPLAY=conversation makes Inspect run one sample at a time; use `inspect view` to follow runs.
@@ -110,7 +110,7 @@ inspect eval proofbench_eval/task.py@proofbench \
   -T provider_retries="$PROVIDER_RETRIES" -T provider_backoff="$PROVIDER_BACKOFF" \
   --epochs "$EPOCHS" --max-tokens "$MAX_TOKENS" --timeout "$REQUEST_TIMEOUT" --attempt-timeout "$ATTEMPT_TIMEOUT" --time-limit "$TIME_LIMIT" \
   --max-retries "$MAX_RETRIES" \
-  --max-samples "$MAX_SAMPLES" --max-connections 4 --max-sandboxes 4 \
+  --max-samples "$MAX_SAMPLES" --max-connections "$MAX_SAMPLES" --max-sandboxes "$MAX_SAMPLES" \
   --model-cost-config data/model_prices.yml \
   --log-dir "$LOG_DIR" --tags "$TAGS" --metadata run_id="$RUN_ID"
 

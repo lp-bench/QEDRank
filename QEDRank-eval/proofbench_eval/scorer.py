@@ -248,7 +248,7 @@ def lean_check():
         if metadata["infrastructure_error"]:
             # The provider, not the model, ended an unsolved chain: no verdict on the model
             # (NOANSWER; results.csv status N, left out of the rates; rerun the problem).
-            reason = "the account's budget was used up" if abort == "quota" else "the provider kept failing"
+            reason = "the account's budget or the search credits were used up" if abort == "quota" else "the provider kept failing"
             explanation = f"infrastructure: {reason} after {metadata['sessions_used']} session(s) | {explanation}"
         return Score(
             value=CORRECT if main["ok"] else NOANSWER if metadata["infrastructure_error"] else INCORRECT,

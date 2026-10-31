@@ -88,7 +88,13 @@ Additions to `scripts/stats.py` modelled on QEDRank's statistics code (the JavaS
 - **Search (2026-10-29):** every model gets the plain Tavily tool (proofbench_eval/search.py, no
   AI answer), so that Claude, GLM and Kimi are comparable. The Fable pilot of 2026-10-29 used
   Claude's built-in search instead: before the official runs, a short check of Claude with
-  Tavily (one or two problems), and a Tavily plan sized from the number of searches per problem.
+  Tavily (one or two problems), and a Tavily plan sized from the number of searches per problem
+  (the Fable pilot made 5 searches on 4 problems; the account's free plan has 1,000 a month:
+  turn on pay-as-you-go with a cap). Done 2026-10-31: used-up search credits or a rejected key
+  (Tavily HTTP 432/433/401) end the session and score the problem NOANSWER, like a used-up
+  model budget, instead of the agent working on without search (`SearchUnavailable` in
+  search.py; tests `tests/search_guard.py`, `tests/search_quota_run.py`). `MAX_SAMPLES` now also
+  sets `--max-connections` and `--max-sandboxes`.
 - **Tool time limit (done 2026-10-29):** 30 minutes per bash/python call (`TOOL_TIMEOUT`, was
   10), stated in the prompt; the call ends with everything it started (sandbox watchdog).
 - **Constructive track (P117):** the harness reads `permitted_axioms` from the statements
@@ -98,5 +104,8 @@ Additions to `scripts/stats.py` modelled on QEDRank's statistics code (the JavaS
 - **Before the Fable pilot:** discuss harder research problems (Opus solved all four research
   problems of the pilot in one session), e.g. recent results from JCT.
 - **GLM rerun** of P036, P022 and P099 (or P014 instead of P099) with the new limits, run from
-  `QEDRank-eval/` (ready: `.env` and the image are in place).
+  `QEDRank-eval/` (ready: `.env` and the image are in place). Started 2026-10-31 with P101
+  (`logs/pilot_20261031T101148Z_glm-5.3-flash_search-true`, Tavily search on): in the first GLM
+  pilot every cut-off reply was 32k tokens of thinking with no text or tool call, 13 times each on
+  P017 and P101; the question is whether 64k per reply and 120k per session change that.
 - **Paper:** `main.tex` still gives the handoff note 8,000 tokens; the harness now uses 32,000.

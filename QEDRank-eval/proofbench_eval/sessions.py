@@ -255,6 +255,8 @@ QUOTA_MESSAGE = re.compile(
     r"(daily|monthly) (request )?(rate )?(limit|quota)|limit exhausted|insufficient.?quota"
     r"|exceeded your current quota|credit balance is too low|no credits remaining", re.I
 )
+# The same for the search credits: proofbench_eval/search.py raises this when Tavily refuses.
+QUOTA_ERRORS = ("SearchUnavailable",)
 
 
 def _exceptions(ex: BaseException):
@@ -271,11 +273,11 @@ def _exceptions(ex: BaseException):
 
 
 def error_kind(ex: BaseException) -> str:
-    """'quota' when the account's budget is used up, 'provider' for rate limits, server
-    and connection failures, 'other' for everything else."""
+    """'quota' when the account's budget or the search credits are used up, 'provider' for
+    rate limits, server and connection failures, 'other' for everything else."""
     provider = False
     for e in _exceptions(ex):
-        if QUOTA_MESSAGE.search(f"{type(e).__name__}: {e}"):
+        if type(e).__name__ in QUOTA_ERRORS or QUOTA_MESSAGE.search(f"{type(e).__name__}: {e}"):
             return "quota"
         provider |= any(n in type(e).__name__ for n in PROVIDER_ERRORS) or bool(PROVIDER_MESSAGE.search(str(e)))
     return "provider" if provider else "other"

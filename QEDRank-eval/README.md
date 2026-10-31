@@ -233,9 +233,10 @@ tests/timeout_run.py         a tool call over its limit ends at once, runs once,
   made.
 - Provider failures are not the model's: a session ended by a rate limit or a
   server or connection error is started again without counting, and a used-up
-  account budget (daily limit, quota, credit) stops the problem at once. An
-  unsolved problem stopped this way is scored NOANSWER (status `N` in
-  `results.csv`, left out of the rates); run it again.
+  account budget (daily limit, quota, credit) stops the problem at once; so do
+  used-up search credits (Tavily refusing every search), instead of the agent
+  working on without search. An unsolved problem stopped this way is scored
+  NOANSWER (status `N` in `results.csv`, left out of the rates); run it again.
 - Reasoning-effort settings differ between vendors, and some models always
   think; record the effort per model and report it.
 - `scripts/check_statements.sh`, `scripts/verify_comparator.sh` and

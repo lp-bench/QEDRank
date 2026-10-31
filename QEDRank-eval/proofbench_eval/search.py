@@ -8,6 +8,8 @@ passes only that answer to Claude: the sources come as citations, which Anthropi
 not accept in tool results, so Inspect strips them, and the agent would read another
 model's summary, sometimes wrong, instead of search results.  The agent reads a page in
 full with curl in the sandbox, which has internet access whenever search is on.
+When Tavily refuses every request (credits used up, key rejected), the tool raises
+`SearchUnavailable` instead of reporting an error to the agent: see that class.
 
 Alternative for Claude models (SEARCH_PROVIDER=anthropic): Anthropic's built-in
 search, as in IMProofBench, in its basic version (see `basic_anthropic_search`).
@@ -36,6 +38,14 @@ def format_results(results: list[dict[str, Any]]) -> str:
     return "\n\n".join(out)
 
 
+class SearchUnavailable(Exception):
+    """Tavily refuses every request: the search credits are used up (HTTP 432, the plan's
+    limit; 433, the pay-as-you-go limit) or the key is rejected (401, 403).  Not a ToolError:
+    the agent would just work on without search, and a run "with search" would quietly turn
+    into one without.  This ends the session instead; sessions.py treats it like a used-up
+    model budget and the problem is scored NOANSWER (results.csv status N), to be run again."""
+
+
 @tool
 def web_search(max_results: int = 5) -> Tool:
     async def execute(query: str) -> str:
@@ -62,6 +72,8 @@ def web_search(max_results: int = 5) -> Tool:
             else:
                 if r.status_code == 200:
                     return format_results(r.json().get("results") or [])
+                if r.status_code in (401, 403, 432, 433):
+                    raise SearchUnavailable(f"web search unavailable: Tavily HTTP {r.status_code}: {r.text[:300]}")
                 if r.status_code not in (429, 500, 502, 503, 504):
                     raise ToolError(f"search failed: HTTP {r.status_code}: {r.text[:300]}")
                 error = f"HTTP {r.status_code}"
