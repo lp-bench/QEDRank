@@ -5,7 +5,8 @@ usage: scripts/analyze.py LOG_DIR [more LOG_DIRs]   -> writes LOG_DIR/results.cs
 Columns: run, model, search, problem, epoch, correct, status, polarity, sessions_used,
 provider_failures, session_ends, errors, tokens_in, tokens_cached, tokens_out, tokens_total, cost_usd, total_time_s,
 working_time_s, tool_calls, tool_errors, model_calls, max_tokens_stops, refusals,
-max_context, lines, proof_lines, compile_s, axioms, limit, objection, submitted.
+max_context, lines, proof_lines, compile_s, axioms, limit, objection, submitted, searches, urls,
+lean_urls.
 tokens_in counts every input token, cached or not (Inspect's input_tokens leaves out
 the cache reads and writes that providers such as Anthropic report separately), so it
 means the same for every model; tokens_cached is the part read from the prompt cache.
@@ -30,9 +31,16 @@ for reporting a statement it believes false as formalized (problems without a
 negation file; it ends the attempt, unsolved); submitted lists every submitted
 text other than "done", so that informal remarks show up as well.  Review both
 by hand.
+searches counts the agent's web_search calls, urls the distinct web addresses in its
+shell and Python commands (pages fetched with curl, repositories cloned), and code_urls
+those among them that end in .lean or point into a GitHub repository: a solve with
+code_urls > 0 may rest on a published formalization, which the analysis of runs with
+search flags.
 """
 
 import csv
+import json
+import re
 import sys
 from pathlib import Path
 
@@ -43,7 +51,23 @@ COLS = ["run", "model", "search", "problem", "epoch", "correct", "status", "pola
         "session_ends", "errors", "tokens_in",
         "tokens_cached", "tokens_out", "tokens_total", "cost_usd", "total_time_s", "working_time_s", "tool_calls", "tool_errors",
         "model_calls", "max_tokens_stops", "refusals", "max_context", "lines", "proof_lines", "compile_s", "axioms", "limit",
-        "objection", "submitted"]
+        "objection", "submitted", "searches", "urls", "code_urls"]
+URL = re.compile(r"https?://[^\s'\"\\)>`]+")
+
+
+def web_use(sample) -> tuple[int, int, int]:
+    """Web searches, distinct URLs in shell and Python commands, and among them the .lean files
+    and GitHub repository addresses (code the agent may have copied)."""
+    searches, urls = 0, set()
+    for e in sample.events:
+        if not isinstance(e, ToolEvent):
+            continue
+        if e.function == "web_search":
+            searches += 1
+        elif e.function in ("bash", "python"):
+            urls.update(URL.findall(json.dumps(e.arguments)))
+    code = sum(u.split("?")[0].endswith(".lean") or re.match(r"https?://([a-z.]*\.)?github(usercontent)?\.com/", u) is not None for u in urls)
+    return searches, len(urls), code
 
 
 def all_input(u) -> int:
@@ -72,12 +96,13 @@ def stop_reasons(sample) -> list[str]:
 
 def rows_for(log_dir: Path):
     for info in list_eval_logs(str(log_dir)):
-        log = read_eval_log(info)
+        log = read_eval_log(info, resolve_attachments=True)  # long tool arguments are stored apart
         for s in log.samples or []:
             sc = (s.scores or {}).get("lean_check")
             md = sc.metadata if sc and sc.metadata else {}
             usage = s.model_usage or {}
             sessions = (s.store or {}).get("sessions", [])
+            searches, urls, code_urls = web_use(s)
             yield {
                 "run": log_dir.name,
                 "model": log.eval.model,
@@ -111,6 +136,9 @@ def rows_for(log_dir: Path):
                 "limit": s.limit.type if s.limit else "",
                 "objection": int(any(r.get("objection") for r in sessions)),
                 "submitted": " | ".join(t for r in sessions if (t := r.get("submitted")) and t.lower() != "done")[:500],
+                "searches": searches,
+                "urls": urls,
+                "code_urls": code_urls,
             }
 
 

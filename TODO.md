@@ -40,8 +40,13 @@ Harness work in this repository, as of 2026-10-28.
 
 ## The paper's results section
 
-5. **Paper tables generated from `results.csv`:** the per-problem and summary tables as LaTeX,
-   instead of copying numbers by hand.
+5. **Paper tables generated from `results.csv`** (done 2026-11-01, `scripts/paper_tables.py`): the summary
+   table and, per configuration, the per-problem table with problems down the page and the quantities
+   across with rotated headers (Sven's suggestion), parts pooled, superseded attempts left out, a
+   preview document to compile. `results.csv` gained `searches`, `urls`, `code_urls` (web use per
+   attempt) and `data/reference_lengths.csv` the length of the 19 reference solutions
+   (`scripts/reference_lengths.py`). Still to do: Sven's plots (e.g. cost against the reference proof
+   length, marked by verdict and category) once a full run is in.
 
 Additions to `scripts/stats.py` modelled on QEDRank's statistics code (the JavaScript in
 `QEDRank_java/qedrank/lib/` up to commit 0b097f7, and in github.com/vaibhav-baj/QEDRank):
