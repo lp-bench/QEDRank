@@ -29,7 +29,21 @@ class ApptainerSandboxConfig(BaseModel, frozen=True):
 
     writable_tmpfs: bool = True
     """Make the rest of the image writable through a small in-memory overlay
-    (``--writable-tmpfs``; its size is set by the site, 64 MiB by default)."""
+    (``--writable-tmpfs``; its size is set by the site, 64 MiB by default).
+    Avoid it for long-running sandboxes that read many files: a rootless
+    Apptainer provides this overlay with ``fuse-overlayfs``, which keeps one
+    file descriptor per file ever looked up and, at the process's limit, makes
+    every ``open()`` in the sandbox fail with "Too many open files" (a Lean
+    sandbox on a cluster with a 131,072 limit got there after about 3,000
+    commands).  Without it the root stays read-only (kernel overlay) and only
+    the ``writable`` paths can be written; see ``seed``."""
+
+    seed: list[str] = Field(default_factory=list)
+    """Paths of ``writable`` whose scratch directory is first filled with the
+    image's content at that path (``cp -a`` in a throwaway container), so the
+    sandbox starts with what the image ships there and can write into it:
+    the way to make a populated directory of the read-only image writable
+    without ``writable_tmpfs``, e.g. a Lean project's build directory."""
 
     binds: list[str] = Field(default_factory=list)
     """Extra ``--bind`` specifications (``src:dst[:ro]``), e.g. read-only data."""

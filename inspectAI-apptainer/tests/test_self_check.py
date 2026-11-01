@@ -1,6 +1,7 @@
 """Inspect's portable sandbox checks, plus Apptainer-specific ones."""
 
 from inspect_ai.util import SandboxEnvironment, SandboxUserUnsupportedError
+from inspect_apptainer import ApptainerSandboxConfig, ApptainerSandboxEnvironment
 from inspect_ai.util._sandbox.self_check import *  # noqa: F401,F403
 
 import pytest
@@ -92,3 +93,29 @@ async def test_exec_as_other_user_refused(sandbox_env: SandboxEnvironment) -> No
 async def test_scratch_discarded_between_samples(sandbox_env: SandboxEnvironment) -> None:
     result = await sandbox_env.exec(["sh", "-c", "ls -A /tmp /var/tmp | grep -v ':' | grep -v '^$' | wc -l"])
     assert result.stdout.strip() == "0", f"scratch not fresh: {result.stdout!r}"
+
+
+async def test_seeded_writable_without_tmpfs_overlay() -> None:
+    """Without the writable tmpfs (fuse-overlayfs, which leaks file descriptors) the root is
+    read-only, a seeded writable path starts with the image's content and can be written, and
+    no FUSE overlay serves the root."""
+    import os
+    from pathlib import Path
+
+    IMAGE = os.environ.get("INSPECT_APPTAINER_TEST_IMAGE", str(Path(__file__).parent / "alpine.sif"))
+    config = ApptainerSandboxConfig(
+        image=IMAGE, workdir="/tmp", writable_tmpfs=False, writable=["/tmp", "/var/tmp", "/etc"], seed=["/etc"]
+    )
+    envs = await ApptainerSandboxEnvironment.sample_init("seed-check", config, {})
+    try:
+        env = envs["default"]
+        release = await env.exec(["cat", "/etc/passwd"])
+        assert release.success and release.stdout.strip(), "seeded /etc lacks the image's files"
+        written = await env.exec(["sh", "-c", "echo x > /etc/seed-check && cat /etc/seed-check"])
+        assert written.success and written.stdout.strip() == "x", "seeded /etc is not writable"
+        root = await env.exec(["sh", "-c", "echo x > /seed-check"])
+        assert not root.success, "the root should be read-only without the tmpfs overlay"
+        mounts = await env.exec(["sh", "-c", "grep -c fuse-overlayfs /proc/mounts || true"])
+        assert mounts.stdout.strip() == "0", f"a FUSE overlay is in use: {mounts.stdout}"
+    finally:
+        await ApptainerSandboxEnvironment.sample_cleanup("seed-check", config, envs, False)

@@ -56,6 +56,7 @@ from inspect_apptainer._config import ApptainerSandboxConfig, resolve_config
 
 INSTANCE_PREFIX = "inspect-"
 CONTROL_DIR = "/.inspect-apptainer"  # per-sample command scripts, bound read-only
+SEED_DIR = "/.inspect-apptainer-seed"  # where a seeded scratch directory is bound while it is filled
 
 # Host-issued commands never resolve utilities through the image's PATH (see the
 # `exec` contract of SandboxEnvironment): the shell is launched by absolute path
@@ -202,6 +203,8 @@ class ApptainerSandboxEnvironment(SandboxEnvironment):
         for i, target in enumerate(cfg.writable):
             host_dir = scratch / f"w{i}"
             host_dir.mkdir(mode=0o700)
+            if target in cfg.seed:
+                await cls._seed(binary, cfg, target, host_dir, scratch)
             args += ["--bind", f"{host_dir}:{target}"]
         for bind in cfg.binds:
             args += ["--bind", bind]
@@ -217,6 +220,23 @@ class ApptainerSandboxEnvironment(SandboxEnvironment):
             )
         cls._started.add(name)
         return cls(binary, name, cfg, scratch)
+
+    @classmethod
+    async def _seed(
+        cls, binary: str, cfg: ApptainerSandboxConfig, target: str, host_dir: Path, scratch: Path
+    ) -> None:
+        """Fill the scratch directory bound over ``target`` with the image's content
+        there, in a throwaway container (no instance; the image's ``cp``)."""
+        args = [
+            binary, "exec", "--containall", "--cleanenv", "--bind", f"{host_dir}:{SEED_DIR}",
+            cfg.image, "/bin/sh", "-c", f'cp -a "$1/." {SEED_DIR}/', "inspect-apptainer", target,
+        ]
+        result = await subprocess(args, timeout=cfg.start_timeout)
+        if not result.success:
+            shutil.rmtree(scratch, ignore_errors=True)
+            raise RuntimeError(
+                f"seeding {target} from the image failed (exit {result.returncode}):\n{result.stderr}"
+            )
 
     @override
     @classmethod

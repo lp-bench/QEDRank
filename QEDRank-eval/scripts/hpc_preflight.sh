@@ -27,8 +27,8 @@ echo "      scratch dir for sandboxes: ${TMPDIR:-/tmp}"
 echo "== image $SIF"
 if [ ! -f "$SIF" ]; then fail "no image at $SIF"; echo "FAILS: $fails"; exit 1; fi
 pass "size $(du -h "$SIF" | cut -f1)"
-A="apptainer exec --containall --cleanenv --writable-tmpfs"
-$A "$SIF" /bin/true 2>/dev/null && pass "exec with --containall --cleanenv --writable-tmpfs" || fail "basic exec fails"
+A="apptainer exec --containall --cleanenv"  # as the harness runs: no writable tmpfs (its fuse-overlayfs runs out of file descriptors)
+$A "$SIF" /bin/true 2>/dev/null && pass "exec with --containall --cleanenv" || fail "basic exec fails"
 if $A --net --network none "$SIF" /bin/true 2>/dev/null; then pass "--net --network none (network namespace allowed for users)"
 else fail "--net --network none refused: site disallows user network namespaces; run with network=host and tell the paper the sandbox was not offline"; fi
 T=$(mktemp -d); echo hi > "$T/in"
@@ -37,9 +37,8 @@ else fail "bind mount of a host directory fails (user bind control off?)"; fi
 rm -rf "$T"
 if $A "$SIF" sh -c 'env | grep -qiE "KEY|TOKEN|SECRET"' 2>/dev/null; then fail "host environment leaks into the container"; else pass "no host environment inside (--cleanenv)"; fi
 n=$($A "$SIF" sh -c 'ls /proc | grep -c "^[0-9]"' 2>/dev/null); [ "${n:-99}" -le 5 ] && pass "own PID namespace ($n processes visible)" || warn "PID namespace not isolated ($n processes visible)"
-mb=$($A "$SIF" sh -c 'dd if=/dev/zero of=/var/tmp/x bs=1M count=512 2>&1 | tail -n1; rm -f /var/tmp/x' 2>/dev/null | grep -oE '^[0-9]+ bytes' | awk '{printf "%d", $1/1048576}')
-if [ "${mb:-0}" -ge 256 ]; then pass "writable-tmpfs overlay holds ${mb} MB (needed: Lean build outputs of a submission)"
-else warn "writable-tmpfs overlay only ${mb:-0} MB (site 'sessiondir max size'); add the project's .lake/build to the writable binds"; fi
+fuse=$($A "$SIF" sh -c 'grep -c fuse-overlayfs /proc/mounts' 2>/dev/null); [ "${fuse:-1}" = 0 ] && pass "no FUSE overlay serves the root (kernel overlay; no file-descriptor leak)" || fail "the root is served by fuse-overlayfs even without --writable-tmpfs: long sandboxes will run out of file descriptors"
+T=$(mktemp -d); if $A --bind "$T:/opt/proofbench/.lake/build" "$SIF" sh -c 'touch /opt/proofbench/.lake/build/x' 2>/dev/null && [ -f "$T/x" ]; then pass "the Lean build directory can be bound writable (seeded from the image by the harness)"; else fail "cannot bind a host directory over /opt/proofbench/.lake/build"; fi; rm -rf "$T"
 $A "$SIF" sh -c 'cd /opt/proofbench && lake env lean --version' >/dev/null 2>&1 && pass "lake + lean run in the image ($($A "$SIF" sh -c 'cd /opt/proofbench && lake env lean --version' 2>/dev/null))" || fail "lake env lean fails in the image"
 $A "$SIF" sh -c 'cd /opt/proofbench && lake env lean ProofBench/PROBLEMS/P109/P109.lean' >/dev/null 2>&1 && pass "a statement file compiles from the cached oleans" || warn "P109 statement does not compile (missing from this image, or oleans stale)"
 $A "$SIF" /opt/venv/bin/lean-lsp-mcp --help >/dev/null 2>&1 && pass "lean-lsp-mcp present" || fail "lean-lsp-mcp missing"

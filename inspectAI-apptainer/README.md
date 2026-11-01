@@ -71,8 +71,17 @@ One Apptainer instance per sample:
     environment still applies.
   - `--network none` is the only network an unprivileged user may request.
   - Every path in `writable` gets a fresh per-sample host directory bound over
-    it; `--writable-tmpfs` makes the rest of the image writable through a small
-    in-memory overlay (its size is set by the site, 64 MiB by default).
+    it; a path also listed in `seed` has that directory filled with the image's
+    content first (`cp -a` in a throwaway container), so a populated directory
+    of the image becomes writable. `--writable-tmpfs` (`writable_tmpfs`, on by
+    default) makes the rest of the image writable through a small in-memory
+    overlay (its size is set by the site, 64 MiB by default). Leave it off for
+    long sandboxes that read many files: rootless Apptainer provides that
+    overlay with `fuse-overlayfs`, which keeps one file descriptor per file ever
+    looked up and, at the process's limit, makes every `open()` in the sandbox
+    fail with "Too many open files" (a Lean sandbox on a cluster with a 131,072
+    limit got there after about 3,000 commands). Without it the root is a
+    read-only kernel overlay and only the `writable` paths can be written.
   - No host directory other than those scratch directories is bound.
 - `exec` runs `apptainer exec --cleanenv --pwd DIR instance://NAME /bin/sh
   SCRIPT`. Commands travel as scripts in a per-sample control directory (bound
@@ -100,10 +109,12 @@ One Apptainer instance per sample:
 - Apptainer (or Singularity) with user bind mounts enabled (`user bind control
   = yes`, the default) and network namespaces allowed for users (if a site
   disables them, set `network: host`).
-- An image with `/bin/sh`, `tar`, `base64`, `sleep`, `tr`, `grep` and `kill`
-  (GNU coreutils and BusyBox both work).
-- Writable paths the agent needs must be listed in `writable` (or fit in the
-  tmpfs overlay): the image is read-only and the agent is not root.
+- An image with `/bin/sh`, `tar`, `base64`, `sleep`, `tr`, `grep`, `kill` and,
+  for `seed`, `cp` (GNU coreutils and BusyBox both work).
+- Writable paths the agent needs must be listed in `writable` (seeded from the
+  image with `seed` where the image ships content there, or fitting in the
+  tmpfs overlay if `writable_tmpfs` is on): the image is read-only and the
+  agent is not root.
 
 ## Tests
 

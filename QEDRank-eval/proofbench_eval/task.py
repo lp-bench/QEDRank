@@ -93,6 +93,31 @@ Rules, checked automatically after you submit:
    everything it started; split longer computations into several calls.
    The Lean language-server tools (goal state, diagnostics, search) are
    available when present; the file path for them is `{submission_rel}`.
+{web}"""
+
+# Rule 5 of INSTRUCTIONS: what the agent may do with the web, one version per condition, so
+# that every model reads the same expectation.  With search on, a published proof or an
+# existing formalization may be used: the run measures a verified proof of the statement, not
+# originality (the runs without search are the comparison).  The source comment gives
+# provenance in the files themselves, on top of the fetch log.
+WEB_ON = """\
+5. You have internet access: the `web_search` tool, and `curl` in the shell
+   for reading pages and downloading files.  Use it as you would in real
+   work: look for the paper, its proof and any existing Lean formalization,
+   and use what you find (copy it into files under `Submission/{pid}/`, with
+   the source in a comment).  What is graded is a complete, verified proof
+   of the given statement; originality is not required.
+"""
+WEB_NET = """\
+5. You have internet access through `curl` in the shell (no search tool):
+   you may read pages and download files, and use what you find (copy it
+   into files under `Submission/{pid}/`, with the source in a comment).  What
+   is graded is a complete, verified proof of the given statement;
+   originality is not required.
+"""
+WEB_OFF = """\
+5. The sandbox has no internet access: Mathlib, the installed tools and your
+   own knowledge are all you have.
 """
 
 # Added to rule 2 of INSTRUCTIONS for a problem whose database entry permits fewer
@@ -155,7 +180,7 @@ def qualified_theorem(text: str, pid: str) -> str:
 
 def load_samples(
     statements: str, ids: str | list[str], project_dir: str, comparator: bool = True,
-    tool_timeout: int = 1800,
+    tool_timeout: int = 1800, search: bool = False, network: bool = False,
 ) -> list[Sample]:
     root = Path(statements)
     if not root.is_absolute():  # Inspect runs tasks from the task file's directory
@@ -223,6 +248,7 @@ def load_samples(
                     axioms=axiom_list(axioms),
                     tool_limit=duration(tool_timeout),
                     constructive="" if "Classical.choice" in axioms else CONSTRUCTIVE,
+                    web=(WEB_ON if search else WEB_NET if network else WEB_OFF).format(pid=pid),
                 ),
                 target=theorem,
                 files=files,
@@ -304,9 +330,15 @@ def proofbench(
             ApptainerSandboxConfig(
                 image=str(sif_path),
                 network="host" if network else "none",
-                # the image is read-only and the agent is not root: give it scratch
-                # space where it needs to write
-                writable=["/tmp", "/var/tmp", f"{project_dir}/Submission"],
+                # The image is read-only and the agent is not root: scratch space where
+                # it writes, and the project's build directory seeded from the image
+                # (the prebuilt statement library; lake writes the submission's outputs
+                # next to it).  No writable tmpfs: rootless Apptainer provides it with
+                # fuse-overlayfs, which runs out of file descriptors in a long Lean
+                # session (TUBAF, 2026-11-01: three attempts of a run lost sessions).
+                writable=["/tmp", "/var/tmp", f"{project_dir}/Submission", f"{project_dir}/.lake/build"],
+                seed=[f"{project_dir}/.lake/build"],
+                writable_tmpfs=False,
                 workdir=project_dir,
                 # second, always-offline instance where the scorer grades
                 services={"verifier": {"network": "none"}},
@@ -327,7 +359,7 @@ def proofbench(
     )
 
     return Task(
-        dataset=load_samples(statements, ids, project_dir, comparator, tool_timeout),
+        dataset=load_samples(statements, ids, project_dir, comparator, tool_timeout, search, network),
         solver=solver,
         scorer=lean_check(),
         sandbox=sandbox_spec,

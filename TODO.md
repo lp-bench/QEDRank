@@ -71,6 +71,19 @@ Additions to `scripts/stats.py` modelled on QEDRank's statistics code (the JavaS
 
 ## Still pending
 
+- **Official run 1, part 1 (Fable, search on, job 9128, 2026-11-01):** 15/39 solved (calibration 7/7,
+  research 8/21, open 0/11), $481, 9.4 h, Zenodo 10.5281/zenodo.23855778. Three attempts were damaged
+  by the node (P030 sessions 3-4, P069 session 4, P103 all four): rootless Apptainer provides
+  `--writable-tmpfs` with fuse-overlayfs, which keeps one file descriptor per file ever looked up
+  and reached the node's limit of 131,072 after about 3,000 commands, after which every `open()`
+  in that sandbox failed ("Too many open files"). Fixed the same day: no writable tmpfs, the
+  project's `.lake/build` is a writable bind seeded from the image (inspect-apptainer `seed`;
+  0.8 s per sandbox), and a sandbox failure counts as infrastructure (session restarted
+  uncounted, then NOANSWER). The prompt gained rule 5 on web use (one version per condition:
+  search on, network only, offline). Pending decision: re-run part 1 with the final harness
+  (recommended; the archived part 1 becomes a superseded version) or keep it with a footnote.
+  With search on, P008 and P054 were solved with OpenAI's public Lean formalizations fetched from
+  GitHub (openai/math, openai/cdc-lean): flag such solves in the analysis from the fetch log.
 - **Opus pilots done** (2026-10-28, $10.50 together, `EFFORT=xhigh`, 4 sessions, 40k per reply,
   120k per session): P014, P034, P017, P019, P011, P012 solved, each in its first session
   (max reply 31k, max session output 71k); P115 (open) unsolved after 4 sessions, $3.29. Its
