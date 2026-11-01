@@ -231,8 +231,10 @@ tests/timeout_run.py         a tool call over its limit ends at once, runs once,
   checks that it actually engages.
 - Claimed solutions of open problems are checked by hand before any claim is
   made.
-- Provider failures are not the model's: a session ended by a rate limit or a
-  server or connection error is started again without counting, and a used-up
+- Provider and sandbox failures are not the model's: a session ended by a rate
+  limit, a server or connection error, or a sandbox that stopped working (its
+  node out of file descriptors, the instance gone) is started again without
+  counting, and a used-up
   account budget (daily limit, quota, credit) stops the problem at once; so do
   used-up search credits (Tavily refusing every search), instead of the agent
   working on without search. An unsolved problem stopped this way is scored

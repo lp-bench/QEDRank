@@ -257,6 +257,16 @@ QUOTA_MESSAGE = re.compile(
 )
 # The same for the search credits: proofbench_eval/search.py raises this when Tavily refuses.
 QUOTA_ERRORS = ("SearchUnavailable",)
+# The sandbox or its node failed (Inspect's tool server could not be started in the sandbox, a
+# command could not start for "Too many open files", the instance is gone): not the model's work
+# either, so it is handled like a provider failure: the session is started again uncounted, and
+# if that fails too the chain stops and the problem is scored NOANSWER (run it again).  Seen on
+# the TUBAF cluster on 2026-11-01, where a node ran out of file descriptors for 1.5 hours.
+INFRA_ERRORS = ("SandboxInjectionError", "SandboxUnavailableError")
+INFRA_MESSAGE = re.compile(
+    r"too many open files|failed to inject sandbox tools|apptainer (exec|instance start) failed"
+    r"|instance .* is not running|no instance found", re.I
+)
 
 
 def _exceptions(ex: BaseException):
@@ -274,12 +284,15 @@ def _exceptions(ex: BaseException):
 
 def error_kind(ex: BaseException) -> str:
     """'quota' when the account's budget or the search credits are used up, 'provider' for
-    rate limits, server and connection failures, 'other' for everything else."""
+    rate limits, server and connection failures and for sandbox failures (INFRA_ERRORS: the
+    node, not the model), 'other' for everything else."""
     provider = False
     for e in _exceptions(ex):
         if type(e).__name__ in QUOTA_ERRORS or QUOTA_MESSAGE.search(f"{type(e).__name__}: {e}"):
             return "quota"
-        provider |= any(n in type(e).__name__ for n in PROVIDER_ERRORS) or bool(PROVIDER_MESSAGE.search(str(e)))
+        name = type(e).__name__
+        provider |= any(n in name for n in PROVIDER_ERRORS + INFRA_ERRORS) or bool(PROVIDER_MESSAGE.search(str(e)))
+        provider |= bool(INFRA_MESSAGE.search(str(e)))
     return "provider" if provider else "other"
 
 

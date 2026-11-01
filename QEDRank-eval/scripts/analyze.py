@@ -12,8 +12,8 @@ means the same for every model; tokens_cached is the part read from the prompt c
 cost_usd is the cost Inspect computed per call at the list prices of
 data/model_prices.yml (run.sh passes the file); empty when a model has no price
 there (e.g. the free GWDG models) and for logs from before 2026-10-26.
-status is C (correct), I (incorrect) or N (no answer: the provider ended an unsolved
-attempt, see provider_retries in task.py); correct is 1 or 0, and empty for N, so the
+status is C (correct), I (incorrect) or N (no answer: the provider or the sandbox ended an
+unsolved attempt, see provider_retries in task.py); correct is 1 or 0, and empty for N, so the
 rates of stats.py leave such attempts out (rerun those problems).
 polarity is `prove`, or `disprove` when the grade is for the negation of an open
 problem (Pxxx_DISPROVE.lean): the one that passed, else the one the agent edited.

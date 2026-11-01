@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 #SBATCH --job-name=proofbench-eval
-#SBATCH --cpus-per-task=16
-#SBATCH --mem=64G
-#SBATCH --time=12:00:00
+#SBATCH --cpus-per-task=32
+#SBATCH --mem=128G
+#SBATCH --time=24:00:00   # a part of 39 problems takes 8-15 h; 24 h fits the scheduler's backfill window, 48 h does not
 #SBATCH --output=logs/slurm-%j.out
 # One evaluation run on a Slurm cluster without Docker.  Inspect runs on the node
 # and starts one Apptainer instance per problem through the inspect-apptainer
@@ -19,6 +19,6 @@ module load apptainer 2>/dev/null || module load singularity 2>/dev/null || true
 source .venv/bin/activate
 export SANDBOX=apptainer
 export SIF=${SIF:-$PWD/proofbench-sandbox.sif}
-export MAX_SAMPLES=${MAX_SAMPLES:-$(( ${SLURM_CPUS_PER_TASK:-8} / 2 ))}   # 2 cores per sandbox
+export MAX_SAMPLES=${MAX_SAMPLES:-$(( ${SLURM_CPUS_PER_TASK:-8} / 4 ))}   # 4 cores per problem in progress
 export RUN_ID=${RUN_ID:-$(date -u +%Y%m%dT%H%M%SZ)_$(echo "${MODEL:?}" | tr '/:' '__')_search-${SEARCH:-false}_slurm${SLURM_JOB_ID:-}}
 exec scripts/run.sh
