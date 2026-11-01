@@ -66,8 +66,8 @@ default), on a Linux PC or an HPC cluster without root, or with Docker.
    formalized can submit a text starting with `FALSE:` and an explanation: this
    ends the attempt, unsolved, and is recorded for review by hand.
 5. **Records.** Each run freezes its configuration in `manifest.json` (harness
-   commit, image, Lean and Mathlib versions, problem commit, model, reasoning
-   effort, search, budgets), and [`scripts/analyze.py`](scripts/analyze.py)
+   commit, a hash of the evaluation code the model faces, image, Lean and Mathlib
+   versions, problem commit, model, reasoning effort, search, budgets), and [`scripts/analyze.py`](scripts/analyze.py)
    writes one row per attempt to `results.csv`: verdict, polarity (prove or
    disprove), sessions used, input tokens (cached or not) and output tokens,
    cost at the list prices in [`data/model_prices.yml`](data/model_prices.yml)

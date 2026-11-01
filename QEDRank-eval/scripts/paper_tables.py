@@ -222,6 +222,7 @@ def configuration_paragraph(manifests: dict[str, dict], by: dict[tuple[str, bool
     if not runs:
         return "% no manifests found\n"
     shared = [("harness commit", lambda m: r"\texttt{" + m.get("harness_commit", "")[:7] + "}"),
+              ("evaluation code hash", lambda m: r"\texttt{" + m.get("evaluation_code_sha256", "")[:12] + "}" if m.get("evaluation_code_sha256") else ""),
               ("sandbox image", lambda m: r"\texttt{" + (m.get("image") or m.get("image_id") or "") + "}"),
               ("Lean", lambda m: m.get("lean_toolchain", "").split(":v")[-1]),
               ("Mathlib commit", lambda m: r"\texttt{" + m.get("mathlib_commit", "")[:7] + "}"),

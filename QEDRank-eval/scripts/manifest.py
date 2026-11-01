@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Write logs/<run>/manifest.json: everything needed to reproduce or audit a run."""
 
+import hashlib
 import json
 import os
 import platform
@@ -8,6 +9,12 @@ import subprocess
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent.parent
+# The code the model faces and the grader: hashed into the manifest, so that runs whose
+# commits differ only in analysis scripts or documentation can be shown to have run the same
+# evaluation code.  The sandbox package's sources are added when it is an editable install.
+EVALUATION_CODE = ["proofbench_eval", "scripts/run.sh", "image/check_proof.py"]
 
 
 def sh(cmd: list[str]) -> str:
@@ -33,6 +40,22 @@ def _package_checkout(module: str) -> str:
     return src if src and sh(["git", "-C", src, "rev-parse", "HEAD"]) else ""
 
 
+def _evaluation_code_hash(apptainer_src: str) -> str:
+    """SHA-256 over the names and contents of the evaluation code files (EVALUATION_CODE and
+    the sandbox package), in a fixed order."""
+    files: list[tuple[str, Path]] = []
+    for rel in EVALUATION_CODE:
+        p = ROOT / rel
+        files += [(str(f.relative_to(ROOT)), f) for f in (sorted(p.rglob("*.py")) if p.is_dir() else [p])]
+    if apptainer_src:
+        files += [("inspect_apptainer/" + f.name, f) for f in sorted(Path(apptainer_src).glob("*.py"))]
+    h = hashlib.sha256()
+    for name, f in files:
+        if f.is_file() and "__pycache__" not in f.parts:
+            h.update(name.encode() + b"\0" + f.read_bytes() + b"\0")
+    return h.hexdigest()
+
+
 def main() -> None:
     run_dir = Path(sys.argv[1]); run_dir.mkdir(parents=True, exist_ok=True)
     kv = dict(a.split("=", 1) for a in sys.argv[2:])
@@ -48,6 +71,7 @@ def main() -> None:
                                          "from importlib.metadata import version;print(version('inspect-apptainer'))"]),
         "inspect_apptainer_commit": sh(["git", "-C", apptainer_src, "rev-parse", "HEAD"]) if apptainer_src else "",
         "inspect_apptainer_dirty": bool(apptainer_src and sh(["git", "-C", apptainer_src, "status", "--porcelain"])),
+        "evaluation_code_sha256": _evaluation_code_hash(apptainer_src),
         "image_id": kv.get("image") or sh(["docker", "image", "inspect", "--format", "{{.Id}}", "proofbench-sandbox:latest"]),
         "lean_toolchain": (statements / "lean-toolchain").read_text().strip() if (statements / "lean-toolchain").exists() else "",
         "mathlib_commit": _mathlib_commit(statements / "lake-manifest.json"),
