@@ -45,8 +45,10 @@ Harness work in this repository, as of 2026-10-28.
    across with rotated headers (Sven's suggestion), parts pooled, superseded attempts left out, a
    preview document to compile. `results.csv` gained `searches`, `urls`, `code_urls` (web use per
    attempt) and `data/reference_lengths.csv` the length of the 19 reference solutions
-   (`scripts/reference_lengths.py`). Still to do: Sven's plots (e.g. cost against the reference proof
-   length, marked by verdict and category) once a full run is in.
+   (`scripts/reference_lengths.py`). Sven's plots: `scripts/paper_plots.py` (done 2026-11-01) draws, per configuration, cost against
+   the reference proof length, cost against the submitted proof length, output tokens against working
+   time, and cost by category with medians, marked by verdict (filled/hollow) and category (colour and
+   shape; palette validated), plus ad-hoc `--x/--y` figures; regenerate after the official runs.
 
 Additions to `scripts/stats.py` modelled on QEDRank's statistics code (the JavaScript in
 `QEDRank_java/qedrank/lib/` up to commit 0b097f7, and in github.com/vaibhav-baj/QEDRank):
