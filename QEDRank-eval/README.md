@@ -139,6 +139,24 @@ Where Docker is available, `scripts/build_image.sh --sif` builds the Docker
 image and converts it. `scripts/hpc_preflight.sh` prints PASS, WARN or FAIL for
 everything the harness needs from the cluster; run it once on a compute node.
 
+**Lake's artifact cache (required for the Comparator).** A Lean package in the
+image may enable Lake's artifact cache (`enableArtifactCache = true`; the Matroid
+package does). Lake then wants to write `$HOME/.cache/lake` whenever it replays
+such a module, and the Comparator runs `lake build` in a Landlock sandbox where it
+cannot, so every proof importing the package would be rejected with "build failed".
+Mount a pre-filled cache read-only into the sandboxes:
+
+```bash
+scripts/make_lakecache.sh proofbench-sandbox.sif lakecache   # once per image, about a minute
+export APPTAINER_BIND=$PWD/lakecache/lake:/home/$USER/.cache/lake:ro   # SINGULARITY_BIND on Singularity
+IDS="..." MODEL=... sbatch scripts/slurm_eval.sbatch
+```
+
+With the artifacts present Lake writes nothing. An attempt graded without the
+mount can be re-graded with `scripts/comparator_offline.py RUN_DIR Pxxx`, which
+re-runs the same Comparator on the archived files; the paper scripts pick the
+record up (see `notes/grading_environment_2026-11-02.md`).
+
 ## On Windows
 
 Linux is the reference platform, but the harness also runs on Windows with the
@@ -229,6 +247,9 @@ tests/timeout_run.py         a tool call over its limit ends at once, runs once,
   graded run: some tricks pass layer 1 by design (see tests/grader_attacks).
 - Comparator needs Landlock in the host kernel; `scripts/hpc_preflight.sh`
   checks that it actually engages.
+- Comparator's Landlock sandbox also blocks Lake's artifact cache; mount the
+  pre-filled cache described under "On an HPC cluster" or proofs importing a
+  package that enables the cache are rejected as "build failed".
 - Claimed solutions of open problems are checked by hand before any claim is
   made.
 - Provider and sandbox failures are not the model's: a session ended by a rate
