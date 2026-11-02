@@ -62,10 +62,32 @@ def load(inputs: list[Path]) -> tuple[list[dict], dict[str, dict]]:
         csv_path = folder / "results.csv" if p.is_dir() else p
         manifest = json.load(open(folder / "manifest.json")) if (folder / "manifest.json").exists() else {}
         manifests[folder.name] = manifest
+        new = []
         for r in csv.DictReader(open(csv_path)):
             r["_run"] = folder.name
-            rows.append(r)
+            new.append(r)
+        apply_regrades(folder, new)
+        rows += new
     return rows, manifests
+
+
+def apply_regrades(folder: Path, rows: list[dict]) -> None:
+    """Offline Comparator re-runs (scripts/comparator_offline.py, folder/regrade/*.json): an attempt
+    whose in-run Comparator failed for an infrastructure reason counts as solved when the offline
+    run of the same Comparator accepts it.  The in-run verdict is kept in status_in_run and the
+    row marked (regraded), so tables can flag it.  See notes/grading_environment_2026-11-02.md."""
+    reg_dir = folder / "regrade"
+    if not reg_dir.is_dir():
+        return
+    records = {}
+    for f in sorted(reg_dir.glob("*.json")):
+        rec = json.load(open(f))
+        records[(rec["problem"], rec["target"].endswith("_DISPROVE"))] = rec
+    for r in rows:
+        rec = records.get((r["problem"], r.get("polarity") == "disprove"))
+        if rec and r["status"] == "I" and rec.get("offline_comparator_ok"):
+            r["status_in_run"], r["status"], r["correct"] = r["status"], "C", "1"
+            r["regraded"] = "offline comparator accepts"
 
 
 def pool(rows: list[dict]) -> dict[tuple[str, bool], dict[str, dict]]:
@@ -96,7 +118,13 @@ def pct(part: str, whole: str) -> str:
 
 
 def verdict(r: dict) -> str:
-    return {"C": r"\checkmark", "I": r"$\times$"}.get(r["status"], "--")
+    s = {"C": r"\checkmark", "I": r"$\times$"}.get(r["status"], "--")
+    return s + r"$^{\dagger}$" if r.get("regraded") else s
+
+
+REGRADE_NOTE = (r" $\dagger$: the in-run Comparator failed for an infrastructure reason (lake's artifact cache in the "
+                r"read-only sandbox, see the grading note in Methods); the verdict is from the offline re-run of the same "
+                r"Comparator and image on the archived files, the in-run verdict was $\times$. ")
 
 
 def rot(text: str) -> str:
@@ -159,6 +187,7 @@ def attempts_table(model: str, search: bool, attempts: dict[str, dict], cats: di
            f" web search, one attempt per problem: {solved} of {graded} graded problems solved" +
            (f", {noanswer} without a verdict (ended by the provider or the node; to be run again)" if noanswer else "") +
            r". -- marks a quantity that does not apply. Cost at the provider's list prices. Proof length counts every line of the submitted files, the statement file included. " +
+           (REGRADE_NOTE if any(r.get("regraded") for r in rows) else "") +
            configuration_note(manifest) + r"}\label{tab:attempts-" + slug(model, search) + r"} \\",
            r"\hline", "Problem & " + " & ".join(rot(h) for h, _ in cols) + r" \\", r"\hline", r"\endfirsthead",
            r"\multicolumn{" + str(len(cols) + 1) + r"}{l}{\small\textit{continued}} \\", r"\hline",
@@ -209,9 +238,12 @@ def summary_table(by: dict[tuple[str, bool], dict[str, dict]], cats: dict[str, s
         cost = num(sum(float(r["cost_usd"] or 0) for r in rows), 1, 2) if all(r["cost_usd"] for r in rows) else "--"
         out.append(f"{model_name(model)} & {'yes' if search else 'no'} & " + " & ".join(cells) +
                    f" & {total} & {noanswer or '--'} & {cost} " + r"\\")
+    regraded = sum(1 for a in by.values() for r in a.values() if r.get("regraded"))
     out += [r"\hline", r"\end{tabular}",
             r"\caption{Problems solved (solved/graded), one attempt per problem with up to four sessions. "
-            r"No answer: attempts ended by the provider or the node, which are run again. Cost at the providers' list prices.}",
+            r"No answer: attempts ended by the provider or the node, which are run again. Cost at the providers' list prices."
+            + (f" {regraded} verdict{'s' if regraded != 1 else ''} from the offline Comparator re-run ($\\dagger$ in the attempts tables)." if regraded else "")
+            + "}",
             r"\label{tab:summary}", r"\end{table}"]
     return "\n".join(out) + "\n"
 
