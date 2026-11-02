@@ -17,6 +17,18 @@ set -euo pipefail
 cd "${SLURM_SUBMIT_DIR:-$(dirname "$0")/..}"
 module load apptainer 2>/dev/null || module load singularity 2>/dev/null || true
 source .venv/bin/activate
+# Lake's artifact cache for the Comparator (notes/grading_environment_2026-11-02.md), mounted
+# read-only at $HOME/.cache/lake in every sandbox.  Without it the Comparator rejects every proof
+# that imports a package enabling the cache (Matroid) as "build failed", so the run refuses to
+# start when the cache is missing.  LAKECACHE=<dir> names another cache; LAKECACHE=none runs
+# without one (only for an image whose packages do not enable the artifact cache).  The manifest
+# records the cache's checksum (scripts/manifest.py).
+export LAKECACHE=${LAKECACHE:-$PWD/lakecache/lake}
+if [ "$LAKECACHE" != none ]; then
+  [ -d "$LAKECACHE/outputs" ] || { echo "error: lake cache $LAKECACHE missing; build it with scripts/make_lakecache.sh, or set LAKECACHE=none" >&2; exit 1; }
+  export APPTAINER_BIND="${APPTAINER_BIND:+$APPTAINER_BIND,}$LAKECACHE:$HOME/.cache/lake:ro"
+  export SINGULARITY_BIND="$APPTAINER_BIND"
+fi
 export SANDBOX=apptainer
 export SIF=${SIF:-$PWD/proofbench-sandbox.sif}
 export MAX_SAMPLES=${MAX_SAMPLES:-$(( ${SLURM_CPUS_PER_TASK:-8} / 4 ))}   # 4 cores per problem in progress

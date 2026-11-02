@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Day-one checks on a cluster (or any machine) before running with the Apptainer
 # sandbox: what the harness needs from Apptainer, the image, the host and Slurm.
-# usage: scripts/hpc_preflight.sh [proofbench-sandbox.sif]
+# usage: scripts/hpc_preflight.sh [proofbench-sandbox.sif] [lakecache/lake]
 # Prints PASS/FAIL/WARN per check; exit code 1 if any FAIL.
 SIF=${1:-proofbench-sandbox.sif}
 fails=0
@@ -53,5 +53,26 @@ if $A "$SIF" sh -c 'test -x /opt/verifier/bin/comparator && test -x /opt/verifie
   else fail "Landlock unavailable in this kernel (LSM not enabled?): Comparator would run unsandboxed"; fi
 else warn "verifier binaries missing from the image (COMPARATOR=off only)"; fi
 $A "$SIF" /usr/bin/timeout 1 sleep 0 >/dev/null 2>&1 && pass "timeout binary (inspect-apptainer needs it)" || fail "/usr/bin/timeout missing in the image"
+echo "== lake artifact cache for the Comparator (notes/grading_environment_2026-11-02.md)"
+LAKECACHE=${2:-${LAKECACHE:-lakecache/lake}}
+MATROID_MODULE=${MATROID_MODULE:-ProofBench.PROBLEMS.P015.P015}   # a statement importing Matroid
+if [ "$LAKECACHE" = none ]; then warn "LAKECACHE=none: no cache mounted; the Comparator rejects proofs importing a package that enables Lake's artifact cache (Matroid)"
+elif [ ! -d "$LAKECACHE/outputs" ]; then fail "lake cache $LAKECACHE missing (scripts/make_lakecache.sh): the Comparator would reject every proof importing Matroid"
+else
+  pass "lake cache $LAKECACHE ($(find "$LAKECACHE" -type f | wc -l) files)"
+  mp=$(echo "$MATROID_MODULE" | tr . /).lean
+  if $A "$SIF" test -f "/opt/proofbench/$mp" 2>/dev/null; then
+    T=$(mktemp -d); mkdir -p "$T/build" "$T/sub"
+    $A --bind "$T/build:/mnt/b" "$SIF" sh -c 'cp -a /opt/proofbench/.lake/build/. /mnt/b/' 2>/dev/null
+    printf '{"challenge_module": "%s", "solution_module": "%s", "theorem_names": ["%s"], "permitted_axioms": ["propext", "Classical.choice", "Quot.sound"]}\n' \
+      "$MATROID_MODULE" "$MATROID_MODULE" "${MATROID_MODULE##*.}" > "$T/sub/_comparator_preflight.json"
+    out=$($A --bind "$LAKECACHE:$HOME/.cache/lake:ro" --bind "$T/build:/opt/proofbench/.lake/build" --bind "$T/sub:/opt/proofbench/Submission" "$SIF" \
+      sh -c 'cd /opt/proofbench && LD_LIBRARY_PATH=/opt/verifier/lib lake env /opt/verifier/bin/comparator Submission/_comparator_preflight.json' 2>&1)
+    rm -rf "$T"
+    if echo "$out" | grep -q "failed to cache artifact"; then fail "the Comparator's lake build still cannot cache artifacts with $LAKECACHE mounted at \$HOME/.cache/lake (does the cache cover $MATROID_MODULE?)"
+    elif echo "$out" | grep -q -E "Exporting|kernel|Build completed"; then pass "the Comparator builds $MATROID_MODULE (imports Matroid) with the mounted cache"
+    else warn "Comparator check inconclusive: $(echo "$out" | grep -v '^trace:' | tail -n 1 | cut -c1-120)"; fi
+  else warn "no $MATROID_MODULE in the image: Comparator cache check skipped (set MATROID_MODULE)"; fi
+fi
 echo "FAILS: $fails"
 [ "$fails" -eq 0 ]

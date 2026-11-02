@@ -61,3 +61,29 @@ verdict, offline verdict, exit code, hashes of the files, command) and the full 
 output next to it. The archived run folders and their Zenodo versions stay unchanged; the
 regrade records are released as a further Zenodo version, and the analysis reads them
 (`REGRADE` records) so that tables show the corrected verdict with the original kept.
+
+## Tag `official-v1.1` (2026-11-02)
+
+The fix as part of the launcher, outside the evaluation code (whose hash stays
+9d6e862b64f7):
+
+* `scripts/slurm_eval.sbatch` mounts `lakecache/lake` (or `LAKECACHE=<dir>`) read-only at
+  `$HOME/.cache/lake` in every sandbox and refuses to start a run when the cache is missing
+  (`LAKECACHE=none` to run without one). A missing cache therefore stops the run instead of
+  producing wrong verdicts.
+* `scripts/manifest.py` records `lake_cache` and `lake_cache_sha256` (a hash of the cache's
+  contents), so each run's manifest states its grading environment.
+* `scripts/hpc_preflight.sh` checks that the cache is present and that the real Comparator
+  builds a Matroid-importing statement with it mounted (it fails on "failed to cache artifact").
+* `scripts/make_lakecache.sh` builds the cache; `scripts/comparator_offline.py` re-grades an
+  archived attempt.
+
+Runs from this tag on carry the mount by construction; parts 1 and 2 of the first configuration
+(Fable, web search) ran from `official-v1` with the mount absent (part 1) or set by hand in the
+job line (part 3 of the same configuration), and every attempt of parts 1 and 2 that reached the
+Comparator is re-graded offline, so that all reported verdicts come from the same grading
+environment.
+
+Later (changes the evaluation-code hash, so after the campaign): the scorer should classify a
+Comparator failure caused by its own setup ("failed to cache artifact", read-only file system)
+as "could not run" (status N) instead of a rejection.

@@ -56,6 +56,24 @@ def _evaluation_code_hash(apptainer_src: str) -> str:
     return h.hexdigest()
 
 
+def _lake_cache() -> dict:
+    """The lake artifact cache mounted into the sandboxes (scripts/slurm_eval.sbatch, LAKECACHE):
+    its path and a hash of its contents, so that the grading environment is on record
+    (notes/grading_environment_2026-11-02.md).  Empty when the launcher did not set LAKECACHE."""
+    path = os.environ.get("LAKECACHE", "")
+    if not path:
+        return {}
+    if path == "none":
+        return {"lake_cache": "none"}
+    p = Path(path)
+    if not p.is_dir():
+        return {"lake_cache": path, "lake_cache_sha256": ""}
+    h = hashlib.sha256()
+    for f in sorted(x for x in p.rglob("*") if x.is_file()):
+        h.update(str(f.relative_to(p)).encode() + b"\0" + f.read_bytes() + b"\0")
+    return {"lake_cache": str(p), "lake_cache_sha256": h.hexdigest()}
+
+
 def main() -> None:
     run_dir = Path(sys.argv[1]); run_dir.mkdir(parents=True, exist_ok=True)
     kv = dict(a.split("=", 1) for a in sys.argv[2:])
@@ -78,6 +96,7 @@ def main() -> None:
         "statements_commit": sh(["git", "-C", str(statements), "rev-parse", "HEAD"]),
         "proofbench_commit": (statements / "SOURCE_COMMIT").read_text().strip() if (statements / "SOURCE_COMMIT").exists() else "",
         "problem_ids": kv.get("ids", "").replace(",", " ").split(),
+        **_lake_cache(),
         **kv,
     }
     (run_dir / "manifest.json").write_text(json.dumps(manifest, indent=1) + "\n")

@@ -144,18 +144,21 @@ image may enable Lake's artifact cache (`enableArtifactCache = true`; the Matroi
 package does). Lake then wants to write `$HOME/.cache/lake` whenever it replays
 such a module, and the Comparator runs `lake build` in a Landlock sandbox where it
 cannot, so every proof importing the package would be rejected with "build failed".
-Mount a pre-filled cache read-only into the sandboxes:
+A pre-filled cache is mounted read-only into every sandbox:
 
 ```bash
 scripts/make_lakecache.sh proofbench-sandbox.sif lakecache   # once per image, about a minute
-export APPTAINER_BIND=$PWD/lakecache/lake:/home/$USER/.cache/lake:ro   # SINGULARITY_BIND on Singularity
-IDS="..." MODEL=... sbatch scripts/slurm_eval.sbatch
+scripts/hpc_preflight.sh proofbench-sandbox.sif lakecache/lake   # checks the cache with the real Comparator
+IDS="..." MODEL=... sbatch scripts/slurm_eval.sbatch   # mounts lakecache/lake itself (LAKECACHE=<dir> for another)
 ```
 
-With the artifacts present Lake writes nothing. An attempt graded without the
-mount can be re-graded with `scripts/comparator_offline.py RUN_DIR Pxxx`, which
-re-runs the same Comparator on the archived files; the paper scripts pick the
-record up (see `notes/grading_environment_2026-11-02.md`).
+With the artifacts present Lake writes nothing. The Slurm wrapper refuses to
+start a run without the cache (`LAKECACHE=none` overrides, for an image whose
+packages do not enable the cache), and the run's manifest records the cache's
+checksum (`lake_cache_sha256`). An attempt graded without the mount can be
+re-graded with `scripts/comparator_offline.py RUN_DIR Pxxx`, which re-runs the
+same Comparator on the archived files; the paper scripts pick the record up
+(see `notes/grading_environment_2026-11-02.md`).
 
 ## On Windows
 
