@@ -7,6 +7,12 @@ When an item is done, delete it. When part of it is done, delete only that part.
 - When websearch is on, we must (?) allow the agent install Lean libraries and incorporate them in their proof. Checker must be adjusted accordingly because currently checker does not allow it. We should have this as a swtichable option. --libraries-on --libraries-off
 (Claude: a library's code runs at compile time inside the same containers as the agent's own code, so no new way to reach the host, but unaudited third-party code. Belongs to the search-on configuration: finding and using a library is a capability we measure; fair because every model gets the same switch.)
 
+## v2 of the harness, after the paper (changes evaluation code or agent behaviour; not during the campaign)
+- Memory accounting per sandbox: a sandbox's processes must not depend on the neighbours' memory use (the job's 160 GB is shared by 8 sandboxes; the kernel killed the model's own computations in a few attempts, grading untouched).
+- Working-time cap per session: Inspect 0.3.276 does not enforce a scoped `working_limit` during a run (checked only on checkpoint restore); check it after each tool call in sessions.py, or drop the parameter. See notes/session_limits_2026-11-03.md.
+- Scorer: a Comparator failure caused by its own setup ("failed to cache artifact", read-only file system) should be "could not run" (status N), not a rejection. See notes/grading_environment_2026-11-02.md.
+- Slurm marks a job OUT_OF_MEMORY after any oom_kill even when the run finished and archived; the wrapper could say so in its last line.
+
 ## Claude not needed after this line. ##
 
 WAITING for DECISION/HPC ACCESS/OTHER REASON
