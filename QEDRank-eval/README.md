@@ -235,6 +235,7 @@ tests/grader_attacks/        cheating attempts the grader must reject, and run.s
 tests/test_targets.py        proof or disproof: which file is graded and reported (fake sandbox, seconds)
 tests/mock_run.py            a whole two-session run with a scripted mock model, no API: notes, snapshot (Apptainer, 1 min)
 tests/provider_errors_run.py the same with a rate limit and a used-up daily limit: NOANSWER, not INCORRECT
+tests/zenodo_publish_guard.py the uploader with concurrent runs: another run's draft is waited for, a lock serializes uploads (fake API, seconds)
 tests/objection_run.py       a mock agent replies without a tool call (budget nudge), then submits FALSE:
 tests/constructive_run.py    a proof using Classical.choice, submitted to a problem declared constructive, is rejected
 tests/timeout_run.py         a tool call over its limit ends at once, runs once, and leaves no process behind
@@ -263,6 +264,9 @@ tests/timeout_run.py         a tool call over its limit ends at once, runs once,
   used-up search credits (Tavily refusing every search), instead of the agent
   working on without search. An unsolved problem stopped this way is scored
   NOANSWER (status `N` in `results.csv`, left out of the rates); run it again.
+- Runs ending at the same time do not share a Zenodo draft: the uploader takes a
+  lock next to the run folders and waits for another run's draft to be published
+  (`ZENODO_WAIT`, default 3 hours); see `notes/zenodo_uploads_2026-11-03.md`.
 - The per-session working-time cap (`SESSION_WORKING_TIME`) is not enforced by
   Inspect 0.3.276 during a run (scoped working limits are checked only on
   checkpoint restore); the effective per-session bound is the output-token

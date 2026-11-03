@@ -15,12 +15,21 @@ publication), the record must have room for two more files (Zenodo allows 100), 
 run must not be archived yet; a step that fails leaves no draft behind. Without
 ZENODO_TOKEN nothing is done. The run itself is never failed. On success the receipt
 (DOI, link, files) is written to LOG_DIR/ZENODO.json.
+
+Concurrent runs (since harness v1.2): a concept holds one unpublished draft at a time, so
+two runs ending together must not share it. Uploads of runs on one machine are serialized
+by a lock file next to the run folders (LOG_DIR/../.zenodo.lock), and a draft that belongs
+to another run (files or version of a run other than this one) is left alone: the upload
+waits, up to ZENODO_WAIT seconds (default 3 hours), until that draft is published or gone.
+A leftover draft of an earlier attempt of the same run is still reused.
 """
+import fcntl
 import hashlib
 import json
 import os
 import sys
 import tempfile
+import time
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -91,9 +100,9 @@ def publish(log_dir: Path, run_id: str, token: str, concept: str, api: str) -> d
         zip_run(log_dir, run_id, archive)
         data = {names[0]: (log_dir / "SHA256SUMS").read_bytes(), names[1]: archive.read_bytes()}
 
-    # One unpublished new-version draft at most: a leftover draft is returned and reused.
-    draft_url = call("POST", f"{api}/deposit/depositions/{latest['id']}/actions/newversion", token)["links"]["latest_draft"]
-    draft = call("GET", draft_url, token)
+    # One unpublished new-version draft at most: a leftover draft of this run is reused, a
+    # draft of another run (ending at the same time) is waited for.
+    draft = _own_draft(latest, run_id, published, token, api)
     try:
         for f in draft.get("files") or []:  # leftovers of an earlier attempt
             if f["filename"] not in published:
@@ -126,6 +135,52 @@ def publish(log_dir: Path, run_id: str, token: str, concept: str, api: str) -> d
     }
 
 
+def _own_draft(latest: dict, run_id: str, published: set, token: str, api: str) -> dict:
+    """The new-version draft for this run.  `newversion` returns the concept's existing
+    draft when there is one; if that draft belongs to another run (files not of this run,
+    or a version set to another run id), wait until it is published or deleted, then ask
+    again.  Waits at most ZENODO_WAIT seconds (default 10800)."""
+    deadline = time.monotonic() + float(setting("ZENODO_WAIT", "10800"))
+    inherited = latest["metadata"].get("version", "")
+    while True:
+        draft_url = call("POST", f"{api}/deposit/depositions/{latest['id']}/actions/newversion", token)["links"]["latest_draft"]
+        draft = call("GET", draft_url, token)
+        foreign_files = [f["filename"] for f in draft.get("files") or []
+                         if f["filename"] not in published and not f["filename"].startswith(run_id)]
+        version = draft.get("metadata", {}).get("version", "")
+        if not foreign_files and version in ("", inherited, run_id):
+            return draft
+        if time.monotonic() > deadline:
+            raise RuntimeError(f"a draft of another run ({version or foreign_files}) has been open for too long; retry by hand")
+        print(f"== Zenodo: waiting, a draft of another run is open ({version or ', '.join(foreign_files)})", flush=True)
+        time.sleep(30)
+
+
+class _upload_lock:
+    """Serializes the uploads of runs on one machine: a lock file next to the run folders,
+    waited for up to ZENODO_WAIT seconds."""
+
+    def __init__(self, log_dir: Path):
+        self.path = log_dir.resolve().parent / ".zenodo.lock"
+
+    def __enter__(self):
+        self.fh = open(self.path, "a")
+        deadline = time.monotonic() + float(setting("ZENODO_WAIT", "10800"))
+        while True:
+            try:
+                fcntl.flock(self.fh, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                return self
+            except OSError:
+                if time.monotonic() > deadline:
+                    raise RuntimeError(f"could not get the upload lock {self.path}; retry by hand")
+                print(f"== Zenodo: waiting for another run's upload ({self.path})", flush=True)
+                time.sleep(15)
+
+    def __exit__(self, *exc):
+        fcntl.flock(self.fh, fcntl.LOCK_UN)
+        self.fh.close()
+
+
 def main() -> None:
     log_dir, run_id = Path(sys.argv[1]), sys.argv[2]
     token, concept = setting("ZENODO_TOKEN"), setting("ZENODO_CONCEPT")
@@ -137,7 +192,8 @@ def main() -> None:
         print(f"== Zenodo: {run_id} is already archived (see {log_dir}/ZENODO.json)")
         return
     try:
-        receipt = publish(log_dir, run_id, token, concept, api)
+        with _upload_lock(log_dir):
+            receipt = publish(log_dir, run_id, token, concept, api)
     except Exception as e:
         print(f"== Zenodo: not archived: {e}", file=sys.stderr)
         print(f"   To retry: scripts/zenodo_publish.py {log_dir} {run_id}", file=sys.stderr)
