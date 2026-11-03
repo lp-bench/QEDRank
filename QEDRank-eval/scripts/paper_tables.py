@@ -262,8 +262,11 @@ def configuration_paragraph(manifests: dict[str, dict], by: dict[tuple[str, bool
               ("sessions per problem", lambda m: str(m.get("sessions", ""))),
               ("output tokens per session", lambda m: f"{int(m['session_output_tokens']):,}".replace(",", "{,}") if m.get("session_output_tokens") else ""),
               ("output tokens per reply", lambda m: f"{int(m['max_tokens']):,}".replace(",", "{,}") if m.get("max_tokens") else ""),
-              ("working time per session", lambda m: f"{int(m['session_working_time']) // 60} minutes" if m.get("session_working_time") else ""),
-              ("time per tool call", lambda m: f"{int(m['tool_timeout']) // 60} minutes" if m.get("tool_timeout") else "")]
+              ("time per attempt", lambda m: f"{int(m['time_limit']) // 3600} hours" if m.get("time_limit") else ""),
+              ("time per tool call", lambda m: f"{int(m['tool_timeout']) // 60} minutes" if m.get("tool_timeout") else ""),
+              # The per-session working-time cap was configured but never fired: Inspect 0.3.276 checks a
+              # scoped working limit only when restoring a checkpoint (notes/session_limits_2026-11-03.md).
+              ("working-time cap per session", lambda m: f"{int(m['session_working_time']) // 60} minutes, configured but not enforced by Inspect {m.get('inspect_version', '')} (see the grading note)" if m.get("session_working_time") else "")]
     common, differing = [], []
     for label, get in shared:
         values = {get(m) for m in runs.values()}

@@ -263,6 +263,10 @@ tests/timeout_run.py         a tool call over its limit ends at once, runs once,
   used-up search credits (Tavily refusing every search), instead of the agent
   working on without search. An unsolved problem stopped this way is scored
   NOANSWER (status `N` in `results.csv`, left out of the rates); run it again.
+- The per-session working-time cap (`SESSION_WORKING_TIME`) is not enforced by
+  Inspect 0.3.276 during a run (scoped working limits are checked only on
+  checkpoint restore); the effective per-session bound is the output-token
+  budget, plus the attempt time limit. See `notes/session_limits_2026-11-03.md`.
 - Reasoning-effort settings differ between vendors, and some models always
   think; record the effort per model and report it.
 - `scripts/check_statements.sh`, `scripts/verify_comparator.sh` and
