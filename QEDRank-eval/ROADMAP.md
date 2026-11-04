@@ -12,6 +12,7 @@ When an item is done, delete it. When part of it is done, delete only that part.
 - Working-time cap per session: Inspect 0.3.276 does not enforce a scoped `working_limit` during a run (checked only on checkpoint restore); check it after each tool call in sessions.py, or drop the parameter. See notes/session_limits_2026-11-03.md.
 - Scorer: a Comparator failure caused by its own setup ("failed to cache artifact", read-only file system) should be "could not run" (status N), not a rejection. See notes/grading_environment_2026-11-02.md.
 - Slurm marks a job OUT_OF_MEMORY after any oom_kill even when the run finished and archived; the wrapper could say so in its last line.
+- Feed the layer-1 verdict back: a later session starts from the files, their Lean output and the handoff note, but not from the rule check's result; P083 (Fable, no search) was a correct proof rejected four times for an altered reference `open` line, and the model never learned why (it followed its own note "submit done"). Show the rejection reasons at the start of the next session.
 - Tell the model its limits (prompt change): an environment paragraph in the session prompt (cores, memory, tool timeout, network state), as commercial harnesses do in tool descriptions and system prompts.
 - Explain kills: a wrapper around tool commands that turns a memory kill (bare "Killed", exit 137) into a message such as "process killed: the sandbox's memory limit was reached", so the model adapts instead of retrying (P053 retried 18 times in the Opus run).
 
