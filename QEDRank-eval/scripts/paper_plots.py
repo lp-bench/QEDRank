@@ -13,6 +13,8 @@ usage: scripts/paper_plots.py [--out DIR] [--x METRIC --y METRIC] [--labels] LOG
   --x/--y draw one ad-hoc figure instead; metrics: cost, output, input, working_time, total_time,
   sessions, tool_calls, model_calls, largest_prompt, proof_length, ref_length, searches.
   --labels writes the problem id next to every point (for our own reading; not for the paper).
+  --merge-search also draws cost-by-category per model with the attempts of both search settings
+  pooled (two per problem), as cost-by-category-<model>.pdf.
   --out defaults to paper-figures/ next to the first input.  Axes switch to a log scale when
   the values span more than two orders of magnitude."""
 import csv
@@ -163,10 +165,13 @@ def by_category(rows: list[dict], cats: dict[str, str], title: str, path: Path) 
 
 def main() -> None:
     args = sys.argv[1:]
-    out_dir, x, y, labels = None, None, None, False
+    out_dir, x, y, labels, merge = None, None, None, False, False
     if "--labels" in args:
         labels = True
         args.remove("--labels")
+    if "--merge-search" in args:
+        merge = True
+        args.remove("--merge-search")
     for flag in ("--out", "--x", "--y"):
         if flag in args:
             i = args.index(flag)
@@ -202,6 +207,14 @@ def main() -> None:
             print(f"{stem}-{s}.pdf: {n} points")
         n = by_category(data, cats, name, out_dir / f"cost-by-category-{s}.pdf")
         print(f"cost-by-category-{s}.pdf: {n} attempts")
+    if merge and not x:
+        by_model: dict[str, list[dict]] = {}
+        for (model, _search), attempts in pool(rows).items():
+            by_model.setdefault(model, []).extend(attempts.values())
+        for model, data in by_model.items():
+            s = slug(model, False).removesuffix("-nosearch")
+            n = by_category(data, cats, model_name(model) + ", with and without web search", out_dir / f"cost-by-category-{s}.pdf")
+            print(f"cost-by-category-{s}.pdf: {n} attempts")
     print(f"figures -> {out_dir}")
 
 
