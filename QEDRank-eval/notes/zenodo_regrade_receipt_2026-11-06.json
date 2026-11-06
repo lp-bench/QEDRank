@@ -1,0 +1,15 @@
+{
+ "run_id": "20261104T174700Z_regrade-records_grading-environment",
+ "doi": "10.5281/zenodo.24002743",
+ "url": "https://zenodo.org/records/24002743",
+ "record_id": 24002743,
+ "concept_record": "23857356",
+ "files": [
+  "20261104T174700Z_regrade-records_grading-environment.SHA256SUMS",
+  "20261104T174700Z_regrade-records_grading-environment.zip"
+ ],
+ "logs_uploaded": true,
+ "zip_sha256": "ea1414577aefccf6dc2d780d2846f2ae42f4f08428806599129774b581e5815b",
+ "zip_bytes": 15010646,
+ "requested_utc": "2026-11-06T08:47:38+00:00"
+}

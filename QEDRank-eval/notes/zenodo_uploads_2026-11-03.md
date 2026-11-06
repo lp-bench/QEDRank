@@ -20,3 +20,12 @@ v1.2 closes it in `scripts/zenodo_publish.py`, which is not evaluation code (the
 
 Tests without network: `python3 tests/zenodo_publish_guard.py`. Runs 10–12 (Fable without
 search) are the first from v1.2.
+
+## Re-grade version (2026-11-06)
+
+The offline re-grade records of the Fable/search parts 1 and 2 (36 records), the lake artifact
+cache mounted in all later runs (`lakecache-matroid-v1.tar.zst`, sha256 ad7f6bde…) and the three
+notes of this directory were published as one further version of concept 23857356:
+version `20261104T174700Z_regrade-records_grading-environment`, record 24002743,
+DOI 10.5281/zenodo.24002743 (receipt: `zenodo_regrade_receipt_2026-11-06.json`, package checksums:
+`zenodo_regrade_package_SHA256SUMS`). The run versions are unchanged.
