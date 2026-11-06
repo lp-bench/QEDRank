@@ -87,3 +87,16 @@ environment.
 Later (changes the evaluation-code hash, so after the campaign): the scorer should classify a
 Comparator failure caused by its own setup ("failed to cache artifact", read-only file system)
 as "could not run" (status N) instead of a rejection.
+
+## Provenance of the offline re-grade (added 2026-11-06)
+
+The 36 re-grade records (16 of part 1, 20 of part 2 of the Fable/search configuration) were
+produced on 2026-11-03 between 07:20 and 07:55 UTC with `scripts/comparator_offline.py` as
+introduced in commit bf470a2 and tagged `official-v1.1` (2026-11-02); the script is byte-identical
+in `official-v1.2` (2026-11-03 11:00 CET, after the re-grade), which changed only the Zenodo
+uploader. The Comparator binary and the image are those of the runs (image id in each record);
+the records store the image id, the hashes of the files checked, the Comparator configuration,
+the timestamp and the method, not the harness commit, which is stated here instead. The offline
+run does not mount the pre-filled cache: it gives lake a writable `HOME` under the project's
+`.lake` directory and a writable copy of the Matroid build directory, so lake can write the
+cache it needs; the runs from part 3 on reach the same state through the read-only mount.
