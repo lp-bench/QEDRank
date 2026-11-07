@@ -13,7 +13,7 @@ QEDRank/
   inspectAI-apptainer/       the Apptainer sandbox for Inspect that the harness uses on HPC, with
                              the full history of its former repository inspect-apptainer
   QEDRank-java/              a page that redirects to the web interface, published with GitHub
-                             Pages at https://proof-bench.github.io/QEDRank/
+                             Pages at https://lp-bench.github.io/QEDRank/
 ```
 
 ## Quick start

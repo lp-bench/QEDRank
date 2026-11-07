@@ -1,11 +1,11 @@
 # ProofBench evaluation harness
 
-[Website](https://proof-bench.github.io) ·
-[Problems](https://github.com/proof-bench/proofbench) ·
+[Website](https://lp-bench.github.io) ·
+[Problems](https://github.com/lp-bench/proofbench) ·
 **Evaluation harness** (this repository) ·
 [Apptainer sandbox](../inspectAI-apptainer)
 
-This harness runs AI agents on [ProofBench](https://github.com/proof-bench/proofbench),
+This harness runs AI agents on [ProofBench](https://github.com/lp-bench/proofbench),
 a benchmark of 116 research-level problems stated in Lean 4, and grades their
 proofs with Lean alone. Every model gets the same agent loop, the same tools,
 the same budget and the same sandbox, so differences in the results come from
@@ -109,9 +109,9 @@ default), on a Linux PC or an HPC cluster without root, or with Docker.
 ## Quick start
 
 ```bash
-git clone https://github.com/proof-bench/QEDRank
+git clone https://github.com/lp-bench/QEDRank
 cd QEDRank/QEDRank-eval
-git clone https://github.com/proof-bench/proofbench              # the problems
+git clone https://github.com/lp-bench/proofbench              # the problems
 scripts/setup.sh && . .venv/bin/activate     # Python environment with the harness
 
 export IDS="P088 P089 P090"            # problems of this run (three calibration problems)

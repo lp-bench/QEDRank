@@ -1,5 +1,5 @@
 # Publishes QEDRank-java/ (a redirect to the QEDRank web interface, https://qedrank.vercel.app)
-# with GitHub Pages at https://proof-bench.github.io/QEDRank/.
+# with GitHub Pages at https://lp-bench.github.io/QEDRank/.
 # One-time setup on GitHub: Settings -> Pages -> Source: GitHub Actions.
 # Skipped while the repository is private; runs when it is made public.
 name: pages

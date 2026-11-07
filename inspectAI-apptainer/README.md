@@ -19,14 +19,14 @@ sample gets its own fresh container:
 - its own process namespace, so the agent cannot look into the Inspect process.
 
 It passes Inspect's sandbox conformance suite (49 checks) on Apptainer 1.5, and
-it runs the [ProofBench evaluation harness](https://github.com/proof-bench/QEDRank), whose
+it runs the [ProofBench evaluation harness](https://github.com/lp-bench/QEDRank), whose
 repository holds this package in the folder `inspectAI-apptainer/`.
 It has been tested on a workstation and in CI; reports from clusters are welcome.
 
 ## Install
 
 ```bash
-pip install "git+https://github.com/proof-bench/QEDRank#subdirectory=inspectAI-apptainer"
+pip install "git+https://github.com/lp-bench/QEDRank#subdirectory=inspectAI-apptainer"
 ```
 
 ## Usage
