@@ -6,7 +6,7 @@
 [Apptainer sandbox](../inspectAI-apptainer)
 
 This harness runs AI agents on [LPBench](https://github.com/lp-bench/lp-bench),
-a benchmark of 117 research-level problems stated in Lean 4, and grades their
+a benchmark of 118 research-level problems stated in Lean 4, and grades their
 proofs with Lean alone. Every model gets the same agent loop, the same tools,
 the same budget and the same sandbox, so differences in the results come from
 the models and not from their tooling. It is built on
